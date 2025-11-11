@@ -1,0 +1,42 @@
+services:
+  postgres:
+    image: postgres
+    container_name: barbod-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:${POSTGRES_PORT}"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+
+  redis:
+    image: redis
+    container_name: barbod-redis
+    restart: always
+    ports:
+      - "6379:${REDIS_PORT}"
+    volumes:
+      - redis-data:/data
+
+  minio:
+    image: minio/minio
+    container_name: barbod-minio
+    restart: always
+    ports:
+      - "9000:${MINIO_PORT}"
+      - "9001:${MINIO_PANEL_PORT}"
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio-data:/data
+
+volumes:
+  postgres-data:
+  redis-data:
+  minio-data:
+    
