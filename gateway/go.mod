@@ -1,4 +1,4 @@
-module github.com/Barbod-Biometrics/Backened/common
+module github.com/Barbod-Biometrics/Backend/gateway
 
 go 1.24.0
 
