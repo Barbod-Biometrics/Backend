@@ -13,7 +13,6 @@ on:
 env:
   REGISTRY: ghcr.io
   GITHUB_OWNER: ${{ github.repository_owner }}
-  IMAGE_NAME: gateway
   IMAGE_PATH: barbod-biometrics
 
 jobs:
@@ -93,10 +92,7 @@ jobs:
     if: github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/tmp/deployment' || github.ref == 'refs/heads/feat/deploy')
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Deploy to server via SSH
+      - name: Deploy to server
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -108,7 +104,7 @@ jobs:
             docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PATH }}/gateway:${{ github.ref_name }}
             docker compose pull gateway
             docker compose up -d gateway
-            docker compose logs -f gateway --tail 50
+            
 
   notify:
     runs-on: ubuntu-latest
