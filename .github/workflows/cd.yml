@@ -90,7 +90,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: [build-and-push, test]
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/tmp/deployment')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/tmp/deployment' || github.ref == 'refs/heads/feat/deploy')
 
     steps:
       - name: Checkout repository
