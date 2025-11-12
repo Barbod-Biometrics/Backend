@@ -36,9 +36,7 @@ services:
       - minio-data:/data
 
   gateway:
-    build:
-      context: .
-      dockerfile: gateway/Dockerfile
+    image: ghcr.io/barbod-biometrics/gateway:latest
     container_name: barbod-gateway
     restart: always
     ports:
