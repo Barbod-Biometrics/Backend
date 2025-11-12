@@ -48,7 +48,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.GITHUB_OWNER }}/${{ matrix.service.name }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PATH }}/${{ matrix.service.name }}
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}
@@ -106,9 +106,9 @@ jobs:
           script: |
             cd /root/barbod/Backend
             docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PATH }}/gateway:${{ github.ref_name }}
-            docker-compose pull gateway
-            docker-compose up -d gateway
-            docker-compose logs -f gateway --tail 50
+            docker compose pull gateway
+            docker compose up -d gateway
+            docker compose logs -f gateway --tail 50
 
   notify:
     runs-on: ubuntu-latest
