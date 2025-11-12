@@ -15,7 +15,7 @@ type Config struct {
 	PostgresPort string `mapstructure:"POSTGRES_PORT"`
 	PostgresUser string `mapstructure:"POSTGRES_USER"`
 	PostgresPass string `mapstructure:"POSTGRES_PASSWORD"`
-	PostgresName string `mapstructure:"POSTGRES_NAME"`
+	PostgresDB   string `mapstructure:"POSTGRES_DB"`
 
 	// Cache (Redis)
 	RedisHost string `mapstructure:"REDIS_HOST"`
@@ -30,7 +30,7 @@ type Config struct {
 }
 
 func LoadConfig() (config Config, err error) {
-	viper.AddConfigPath("../")
+	viper.AddConfigPath("./")
 	viper.SetConfigName(".env")
 	viper.SetConfigType("env")
 
