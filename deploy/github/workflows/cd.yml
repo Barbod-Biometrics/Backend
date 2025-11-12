@@ -5,6 +5,7 @@ on:
     branches:
       - develop
       - tmp/deployment
+      - feat/deploy
   pull_request:
     branches:
       - develop
