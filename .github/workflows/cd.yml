@@ -14,6 +14,7 @@ env:
   REGISTRY: ghcr.io
   GITHUB_OWNER: ${{ github.repository_owner }}
   IMAGE_NAME: gateway
+  IMAGE_PATH: barbod-biometrics
 
 jobs:
   build-and-push:
@@ -63,8 +64,8 @@ jobs:
           push: ${{ github.event_name == 'push' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ format('{0}/{1}', env.GITHUB_OWNER, matrix.service.name) | lower }}:buildcache
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ format('{0}/{1}', env.GITHUB_OWNER, matrix.service.name) | lower }}:buildcache,mode=max
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PATH }}/${{ matrix.service.name }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PATH }}/${{ matrix.service.name }}:buildcache,mode=max
 
   test:
     runs-on: ubuntu-latest
@@ -104,7 +105,7 @@ jobs:
           port: ${{ secrets.SSH_PORT || 22 }}
           script: |
             cd /root/barbod/Backend
-            docker pull ${{ env.REGISTRY }}/${{ format('{0}/{1}', env.GITHUB_OWNER, matrix.service.name) | lower }}:${{ github.ref_name }}
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PATH }}/gateway:${{ github.ref_name }}
             docker-compose pull gateway
             docker-compose up -d gateway
             docker-compose logs -f gateway --tail 50
