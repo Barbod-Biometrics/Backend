@@ -1,11 +1,10 @@
-name: CI/CD Pipeline
+name: CD Pipeline
 
 on:
   push:
     branches:
       - develop
       - tmp/deployment
-      - feat/deploy
   pull_request:
     branches:
       - develop
@@ -67,9 +66,10 @@ jobs:
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PATH }}/${{ matrix.service.name }}:buildcache,mode=max
 
   test:
+    name: Build Gateway (Go)
     runs-on: ubuntu-latest
     needs: build-and-push
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/feat/deploy'
+    if: github.event_name == 'pull_request'
 
     steps:
       - name: Checkout repository
@@ -89,7 +89,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build-and-push
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/tmp/deployment' || github.ref == 'refs/heads/feat/deploy')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/tmp/deployment')
 
     steps:
       - name: Deploy to server
@@ -105,23 +105,4 @@ jobs:
             docker compose pull gateway
             docker compose up -d gateway
             
-
-  notify:
-    runs-on: ubuntu-latest
-    needs: [build-and-push, test, deploy]
-    if: always()
-
-    steps:
-      - name: Check job statuses
-        run: |
-          echo "Build & Push: ${{ needs.build-and-push.result }}"
-          echo "Tests: ${{ needs.test.result }}"
-          echo "Deploy: ${{ needs.deploy.result }}"
-
-      - name: Notify on success
-        if: ${{ needs.build-and-push.result == 'success' && needs.test.result != 'failure' }}
-        run: echo "✅ CI/CD Pipeline completed successfully!"
-
-      - name: Notify on failure
-        if: failure()
-        run: echo "❌ CI/CD Pipeline failed! Check logs for details."
+            
