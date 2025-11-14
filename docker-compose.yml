@@ -35,6 +35,31 @@ services:
     volumes:
       - minio-data:/data
 
+  gateway:
+    image: ghcr.io/barbod-biometrics/gateway:latest
+    container_name: barbod-gateway
+    restart: always
+    ports:
+      - "8080:${SERVER_PORT}"
+    environment:
+      SERVER_PORT: ${SERVER_PORT}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      REDIS_HOST: redis
+      REDIS_PORT: ${REDIS_PORT}
+      MINIO_HOST: minio
+      MINIO_PORT: ${MINIO_PORT}
+      MINIO_PANEL_PORT: ${MINIO_PANEL_PORT}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    depends_on:
+      - postgres
+      - redis
+      - minio
+
 volumes:
   postgres-data:
   redis-data:
