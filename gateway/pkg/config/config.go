@@ -15,7 +15,7 @@ type Config struct {
 	PostgresPort string `mapstructure:"POSTGRES_PORT"`
 	PostgresUser string `mapstructure:"POSTGRES_USER"`
 	PostgresPass string `mapstructure:"POSTGRES_PASSWORD"`
-	PostgresDB   string `mapstructure:"POSTGRES_DB"`
+	PostgresName string `mapstructure:"POSTGRES_DB"`
 
 	// Cache (Redis)
 	RedisHost string `mapstructure:"REDIS_HOST"`
