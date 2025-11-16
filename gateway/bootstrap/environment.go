@@ -10,6 +10,7 @@ type Env struct {
 	PrimaryRedis Redis
 	OTP          OTP
 	SMSGateway   SMSGateway
+	Minio        Minio
 }
 
 type Server struct {
@@ -34,6 +35,14 @@ type SMSGateway struct {
 	APIKey string
 }
 
+type Minio struct {
+	Port         string
+	PanelPort    string
+	Host         string
+	UserRoot     string
+	PasswordRoot string
+}
+
 func NewEnvironment() *Env {
 	return &Env{
 		Server: Server{
@@ -54,6 +63,7 @@ func NewEnvironment() *Env {
 		SMSGateway: SMSGateway{
 			APIKey: os.Getenv("SMS_GATEWAY_API_KEY"),
 		},
+		Minio: Minio{},
 	}
 }
 
