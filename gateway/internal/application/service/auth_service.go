@@ -3,9 +3,11 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/auth"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/communication"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
 )
@@ -13,22 +15,32 @@ import (
 type AuthUsecase struct {
 	userRepo     repository.UserRepository
 	otpService   usecase.OTPService
+	smsService   communication.SMSService
 	tokenService usecase.TokenService
 }
 
-func NewAuthUsecase(userRepo repository.UserRepository, otpService usecase.OTPService, tokenService usecase.TokenService) *AuthUsecase {
+func NewAuthUsecase(userRepo repository.UserRepository, otpService usecase.OTPService, smsService communication.SMSService, tokenService usecase.TokenService) *AuthUsecase {
 	return &AuthUsecase{
 		userRepo:     userRepo,
 		otpService:   otpService,
+		smsService:   smsService,
 		tokenService: tokenService,
 	}
 }
 
 func (uc *AuthUsecase) RequestOTP(ctx context.Context, req auth.RequestOTPRequest) error {
 
-	// Note: There can be a phone number validation here
+	plainOTP, err := uc.otpService.GenerateAndStoreOTP(ctx, req.PhoneNumber)
+	if err != nil {
+		return fmt.Errorf("failed to generate otp: %w", err)
+	}
 
-	return uc.otpService.GenerateOTP(ctx, req.PhoneNumber)
+	message := fmt.Sprintf("Your Barbod Biomentrics code is: %s", plainOTP)
+	if err := uc.smsService.Send(ctx, req.PhoneNumber, message); err != nil {
+		return fmt.Errorf("failed to send sms: %w", err)
+	}
+
+	return nil
 }
 
 func (uc *AuthUsecase) VerifyOTP(ctx context.Context, req auth.VerifyOTPRequest) (*auth.UserInfoResponse, error) {
