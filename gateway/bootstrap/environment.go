@@ -11,8 +11,16 @@ type Env struct {
 	OTP          OTP
 	SMSGateway   SMSGateway
 	Minio        Minio
+	Postgres     Postgres
 }
 
+type Postgres struct {
+	Host     string
+	Port     string
+	User     string
+	Password string
+	DBName   string
+}
 type Server struct {
 	Port string
 	Mode string
@@ -47,13 +55,12 @@ func NewEnvironment() *Env {
 	return &Env{
 		Server: Server{
 			Port: os.Getenv("SERVER_PORT"),
-			Mode: os.Getenv("SERVER_MODE"),
 		},
 		PrimaryRedis: Redis{
-			Port:      os.Getenv("RDB_PORT"),
-			Address:   os.Getenv("RDB_ADDRESS"),
-			Password:  os.Getenv("RDB_PASSWORD"),
-			RDBNumber: os.Getenv("RDB_NUMBER"),
+			Port:      os.Getenv("REDIS_PORT"),
+			Address:   os.Getenv("REDIS_HOST"),
+			Password:  os.Getenv("REDIS_PASSWORD"),
+			RDBNumber: os.Getenv("REDIS_DB_NUMBER"),
 		},
 		OTP: OTP{
 			Length:       getEnvInt("OTP_LENGTH", 6),
@@ -63,7 +70,20 @@ func NewEnvironment() *Env {
 		SMSGateway: SMSGateway{
 			APIKey: os.Getenv("SMS_GATEWAY_API_KEY"),
 		},
-		Minio: Minio{},
+		Minio: Minio{
+			Port:         os.Getenv("MINIO_PORT"),
+			PanelPort:    os.Getenv("MINIO_PANEL_PORT"),
+			Host:         os.Getenv("MINIO_HOST"),
+			UserRoot:     os.Getenv("MINIO_ROOT_USER"),
+			PasswordRoot: os.Getenv("MINIO_ROOT_PASSWORD"),
+		},
+		Postgres: Postgres{
+			Host:     os.Getenv("POSTGRES_HOST"),
+			Port:     os.Getenv("POSTGRES_PORT"),
+			User:     os.Getenv("POSTGRES_USER"),
+			Password: os.Getenv("POSTGRES_PASSWORD"),
+			DBName:   os.Getenv("POSTGRES_DB"),
+		},
 	}
 }
 
