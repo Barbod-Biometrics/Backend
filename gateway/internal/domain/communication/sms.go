@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/service"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
 )
 
 type smsService struct {
@@ -12,7 +12,7 @@ type smsService struct {
 	// fromnumber string
 }
 
-func NewSMSService( /* config */ ) service.SMSService {
+func NewSMSService( /* config */ ) usecase.SMSService {
 	return &smsService{
 		// clident: client,
 		// fromnumber: fromnumber,

@@ -1,22 +1,22 @@
-package usecase
+package service
 
 import (
 	"context"
 	"errors"
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/auth"
-	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/service"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
 )
 
 type AuthUsecase struct {
 	userRepo     repository.UserRepository
-	otpService   service.OTPService
-	tokenService service.TokenService
+	otpService   usecase.OTPService
+	tokenService usecase.TokenService
 }
 
-func NewAuthUsecase(userRepo repository.UserRepository, otpService service.OTPService, tokenService service.TokenService) *AuthUsecase {
+func NewAuthUsecase(userRepo repository.UserRepository, otpService usecase.OTPService, tokenService usecase.TokenService) *AuthUsecase {
 	return &AuthUsecase{
 		userRepo:     userRepo,
 		otpService:   otpService,

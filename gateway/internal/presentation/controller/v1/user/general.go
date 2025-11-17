@@ -5,14 +5,14 @@ import (
 	"net/http"
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/auth"
-	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/service"
 )
 
 type GeneralUserController struct {
-	authUsecase *usecase.AuthUsecase
+	authUsecase *service.AuthUsecase
 }
 
-func NewAuthController(authUsecase *usecase.AuthUsecase) *GeneralUserController {
+func NewAuthController(authUsecase *service.AuthUsecase) *GeneralUserController {
 	return &GeneralUserController{authUsecase: authUsecase}
 }
 
