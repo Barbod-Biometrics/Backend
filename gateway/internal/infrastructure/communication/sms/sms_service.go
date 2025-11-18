@@ -8,14 +8,13 @@ import (
 )
 
 type smsService struct {
-	// client
-	// fromnumber string
+	apiKey string
+	// provider SMSProvider
 }
 
-func NewSMSService( /* config */ ) communication.SMSService {
+func NewSMSService(apiKey string) communication.SMSService {
 	return &smsService{
-		// clident: client,
-		// fromnumber: fromnumber,
+		apiKey: apiKey,
 	}
 
 }
@@ -23,6 +22,10 @@ func NewSMSService( /* config */ ) communication.SMSService {
 func (s *smsService) Send(ctx context.Context, phoneNumber string, message string) error {
 	// we'll send the OTP from here and save it in the redis
 	log.Printf("SMS to %s: %s\n", phoneNumber, message)
+
+	if s.apiKey == "" {
+		log.Println("Warning: SMS_GATEWAY_API_KEY not configured")
+	}
 
 	return nil
 }
