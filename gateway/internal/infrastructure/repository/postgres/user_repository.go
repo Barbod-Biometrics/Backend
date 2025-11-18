@@ -13,22 +13,29 @@ type UserRepository struct {
 	db *gorm.DB
 }
 
+func (r *UserRepository) getDB(ctx context.Context) *gorm.DB {
+	if tx, ok := ctx.Value(dbTxKey).(*gorm.DB); ok {
+		return tx
+	}
+	return r.db
+}
+
 func NewUserRepository(db *gorm.DB) repository.UserRepository {
 	return &UserRepository{db: db}
 }
 
 func (r *UserRepository) CreateUser(ctx context.Context, user *entity.User) error {
-	return r.db.WithContext(ctx).Create(user).Error
+	return r.getDB(ctx).WithContext(ctx).Create(user).Error
 }
 
 func (r *UserRepository) GetByPhoneNumber(ctx context.Context, phoneNumber string) (*entity.User, error) {
 	var user entity.User
-	err := r.db.WithContext(ctx).Where("phone_number = ?", phoneNumber).First(&user).Error
+	err := r.getDB(ctx).WithContext(ctx).Where("phone_number = ?", phoneNumber).First(&user).Error
 	return &user, err
 }
 
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*entity.User, error) {
 	var user entity.User
-	err := r.db.WithContext(ctx).Where("email = ?", email).First(&user).Error
+	err := r.getDB(ctx).WithContext(ctx).Where("email = ?", email).First(&user).Error
 	return &user, err
 }
