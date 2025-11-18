@@ -27,10 +27,11 @@ type Server struct {
 }
 
 type Redis struct {
-	Port      string
-	Address   string
-	Password  string
-	RDBNumber string
+	Port     string
+	Address  string
+	Password string
+	DB       int
+	PoolSize int
 }
 
 type OTP struct {
@@ -55,12 +56,14 @@ func NewEnvironment() *Env {
 	return &Env{
 		Server: Server{
 			Port: os.Getenv("SERVER_PORT"),
+			Mode: getEnvString("SERVER_MODE", "debug"),
 		},
 		PrimaryRedis: Redis{
-			Port:      os.Getenv("REDIS_PORT"),
-			Address:   os.Getenv("REDIS_HOST"),
-			Password:  os.Getenv("REDIS_PASSWORD"),
-			RDBNumber: os.Getenv("REDIS_DB_NUMBER"),
+			Port:     os.Getenv("REDIS_PORT"),
+			Address:  os.Getenv("REDIS_HOST"),
+			Password: os.Getenv("REDIS_PASSWORD"),
+			DB:       getEnvInt("REDIS_DB", 0),
+			PoolSize: getEnvInt("REDIS_POOL_SIZE", 10),
 		},
 		OTP: OTP{
 			Length:       getEnvInt("OTP_LENGTH", 6),
@@ -92,6 +95,13 @@ func getEnvInt(key string, defaultVal int) int {
 		if parsed, err := strconv.Atoi(val); err == nil {
 			return parsed
 		}
+	}
+	return defaultVal
+}
+
+func getEnvString(key string, defaultVal string) string {
+	if val := os.Getenv(key); val != "" {
+		return val
 	}
 	return defaultVal
 }
