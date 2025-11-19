@@ -75,7 +75,6 @@ func NewLogger(config *LoggerConfig) (*Logger, error) {
 		log.Println("Error parsing console output setting. Defaulting to true")
 	}
 
-	// use an atomic level so it can be changed at runtime
 	atomicLevel := zap.NewAtomicLevelAt(levelVal)
 	if consoleOutput {
 		consoleCore := zapcore.NewCore(

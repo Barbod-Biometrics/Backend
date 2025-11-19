@@ -31,7 +31,6 @@ type Config struct {
 	// Logger
 	LogLevel      string `mapstructure:"LOG_LEVEL"`
 	ConsoleOutput string `mapstructure:"CONSOLE_OUTPUT"`
-	LogFile       string `mapstructure:"LOG_FILE"`
 }
 
 func LoadConfig() (config Config, err error) {

@@ -56,7 +56,6 @@ type Minio struct {
 }
 
 type Logger struct {
-	LogLevel      string
 	ConsoleOutput string
 	LogFile       string
 }
@@ -98,7 +97,6 @@ func NewEnvironment() *Env {
 			DBName:   os.Getenv("POSTGRES_DB"),
 		},
 		Logger: Logger{
-			LogLevel:      getEnvString("LOG_LEVEL", "info"),
 			ConsoleOutput: getEnvString("CONSOLE_OUTPUT", "true"),
 			LogFile:       os.Getenv("LOG_FILE"),
 		},
