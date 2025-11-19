@@ -13,13 +13,19 @@ services:
       - postgres-data:/var/lib/postgresql
 
   redis:
-    image: redis
+    image: redis:7-alpine
     container_name: barbod-redis
     restart: always
     ports:
       - "6379:${REDIS_PORT}"
     volumes:
       - redis-data:/data
+    command: redis-server --appendonly yes # for data persistance
+    healthcheck:  # for container health monitoring
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
 
   minio:
     image: minio/minio
@@ -50,6 +56,9 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       REDIS_HOST: redis
       REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_DB: ${REDIS_DB} # usually 0
+      REDIS_POOL_SIZE: ${REDIS_POOL_SIZE} # usually 10
       MINIO_HOST: minio
       MINIO_PORT: ${MINIO_PORT}
       MINIO_PANEL_PORT: ${MINIO_PANEL_PORT}

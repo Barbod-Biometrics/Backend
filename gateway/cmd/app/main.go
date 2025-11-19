@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 
+	"github.com/Barbod-Biometrics/Backend/gateway/bootstrap"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
 	Logger "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/logger"
-	"github.com/Barbod-Biometrics/Backend/gateway/pkg/config"
 	"github.com/gin-gonic/gin"
 )
 
@@ -13,11 +13,7 @@ func main() {
 
 	gin.DisableConsoleColor()
 
-	cfg, err := config.LoadConfig()
-	if err != nil {
-		fmt.Printf("Failed to load config: %v\n", err)
-		return
-	}
+	cfg := bootstrap.Run()
 
 	loggerCfg := &Logger.LoggerConfig{
 		LogLevel:      cfg.LogLevel,
