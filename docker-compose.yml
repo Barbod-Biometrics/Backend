@@ -55,6 +55,8 @@ services:
       MINIO_PANEL_PORT: ${MINIO_PANEL_PORT}
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - logs-data:/app/logs
     depends_on:
       - postgres
       - redis
@@ -64,4 +66,5 @@ volumes:
   postgres-data:
   redis-data:
   minio-data:
+  logs-data:
     
