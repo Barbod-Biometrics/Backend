@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/Barbod-Biometrics/Backend/gateway/bootstrap"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/enum"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
 	Logger "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/logger"
 	"github.com/gin-gonic/gin"
@@ -16,11 +17,14 @@ func main() {
 	cfg := bootstrap.Run()
 
 	loggerCfg := &Logger.LoggerConfig{
-		LogLevel:      cfg.LogLevel,
-		ConsoleOutput: cfg.ConsoleOutput,
-		LogFile:       cfg.LogFile,
+		LogLevel:      string(enum.LogLevelInfo),
+		ConsoleOutput: cfg.Env.Logger.ConsoleOutput,
+		LogFile:       cfg.Env.Logger.LogFile,
 	}
-	appLogger, err := Logger.NewLogger(loggerCfg)
+
+	fmt.Printf("logfile: %s\n", cfg.Env.Logger.LogFile)
+
+	appLogger, err := Logger.NewModuleLogger("app", loggerCfg)
 	if err != nil {
 		fmt.Printf("Failed to initialize logger: %v\n", err)
 		return
@@ -30,13 +34,13 @@ func main() {
 	ginEngine := gin.New()
 
 	appLogger.Info("Starting the gateway application",
-		logger.Field{Key: "port", Value: cfg.ServerPort},
-		logger.Field{Key: "database", Value: fmt.Sprintf("%s@%s:%s", cfg.PostgresUser, cfg.PostgresHost, cfg.PostgresPort)},
-		logger.Field{Key: "redis", Value: fmt.Sprintf("%s:%s", cfg.RedisHost, cfg.RedisPort)},
-		logger.Field{Key: "minio", Value: fmt.Sprintf("%s:%s", cfg.MinioHost, cfg.MinioPort)},
+		logger.Field{Key: "port", Value: cfg.Env.Server.Port},
+		logger.Field{Key: "database", Value: fmt.Sprintf("%s@%s:%s", cfg.Env.Postgres.User, cfg.Env.Postgres.Host, cfg.Env.Postgres.Port)},
+		logger.Field{Key: "redis", Value: fmt.Sprintf("%s:%s", cfg.Env.PrimaryRedis.Address, cfg.Env.PrimaryRedis.Port)},
+		logger.Field{Key: "minio", Value: fmt.Sprintf("%s:%s", cfg.Env.Minio.Host, cfg.Env.Minio.Port)},
 	)
 
-	if err := ginEngine.Run(":" + cfg.ServerPort); err != nil {
+	if err := ginEngine.Run(":" + cfg.Env.Server.Port); err != nil {
 		appLogger.Error("Error starting server", logger.Field{Key: "error", Value: err})
 	}
 

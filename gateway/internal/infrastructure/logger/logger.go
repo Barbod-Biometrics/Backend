@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
@@ -18,11 +19,11 @@ type LoggerConfig struct {
 }
 
 type Logger struct {
-	zap *zap.Logger
+	zap   *zap.Logger
+	level zap.AtomicLevel
 }
 
 var loggerInstance logger.Logger
-
 
 func NewLogger(config *LoggerConfig) (*Logger, error) {
 	if config == nil {
@@ -33,20 +34,20 @@ func NewLogger(config *LoggerConfig) (*Logger, error) {
 		config.LogLevel = "info"
 	}
 
-	var level zapcore.Level
+	var levelVal zapcore.Level
 	switch config.LogLevel {
 	case "debug":
-		level = zapcore.DebugLevel
+		levelVal = zapcore.DebugLevel
 	case "info":
-		level = zapcore.InfoLevel
+		levelVal = zapcore.InfoLevel
 	case "warn":
-		level = zapcore.WarnLevel
+		levelVal = zapcore.WarnLevel
 	case "error":
-		level = zapcore.ErrorLevel
+		levelVal = zapcore.ErrorLevel
 	case "fatal":
-		level = zapcore.FatalLevel
+		levelVal = zapcore.FatalLevel
 	default:
-		level = zapcore.InfoLevel
+		levelVal = zapcore.InfoLevel
 	}
 
 	encoderConfig := zapcore.EncoderConfig{
@@ -73,25 +74,35 @@ func NewLogger(config *LoggerConfig) (*Logger, error) {
 		consoleOutput = true
 		log.Println("Error parsing console output setting. Defaulting to true")
 	}
+
+	// use an atomic level so it can be changed at runtime
+	atomicLevel := zap.NewAtomicLevelAt(levelVal)
 	if consoleOutput {
 		consoleCore := zapcore.NewCore(
 			encoder,
 			zapcore.AddSync(os.Stdout),
-			level,
+			atomicLevel,
 		)
 		cores = append(cores, consoleCore)
 	}
 
 	// File output
 	if config.LogFile != "" {
+		dir := filepath.Dir(config.LogFile)
+		if dir != "." {
+			if err := os.MkdirAll(dir, 0o755); err != nil {
+				return nil, fmt.Errorf("failed to create log directory '%s': %w", dir, err)
+			}
+		}
+
 		file, err := os.OpenFile(config.LogFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 		if err != nil {
-			return nil, fmt.Errorf("failed to open log file: %w", err)
+			return nil, fmt.Errorf("failed to open log file '%s': %w", config.LogFile, err)
 		}
 		fileCore := zapcore.NewCore(
 			encoder,
 			zapcore.AddSync(file),
-			level,
+			atomicLevel,
 		)
 		cores = append(cores, fileCore)
 	}
@@ -109,7 +120,8 @@ func NewLogger(config *LoggerConfig) (*Logger, error) {
 	zapLogger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
 
 	logger := &Logger{
-		zap: zapLogger,
+		zap:   zapLogger,
+		level: atomicLevel,
 	}
 
 	loggerInstance = logger
@@ -123,6 +135,115 @@ func GetLogger() logger.Logger {
 		}
 	}
 	return loggerInstance
+}
+
+func NewModuleLogger(module string, config *LoggerConfig) (*Logger, error) {
+	if config == nil {
+		return nil, fmt.Errorf("logger config cannot be nil")
+	}
+
+	if config.LogLevel == "" {
+		config.LogLevel = "info"
+	}
+
+	var levelVal zapcore.Level
+	switch config.LogLevel {
+	case "debug":
+		levelVal = zapcore.DebugLevel
+	case "info":
+		levelVal = zapcore.InfoLevel
+	case "warn":
+		levelVal = zapcore.WarnLevel
+	case "error":
+		levelVal = zapcore.ErrorLevel
+	case "fatal":
+		levelVal = zapcore.FatalLevel
+	default:
+		levelVal = zapcore.InfoLevel
+	}
+
+	encoderConfig := zapcore.EncoderConfig{
+		TimeKey:        "timestamp",
+		LevelKey:       "level",
+		NameKey:        "logger",
+		CallerKey:      "caller",
+		MessageKey:     "message",
+		StacktraceKey:  "stacktrace",
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeLevel:    zapcore.CapitalLevelEncoder,
+		EncodeTime:     zapcore.ISO8601TimeEncoder,
+		EncodeDuration: zapcore.SecondsDurationEncoder,
+		EncodeCaller:   zapcore.ShortCallerEncoder,
+	}
+	encoder := zapcore.NewJSONEncoder(encoderConfig)
+
+	consoleOutput, err := strconv.ParseBool(config.ConsoleOutput)
+	if err != nil {
+		consoleOutput = true
+		log.Println("Error parsing console output setting. Defaulting to true")
+	}
+
+	atomicLevel := zap.NewAtomicLevelAt(levelVal)
+
+	var cores []zapcore.Core
+	if consoleOutput {
+		consoleCore := zapcore.NewCore(encoder, zapcore.AddSync(os.Stdout), atomicLevel)
+		cores = append(cores, consoleCore)
+	}
+	if config.LogFile != "" {
+		dir := filepath.Dir(config.LogFile)
+		if dir != "." {
+			if err := os.MkdirAll(dir, 0o755); err != nil {
+				return nil, fmt.Errorf("failed to create log directory '%s': %w", dir, err)
+			}
+		}
+		file, err := os.OpenFile(config.LogFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open log file '%s': %w", config.LogFile, err)
+		}
+		fileCore := zapcore.NewCore(encoder, zapcore.AddSync(file), atomicLevel)
+		cores = append(cores, fileCore)
+	}
+
+	if len(cores) == 0 {
+		return nil, fmt.Errorf("at least one output must be configured")
+	}
+
+	var core zapcore.Core
+	if len(cores) == 1 {
+		core = cores[0]
+	} else {
+		core = zapcore.NewTee(cores...)
+	}
+
+	zapLogger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel)).With(zap.String("module", module))
+
+	l := &Logger{
+		zap:   zapLogger,
+		level: atomicLevel,
+	}
+
+	return l, nil
+}
+
+func (l *Logger) SetLevel(level string) error {
+	var lvl zapcore.Level
+	switch level {
+	case "debug":
+		lvl = zapcore.DebugLevel
+	case "info":
+		lvl = zapcore.InfoLevel
+	case "warn":
+		lvl = zapcore.WarnLevel
+	case "error":
+		lvl = zapcore.ErrorLevel
+	case "fatal":
+		lvl = zapcore.FatalLevel
+	default:
+		return fmt.Errorf("unknown level: %s", level)
+	}
+	l.level.SetLevel(lvl)
+	return nil
 }
 
 func toZapFields(fields []logger.Field) []zap.Field {

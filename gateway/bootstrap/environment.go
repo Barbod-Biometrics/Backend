@@ -3,6 +3,8 @@ package bootstrap
 import (
 	"os"
 	"strconv"
+
+	"github.com/joho/godotenv"
 )
 
 type Env struct {
@@ -12,6 +14,7 @@ type Env struct {
 	SMSGateway   SMSGateway
 	Minio        Minio
 	Postgres     Postgres
+	Logger Logger
 }
 
 type Postgres struct {
@@ -52,7 +55,14 @@ type Minio struct {
 	PasswordRoot string
 }
 
+type Logger struct {
+	LogLevel      string
+	ConsoleOutput string
+	LogFile       string
+}
+
 func NewEnvironment() *Env {
+	godotenv.Load(".env")
 	return &Env{
 		Server: Server{
 			Port: os.Getenv("SERVER_PORT"),
@@ -86,6 +96,11 @@ func NewEnvironment() *Env {
 			User:     os.Getenv("POSTGRES_USER"),
 			Password: os.Getenv("POSTGRES_PASSWORD"),
 			DBName:   os.Getenv("POSTGRES_DB"),
+		},
+		Logger: Logger{
+			LogLevel:      getEnvString("LOG_LEVEL", "info"),
+			ConsoleOutput: getEnvString("CONSOLE_OUTPUT", "true"),
+			LogFile:       os.Getenv("LOG_FILE"),
 		},
 	}
 }
