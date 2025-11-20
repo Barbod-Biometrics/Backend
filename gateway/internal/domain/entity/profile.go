@@ -75,7 +75,7 @@ type ProfilePersonDetails struct {
 	ProfileID    uint64    `gorm:"primaryKey;not null" json:"profile_id"`
 	FirstName    string    `gorm:"type:varchar(100);not null" json:"first_name"`
 	LastName     string    `gorm:"type:varchar(100);not null" json:"last_name"`
-	NationalID   string    `gorm:"type:varchar(10);not null;unique" json:"national_code"`
+	NationalID   string    `gorm:"type:varchar(10);not null;unique" json:"national_id"`
 	DOB          time.Time `gorm:"type:date;not null" json:"dob"`
 	MobileNumber string    `gorm:"type:varchar(15);not null;unique" json:"mobile_number"`
 
@@ -92,7 +92,7 @@ type ProfileBusinessDetails struct {
 	ProfileID       uint64    `gorm:"primaryKey;not null" json:"profile_id"`
 	RepFirstName    string    `gorm:"type:varchar(100);not null" json:"rep_first_name"`
 	RepLastName     string    `gorm:"type:varchar(100);not null" json:"rep_last_name"`
-	RepNationalID   string    `gorm:"type:varchar(10);not null;unique" json:"rep_national_code"`
+	RepNationalID   string    `gorm:"type:varchar(10);not null;unique" json:"rep_national_id"`
 	RepDOB          time.Time `gorm:"type:date;not null" json:"rep_dob"`
 	RepMobileNumber string    `gorm:"type:varchar(15);not null;unique" json:"rep_mobile_number"`
 
@@ -111,7 +111,7 @@ type AuthorizedSignatory struct {
 
 	FirstName    string     `gorm:"type:varchar(100);not null" json:"first_name"`
 	LastName     string     `gorm:"type:varchar(100);not null" json:"last_name"`
-	NationalID   string     `gorm:"type:varchar(10);not null;unique" json:"national_code"`
+	NationalID   string     `gorm:"type:varchar(10);not null;unique" json:"national_id"`
 	DOB          *time.Time `gorm:"type:date;not null" json:"dob"`
 	MobileNumber string     `gorm:"type:varchar(15);not null;unique" json:"mobile_number"`
 
