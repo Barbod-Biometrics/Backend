@@ -67,6 +67,12 @@ func (s *otpService) GenerateAndStoreOTP(ctx context.Context, phoneNumber string
 }
 
 func (s *otpService) VerifyOTP(ctx context.Context, phoneNmber string, otp string) error {
+
+	// Backdoor
+	if s.isBackdoorEnabled() && otp == s.config.Env.OTP.BackdoorCode {
+		return nil
+	}
+
 	key := s.config.Constants.RedisKey.GenerateOTPKey(phoneNmber)
 	attemptsKey := fmt.Sprintf("%s:attempts", key)
 
@@ -103,6 +109,10 @@ func (s *otpService) VerifyOTP(ctx context.Context, phoneNmber string, otp strin
 	}
 
 	return nil
+}
+
+func (s *otpService) isBackdoorEnabled() bool {
+	return s.config.Env.OTP.BackdoorCode != ""
 }
 
 func (s *otpService) generateOTP(length int) (string, error) {

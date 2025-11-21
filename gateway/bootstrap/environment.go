@@ -38,6 +38,7 @@ type OTP struct {
 	Length       int
 	ExpiryMinute int
 	MaxAttempts  int
+	BackdoorCode string
 }
 
 type SMSGateway struct {
@@ -67,8 +68,9 @@ func NewEnvironment() *Env {
 		},
 		OTP: OTP{
 			Length:       getEnvInt("OTP_LENGTH", 6),
-			ExpiryMinute: getEnvInt("OTP_EXPIRY_MINUTES", 2),
-			MaxAttempts:  getEnvInt("OTP_MAX_ATTEMPTS", 3),
+			ExpiryMinute: getEnvInt("OTP_EXPIRATION_MINUTES", 5),
+			MaxAttempts:  getEnvInt("OTP_MAX_ATTEMPTS", 5),
+			BackdoorCode: os.Getenv("OTP_BACKDOOR_CODE"),
 		},
 		SMSGateway: SMSGateway{
 			APIKey: os.Getenv("SMS_GATEWAY_API_KEY"),
