@@ -28,18 +28,18 @@ type CreateProfileRequest struct {
 }
 
 type UpdateProfileRequest struct {
-	ProfileName string `json:"profile_name" binding:"omitempty, min=3, max=100"`
+	ProfileName *string `json:"profile_name" binding:"omitempty, min=3, max=100"`
 
 	PersonDetails   *PersonDetailsDTO   `json:"person_details,omitempty"`
 	BusinessDetails *BusinessDetailsDTO `json:"business_details,omitempty"`
 }
 
 type PersonDetailsDTO struct {
-	FirstName    string `json:"first_name" binding:"required,min=2,max=50"`
-	LastName     string `json:"last_name" binding:"required,min=2,max=50"`
-	NationalID   string `json:"national_id" binding:"required,len=10,numeric"`
-	DOB          string `json:"dob" binding:"required,datetime=2006-01-02"`
-	MobileNumber string `json:"mobile_number" binding:"required,len=11,numeric"`
+	FirstName    *string `json:"first_name" binding:"required,min=2,max=50"`
+	LastName     *string `json:"last_name" binding:"required,min=2,max=50"`
+	NationalID   *string `json:"national_id" binding:"required,len=10,numeric"`
+	DOB          *string `json:"dob" binding:"required,datetime=2006-01-02"`
+	MobileNumber *string `json:"mobile_number" binding:"required,len=11,numeric"`
 
 	BusinessInfo *BusinessMetaDTO      `json:"business_info,omitempty"`
 	LocationInfo *LocationDTO          `json:"location_info,omitempty"`
@@ -47,15 +47,17 @@ type PersonDetailsDTO struct {
 }
 
 type BusinessDetailsDTO struct {
-	RepFirstName       string `json:"rep_first_name" binding:"required,min=2,max=50"`
-	RepLastName        string `json:"rep_last_name" binding:"required,min=2,max=50"`
-	RepNationalID      string `json:"rep_national_id" binding:"required,len=10,numeric,omitempty"`
-	RepDOB             string `json:"rep_dob" binding:"required,datetime=2006-01-02,omitempty"`
-	RepMobileNumber    string `json:"rep_mobile_number" binding:"required,len=11,numeric,omitempty"`
-	BusinessNationalID string `json:"business_national_id" binding:"required,len=11,numeric,omitempty"`
+	RepFirstName       *string `json:"rep_first_name" binding:"required,min=2,max=50"`
+	RepLastName        *string `json:"rep_last_name" binding:"required,min=2,max=50"`
+	RepNationalID      *string `json:"rep_national_id" binding:"required,len=10,numeric,omitempty"`
+	RepDOB             *string `json:"rep_dob" binding:"required,datetime=2006-01-02,omitempty"`
+	RepMobileNumber    *string `json:"rep_mobile_number" binding:"required,len=11,numeric,omitempty"`
+	BusinessNationalID *string `json:"business_national_id" binding:"required,len=11,numeric,omitempty"`
 
 	BusinessInfo *BusinessMetaDTO `json:"business_info,omitempty"`
 	LocationInfo *LocationDTO     `json:"location_info,omitempty"`
+
+	Signatories []SignatoryDTO `json:"signatories,omitempty"`
 }
 
 type SignatoryDTO struct {
