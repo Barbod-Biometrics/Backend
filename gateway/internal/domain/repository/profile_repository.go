@@ -11,4 +11,5 @@ type ProfileRepository interface {
 	Update(ctx context.Context, profile *entity.Profile) error
 	GetByID(ctx context.Context, profileID uint64) (*entity.Profile, error)
 	GetByUserID(ctx context.Context, userID uint64) ([]*entity.Profile, error)
+	GetPersonalProfileByUserID(ctx context.Context, userID uint64) (*entity.Profile, error)
 }

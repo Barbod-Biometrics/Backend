@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"errors"
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 	"gorm.io/gorm"
@@ -9,6 +10,25 @@ import (
 
 type ProfileRepository struct {
 	db *gorm.DB
+}
+
+func (r *ProfileRepository) GetPersonalProfileByUserID(ctx context.Context, userID uint64) (*entity.Profile, error) {
+	db := r.getDB(ctx)
+	var profile entity.Profile
+
+	err := db.WithContext(ctx).
+		Preload("PersonDetails").
+		Preload("BusinessDetails").
+		Where("user_id = ? AND profile_type = ?", userID, "personal").
+		First(&profile).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+	}
+
+	return &profile, nil
 }
 
 func NewProfileRepository(db *gorm.DB) *ProfileRepository {
