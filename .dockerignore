@@ -1,0 +1,14 @@
+# ignore runtime logs and local files
+gateway/logs/
+logs/
+*.log
+
+.git
+.env
+.DS_Store
+.vscode/
+.idea/
+
+# build artifacts
+**/bin/
+**/build/
