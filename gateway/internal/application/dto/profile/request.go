@@ -24,11 +24,11 @@ type PersonalDocumentsDTO struct {
 
 type CreateProfileRequest struct {
 	ProfileType string `json:"profile_type" binding:"required,oneof=personal business"`
-	ProfileName string `json:"profile_name" binding:"required, min=3, max=100"`
+	ProfileName string `json:"profile_name" binding:"required,min=3,max=100"`
 }
 
 type UpdateProfileRequest struct {
-	ProfileName *string `json:"profile_name" binding:"omitempty, min=3, max=100"`
+	ProfileName *string `json:"profile_name" binding:"omitempty,min=3,max=100"`
 
 	PersonDetails   *PersonDetailsDTO   `json:"person_details,omitempty"`
 	BusinessDetails *BusinessDetailsDTO `json:"business_details,omitempty"`
