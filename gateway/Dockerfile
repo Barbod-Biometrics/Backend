@@ -18,6 +18,8 @@ COPY gateway/pkg ./pkg
 
 COPY gateway/bootstrap ./bootstrap
 
+COPY gateway/docs ./docs
+
 RUN CGO_ENABLED=0 go build -ldflags="-w -s" -o main ./cmd/app
 
 FROM alpine:3.19
