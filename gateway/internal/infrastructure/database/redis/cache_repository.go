@@ -8,10 +8,10 @@ import (
 )
 
 type CacheRepository struct {
-	client *redisClient
+	client *RedisClient
 }
 
-func NewCacheRepository(client *redisClient) *CacheRepository {
+func NewCacheRepository(client *RedisClient) *CacheRepository {
 	return &CacheRepository{
 		client: client,
 	}
@@ -33,4 +33,16 @@ func (r *CacheRepository) Delete(ctx context.Context, keys ...string) error {
 
 func (r *CacheRepository) Exists(ctx context.Context, key string) (bool, error) {
 	return r.client.Exists(ctx, key)
+}
+
+func (r *CacheRepository) Increment(ctx context.Context, key string) (int64, error) {
+	return r.client.Increment(ctx, key)
+}
+
+func (r *CacheRepository) Expire(ctx context.Context, key string, expiration time.Duration) error {
+	return r.client.Expire(ctx, key, expiration)
+}
+
+func (r *CacheRepository) GetTTL(ctx context.Context, key string) (time.Duration, error) {
+	return r.client.GetTTL(ctx, key)
 }
