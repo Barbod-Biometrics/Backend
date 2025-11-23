@@ -1,27 +1,54 @@
 package main
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/Barbod-Biometrics/Backend/gateway/bootstrap"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/service"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/repository/postgres"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/handler"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/routes"
+	"github.com/Barbod-Biometrics/Backend/gateway/pkg/database"
 	"github.com/gin-gonic/gin"
 )
 
+// @title Barbod Biometrics Gateway API
+// @version 1.0
+// @description This is the Gateway service API documentation for Barbod Biometrics.
+// @host localhost:8080
+// @BasePath /api/v1
 func main() {
 
 	gin.DisableConsoleColor()
 
 	cfg := bootstrap.Run()
 
-	ginEngine := gin.New()
+	db := database.NewPostgresDatabase(cfg.Env)
 
-	fmt.Printf("Starting the gateway application on port %s...\n", cfg.Env.Server.Port)
-	fmt.Printf("Database: %s@%s:%s\n", cfg.Env.Postgres.User, cfg.Env.Postgres.Host, cfg.Env.Postgres.Port)
-	fmt.Printf("Redis: %s:%s\n", cfg.Env.PrimaryRedis.Address, cfg.Env.PrimaryRedis.Port)
-	fmt.Printf("MinIO: %s:%s\n", cfg.Env.Minio.Host, cfg.Env.Minio.Port)
+	err := db.AutoMigrate(
+		&entity.User{},
+		&entity.Profile{},
+		&entity.ProfileBusinessDetails{},
+		&entity.ProfilePersonDetails{},
+		&entity.AuthorizedSignatory{},
+	)
+	if err != nil {
+		log.Fatalf("Database migration failed: %v", err)
+	}
+
+	profileRepo := postgres.NewProfileRepository(db)
+	profileService := service.NewProfileService(profileRepo)
+	profileHandler := handler.NewProfileHandler(profileService)
+
+	ginEngine := gin.New()
+	ginEngine.Use(gin.Logger())
+	ginEngine.Use(gin.Recovery())
+
+	routes.Setup(ginEngine, profileHandler)
 
 	if err := ginEngine.Run(":" + cfg.Env.Server.Port); err != nil {
-		fmt.Printf("Error starting server: %v\n", err)
+		log.Fatalf("Error starting server: %v", err)
 	}
 
 }
