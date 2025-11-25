@@ -10,6 +10,7 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/handler"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/routes"
 	"github.com/Barbod-Biometrics/Backend/gateway/pkg/database"
+	"github.com/Barbod-Biometrics/Backend/gateway/pkg/storage"
 	"github.com/gin-gonic/gin"
 )
 
@@ -38,7 +39,11 @@ func main() {
 	}
 
 	profileRepo := postgres.NewProfileRepository(db)
-	profileService := service.NewProfileService(profileRepo)
+	minioStorage, err := storage.NewMinioClient(*cfg.Env)
+	if err != nil {
+		log.Fatalf("Failed to create MinIO client: %v", err)
+	}
+	profileService := service.NewProfileService(profileRepo, minioStorage)
 	profileHandler := handler.NewProfileHandler(profileService)
 
 	ginEngine := gin.New()
