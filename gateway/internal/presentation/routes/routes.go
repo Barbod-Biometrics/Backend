@@ -34,6 +34,8 @@ func Setup(router *gin.Engine, profileHandler *handler.ProfileHandler) {
 
 			// Step 6: Final Submit
 			profiles.POST("/:id/submit", profileHandler.Submit)
+
+			profiles.POST("/upload-url", profileHandler.GetUploadUrl)
 		}
 	}
 }

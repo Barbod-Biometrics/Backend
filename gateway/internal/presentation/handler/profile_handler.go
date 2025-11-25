@@ -187,3 +187,30 @@ func (h *ProfileHandler) GetProfile(c *gin.Context) {
 
 	c.JSON(http.StatusOK, resp)
 }
+
+// GetUploadUrl handles POST /api/v1/profiles/upload-url
+// @Summary Get Upload URL
+// @Description Get a pre-signed upload URL for document uploads
+// @Tags Profiles
+// @Accept json
+// @Produce json
+// @Param request body profile.GetUploadUrlRequest true "Get Upload URL Request"
+// @Success 200 {object} profile.UploadUrlResponse
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /profiles/upload-url [post]
+func (h *ProfileHandler) GetUploadUrl(c *gin.Context) {
+	var req profile.GetUploadUrlRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+
+	userID := h.getUserID(c)
+	resp, err := h.profileUsecase.GetUploadUrl(c.Request.Context(), userID, req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
