@@ -12,4 +12,5 @@ type ProfileUsecase interface {
 	SaveDocument(ctx context.Context, userID uint64, profileID uint64, req profile.SaveDocumentRequest) error
 	SubmitProfile(ctx context.Context, userID uint64, profileID uint64) (*profile.ProfileResponse, error)
 	GetByID(ctx context.Context, userID uint64, profileID uint64) (*profile.ProfileResponse, error)
+	GetUploadUrl(ctx context.Context, userID uint64, req profile.GetUploadUrlRequest) (*profile.UploadUrlResponse, error)
 }

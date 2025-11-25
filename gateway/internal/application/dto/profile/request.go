@@ -74,3 +74,9 @@ type SaveDocumentRequest struct {
 	DocumentType string `json:"document_type" binding:"required,oneof=national_card_front national_card_back id_book_page_one establishment_notice statutes introduction_letter official_gazette"`
 	FileUrl      string `json:"file_url" binding:"required,url"`
 }
+
+type GetUploadUrlRequest struct {
+	DocumentType  string `json:"document_type" binding:"required,oneof=national_card_front national_card_back id_book_page_one establishment_notice statutes introduction_letter official_gazette"`
+	FileExtension string `json:"file_extension" binding:"required,oneof=.jpg .jpeg .png .pdf"`
+}
+

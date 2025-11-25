@@ -10,15 +10,18 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
+	"github.com/Barbod-Biometrics/Backend/gateway/pkg/storage"
 )
 
 type ProfileService struct {
 	profileRepo repository.ProfileRepository
+	storage     *storage.MinioClient
 }
 
-func NewProfileService(profileRepo repository.ProfileRepository) usecase.ProfileUsecase {
+func NewProfileService(profileRepo repository.ProfileRepository, storage *storage.MinioClient) usecase.ProfileUsecase {
 	return &ProfileService{
 		profileRepo: profileRepo,
+		storage:     storage,
 	}
 }
 
@@ -463,4 +466,20 @@ func (s *ProfileService) validateProfileCompleteness(p *entity.Profile) error {
 	}
 
 	return nil
+}
+
+func (s *ProfileService) GetUploadUrl(ctx context.Context, userID uint64, req profile.GetUploadUrlRequest) (*profile.UploadUrlResponse, error) {
+	timestamp := time.Now().Unix()
+	objectName := fmt.Sprintf("user_%d/%s_%d%s", userID, req.DocumentType, timestamp, req.FileExtension)
+
+	url, err := s.storage.GeneratePresignedUploadURL(ctx, objectName, 15*time.Minute)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate upload URL: %w", err)
+	}
+
+	return &profile.UploadUrlResponse{
+		UploadUrl: url,
+		FileKey:   objectName,
+		ExpiresAt: time.Now().Add(15 * time.Minute).Format(time.RFC3339),
+	}, nil
 }

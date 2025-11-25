@@ -49,3 +49,9 @@ type SignatoryResponse struct {
 	MobileNumber string                `json:"mobile_number"`
 	Documents    *PersonalDocumentsDTO `json:"documents,omitempty"`
 }
+
+type UploadUrlResponse struct {
+	UploadUrl string `json:"upload_url"`
+	FileKey   string `json:"file_key"`
+	ExpiresAt string `json:"expires_at"`
+}
