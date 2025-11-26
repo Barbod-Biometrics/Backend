@@ -64,8 +64,6 @@ type Logger struct {
 }
 
 type JWT struct {
-	AccessSecret   string
-	RefreshSecret  string
 	AccessExpTime  time.Duration
 	RefreshExpTime time.Duration
 }
@@ -112,10 +110,8 @@ func NewEnvironment() *Env {
 			LogFile:       os.Getenv("LOG_FILE"),
 		},
 		JWT: JWT{
-			AccessSecret:   os.Getenv("JWT_ACCESS_SECRET"),
-			RefreshSecret:  os.Getenv("JWT_REFRESH_SECRET"),
 			AccessExpTime:  time.Duration(getEnvInt("JWT_ACCESS_EXP_MIN", 15)) * time.Minute,
-			RefreshExpTime: time.Duration(getEnvInt("JWT_REFRESH_EXP_HOURS", 60)) * time.Hour,
+			RefreshExpTime: time.Duration(getEnvInt("JWT_REFRESH_EXP_HOURS", 24*7)) * time.Hour,
 		},
 	}
 }

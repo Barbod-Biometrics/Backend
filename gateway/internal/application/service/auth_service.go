@@ -40,7 +40,7 @@ func (uc *AuthUsecase) RequestOTP(ctx context.Context, req auth.RequestOTPReques
 
 	message := fmt.Sprintf("Your Barbod Biomentrics code is: %s", plainOTP)
 	if err := uc.smsService.Send(ctx, req.PhoneNumber, message); err != nil {
-		// if OTP fials we have to delete it from the cache later (due to shortage of time it has not been implemented)
+		// if OTP fails we have to delete it from the cache later (due to shortage of time it has not been implemented)
 		return fmt.Errorf("failed to send sms: %w", err)
 	}
 

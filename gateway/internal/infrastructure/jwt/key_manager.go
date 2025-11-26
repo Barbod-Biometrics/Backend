@@ -6,6 +6,7 @@ import (
 	"os"
 	"sync"
 
+	domainJWT "github.com/Barbod-Biometrics/Backend/gateway/internal/domain/jwt"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -16,7 +17,7 @@ type JWTKeyManager struct {
 	isLoaded   bool
 }
 
-func NewJWTKeyManager() *jwt.KeyManager {
+func NewJWTKeyManager() domainJWT.KeyManager {
 	return &JWTKeyManager{}
 }
 
