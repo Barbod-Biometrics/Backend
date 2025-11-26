@@ -44,9 +44,9 @@ services:
   gateway:
     build:
       context: .
-      dockerfile: gateway/Dockerfile
-    container_name: barbod-gateway
-    restart: always
+      dockerfile: gateway/Dockerfile.dev
+    container_name: barbod-gateway-dev
+    restart: "no"
     ports:
       - "8080:${SERVER_PORT}"
     environment:
@@ -59,8 +59,8 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: ${REDIS_PORT}
       REDIS_PASSWORD: ${REDIS_PASSWORD}
-      REDIS_DB: ${REDIS_DB} # usually 0
-      REDIS_POOL_SIZE: ${REDIS_POOL_SIZE} # usually 10
+      REDIS_DB: ${REDIS_DB}
+      REDIS_POOL_SIZE: ${REDIS_POOL_SIZE}
       MINIO_HOST: minio
       MINIO_PORT: ${MINIO_PORT}
       MINIO_PANEL_PORT: ${MINIO_PANEL_PORT}
@@ -70,9 +70,18 @@ services:
       - postgres
       - redis
       - minio
+    volumes:
+      - ./gateway:/app:cached
+      # cache module download and compiled package objects across container restarts
+      - gateway-mod-cache:/go/pkg/mod
+      - gateway-build-cache:/root/.cache/go-build
+    working_dir: /app
+    command: ["air"]
 
 volumes:
   postgres-data:
   redis-data:
   minio-data:
+  gateway-mod-cache:
+  gateway-build-cache:
     

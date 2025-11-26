@@ -1,0 +1,8 @@
+# gateway/.air.toml
+[build]
+# build the same binary name and flags as production
+# Use a small wrapper so we can generate swagger docs before building when swag is available.
+cmd = "sh ./.dev_build.sh"
+entrypoint = ["./tmp/main"]
+args_bin = []
+exclude_dir = ["vendor", "docs"]
