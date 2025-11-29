@@ -1,11 +1,11 @@
 package user
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/auth"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/service"
+	"github.com/gin-gonic/gin"
 )
 
 type GeneralUserController struct {
@@ -16,41 +16,52 @@ func NewAuthController(authUsecase *service.AuthUsecase) *GeneralUserController 
 	return &GeneralUserController{authUsecase: authUsecase}
 }
 
-func (g *GeneralUserController) RequestOTPHandler(w http.ResponseWriter, r *http.Request) {
+func (g *GeneralUserController) RequestOTPHandler(c *gin.Context) {
 	var req auth.RequestOTPRequest
 
-	// decoding request boy
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	// bind and validate
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Invalid request body",
+			"details": err.Error(),
+		})
 		return
 	}
 
-	// calling usecase
-	if err := g.authUsecase.RequestOTP(r.Context(), req); err != nil {
-		http.Error(w, "failed to send OTP", http.StatusInternalServerError)
+	// call usecase
+	if err := g.authUsecase.RequestOTP(c.Request.Context(), req); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
 		return
 	}
 
-	// sending a simple success response
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "OTP sent successfully"})
+	// send response
+	c.JSON(http.StatusOK, gin.H{
+		"message": "OTP sent successfully",
+	})
 
 }
 
-func (g *GeneralUserController) VerifyOTPHandler(w http.ResponseWriter, r *http.Request) {
+func (g *GeneralUserController) VerifyOTPHandler(c *gin.Context) {
 	var req auth.VerifyOTPRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-	}
 
-	response, err := g.authUsecase.VerifyOTP(r.Context(), req)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Invalid request body",
+			"details": err.Error(),
+		})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
+	response, err := g.authUsecase.VerifyOTP(c.Request.Context(), req)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+
 }
