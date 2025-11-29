@@ -43,7 +43,7 @@ services:
 
   gateway:
     image: ghcr.io/barbod-biometrics/gateway:latest
-    # build:
+    # build: # This is for testing the apis locally and do not have to get the image from the repository (remove the comments if you want to test locally)
     #   context: .
     #   dockerfile: gateway/Dockerfile
     container_name: barbod-gateway
