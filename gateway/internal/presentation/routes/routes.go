@@ -1,17 +1,16 @@
 package routes
 
 import (
-	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/handler"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
 	_ "github.com/Barbod-Biometrics/Backend/gateway/docs"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
 )
 
 // Setup registers all routes for the application
-func Setup(router *gin.Engine, profileHandler *handler.ProfileHandler) {
-
+func Setup(router *gin.Engine, profileHandler *profile.ProfileHandler) {
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// API Version 1 Group
