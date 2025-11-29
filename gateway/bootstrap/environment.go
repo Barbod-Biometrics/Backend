@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -14,7 +15,8 @@ type Env struct {
 	SMSGateway   SMSGateway
 	Minio        Minio
 	Postgres     Postgres
-	Logger Logger
+	Logger       Logger
+	JWT          JWT
 }
 
 type Postgres struct {
@@ -61,6 +63,11 @@ type Logger struct {
 	LogFile       string
 }
 
+type JWT struct {
+	AccessExpTime  time.Duration
+	RefreshExpTime time.Duration
+}
+
 func NewEnvironment() *Env {
 	godotenv.Load(".env")
 	return &Env{
@@ -101,6 +108,10 @@ func NewEnvironment() *Env {
 		Logger: Logger{
 			ConsoleOutput: getEnvString("CONSOLE_OUTPUT", "true"),
 			LogFile:       os.Getenv("LOG_FILE"),
+		},
+		JWT: JWT{
+			AccessExpTime:  time.Duration(getEnvInt("JWT_ACCESS_EXP_MIN", 15)) * time.Minute,
+			RefreshExpTime: time.Duration(getEnvInt("JWT_REFRESH_EXP_HOURS", 24*7)) * time.Hour,
 		},
 	}
 }
