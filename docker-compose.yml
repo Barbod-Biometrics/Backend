@@ -43,6 +43,9 @@ services:
 
   gateway:
     image: ghcr.io/barbod-biometrics/gateway:latest
+    # build:
+    #   context: .
+    #   dockerfile: gateway/Dockerfile
     container_name: barbod-gateway
     restart: always
     ports:
@@ -64,8 +67,13 @@ services:
       MINIO_PANEL_PORT: ${MINIO_PANEL_PORT}
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      # JWT  and OTP backdoor (for now) Config is passed if not hardcoded defaults
+      JWT_ACCESS_EXP_MIN: ${JWT_ACCESS_EXP_MIN}
+      JWT_REFRESH_EXP_HOURS: ${JWT_REFRESH_EXP_HOURS}
+      OTP_BACKDOOR_CODE: ${OTP_BACKDOOR_CODE}
     volumes:
       - logs-data:/app/logs
+      - ./gateway/internal/infrastructure/jwt:/app/internal/infrastructure/jwt
     depends_on:
       - postgres
       - redis

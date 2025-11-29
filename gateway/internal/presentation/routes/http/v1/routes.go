@@ -25,10 +25,13 @@ func (r *Route) RegisterRoutes() http.Handler {
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 
-	auth := router.Group("/auth")
+	v1 := router.Group("/api/v1")
 	{
-		auth.POST("/request-otp", r.authController.RequestOTPHandler)
-		auth.POST("/verify-otp", r.authController.VerifyOTPHandler)
+		auth := v1.Group("/auth")
+		{
+			auth.POST("/request-otp", r.authController.RequestOTPHandler)
+			auth.POST("/verify-otp", r.authController.VerifyOTPHandler)
+		}
 	}
 
 	return router
