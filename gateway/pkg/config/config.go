@@ -27,6 +27,10 @@ type Config struct {
 	MinioPanelPort string `mapstructure:"MINIO_PANEL_PORT"`
 	MinioAccessKey string `mapstructure:"MINIO_ROOT_USER"`
 	MinioSecretKey string `mapstructure:"MINIO_ROOT_PASSWORD"`
+
+	// Logger
+	LogLevel      string `mapstructure:"LOG_LEVEL"`
+	ConsoleOutput string `mapstructure:"CONSOLE_OUTPUT"`
 }
 
 func LoadConfig() (config Config, err error) {

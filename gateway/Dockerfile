@@ -26,10 +26,18 @@ FROM alpine:3.19
 
 RUN apk add --no-cache ca-certificates tzdata
 
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
 WORKDIR /app
 
 COPY --from=builder /app/main .
 
+RUN mkdir -p /app/logs && chown -R appuser:appgroup /app/logs
+
+USER appuser
+
 EXPOSE 8080
+
+VOLUME ["/app/logs"]
 
 CMD ["./main"]

@@ -3,6 +3,8 @@ package bootstrap
 import (
 	"os"
 	"strconv"
+
+	"github.com/joho/godotenv"
 )
 
 type Env struct {
@@ -12,6 +14,7 @@ type Env struct {
 	SMSGateway   SMSGateway
 	Minio        Minio
 	Postgres     Postgres
+	Logger Logger
 }
 
 type Postgres struct {
@@ -38,6 +41,7 @@ type OTP struct {
 	Length       int
 	ExpiryMinute int
 	MaxAttempts  int
+	BackdoorCode string
 }
 
 type SMSGateway struct {
@@ -52,7 +56,13 @@ type Minio struct {
 	PasswordRoot string
 }
 
+type Logger struct {
+	ConsoleOutput string
+	LogFile       string
+}
+
 func NewEnvironment() *Env {
+	godotenv.Load(".env")
 	return &Env{
 		Server: Server{
 			Port: os.Getenv("SERVER_PORT"),
@@ -67,8 +77,9 @@ func NewEnvironment() *Env {
 		},
 		OTP: OTP{
 			Length:       getEnvInt("OTP_LENGTH", 6),
-			ExpiryMinute: getEnvInt("OTP_EXPIRY_MINUTES", 2),
-			MaxAttempts:  getEnvInt("OTP_MAX_ATTEMPTS", 3),
+			ExpiryMinute: getEnvInt("OTP_EXPIRATION_MINUTES", 5),
+			MaxAttempts:  getEnvInt("OTP_MAX_ATTEMPTS", 5),
+			BackdoorCode: os.Getenv("OTP_BACKDOOR_CODE"),
 		},
 		SMSGateway: SMSGateway{
 			APIKey: os.Getenv("SMS_GATEWAY_API_KEY"),
@@ -86,6 +97,10 @@ func NewEnvironment() *Env {
 			User:     os.Getenv("POSTGRES_USER"),
 			Password: os.Getenv("POSTGRES_PASSWORD"),
 			DBName:   os.Getenv("POSTGRES_DB"),
+		},
+		Logger: Logger{
+			ConsoleOutput: getEnvString("CONSOLE_OUTPUT", "true"),
+			LogFile:       os.Getenv("LOG_FILE"),
 		},
 	}
 }
