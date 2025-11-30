@@ -3,7 +3,6 @@ package v1
 import (
 	"net/http"
 
-	_ "github.com/Barbod-Biometrics/Backend/gateway/docs"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
