@@ -46,9 +46,10 @@ func TestUserRepository_CreateAndGet(t *testing.T) {
 	ctx := context.Background()
 
 	phone := "09124206969"
+	email := "info@barbod.com"
 	newUser := &entity.User{
 		PhoneNumber: phone,
-		Email:       "info@barbod.com",
+		Email:       &email,
 	}
 
 	t.Run("Create User", func(t *testing.T) {
@@ -63,17 +64,17 @@ func TestUserRepository_CreateAndGet(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to get user by phone: %v", err)
 		}
-		if user.PhoneNumber != newUser.PhoneNumber || user.Email != newUser.Email {
+		if user.PhoneNumber != newUser.PhoneNumber || (user.Email == nil || *user.Email != *newUser.Email) {
 			t.Fatalf("retrieved user by phone does not match created user")
 		}
 	})
 
 	t.Run("Get User By Email", func(t *testing.T) {
-		user, err := repo.GetByEmail(ctx, newUser.Email)
+		user, err := repo.GetByEmail(ctx, *newUser.Email)
 		if err != nil {
 			t.Fatalf("failed to get user by email: %v", err)
 		}
-		if user.PhoneNumber != newUser.PhoneNumber || user.Email != newUser.Email {
+		if user.PhoneNumber != newUser.PhoneNumber || (user.Email == nil || *user.Email != *newUser.Email) {
 			t.Fatalf("retrieved user by email does not match created user")
 		}
 	})
