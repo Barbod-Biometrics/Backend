@@ -52,7 +52,7 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest,enable={{ github.ref_name == 'develop' && github.ref_name != 'tmp/deployment' }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -108,7 +108,7 @@ jobs:
           script: |
             cd /root/barbod/Backend
             echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ secrets.GHCR_USER }} --password-stdin
-            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PATH }}/gateway:${{ github.ref_name }}
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PATH }}/gateway:latest
             docker compose pull gateway
             docker compose up -d gateway
             
