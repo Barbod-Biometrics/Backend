@@ -1,0 +1,28 @@
+# Dev Dockerfile for fast iterative development
+# Builds an image with Go toolchain and installs `air` for live-reload.
+# Mount project source at /app from the host and run `air`.
+
+FROM golang:alpine
+
+# git is needed by `go install` for some modules
+RUN apk add --no-cache git ca-certificates
+
+ENV CGO_ENABLED=0
+ENV GOPROXY=https://goproxy.io,direct
+ENV PATH=$PATH:/go/bin
+
+WORKDIR /app
+
+# Install air (file-watcher for Go). The binary will be placed in /go/bin
+RUN go install github.com/air-verse/air@latest
+
+# Install swag for swagger generation and warm module cache to speed first runs.
+# Copy go.mod/go.sum so `go mod download` can populate module cache at image build time.
+COPY gateway/go.mod gateway/go.sum ./
+RUN go mod download
+
+# install swag (swag CLI) so dev container can generate swagger docs
+RUN go install github.com/swaggo/swag/cmd/swag@latest
+
+# Default command will be overridden by docker-compose, but kept for completeness
+CMD ["air"]

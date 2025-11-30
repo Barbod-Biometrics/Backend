@@ -18,6 +18,9 @@ COPY gateway/pkg ./pkg
 
 COPY gateway/bootstrap ./bootstrap
 
+RUN go install github.com/swaggo/swag/cmd/swag@latest
+RUN swag init -g ./cmd/app/main.go
+
 RUN CGO_ENABLED=0 go build -ldflags="-w -s" -o main ./cmd/app
 
 FROM alpine:3.19

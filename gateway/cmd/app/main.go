@@ -14,13 +14,19 @@ import (
 	infraJWT "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/jwt"
 	Logger "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/logger"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/repository/postgres"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
+	"github.com/Barbod-Biometrics/Backend/gateway/pkg/database"
+	"github.com/Barbod-Biometrics/Backend/gateway/pkg/storage"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/user"
 	v1 "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/routes/http/v1"
 	"github.com/gin-gonic/gin"
-	driverPostgres "gorm.io/driver/postgres"
-	"gorm.io/gorm"
 )
 
+// @title Barbod Biometrics Gateway API
+// @version 1.0
+// @description This is the Gateway service API documentation for Barbod Biometrics.
+// @host localhost:8080
+// @BasePath /api/v1
 func main() {
 
 	gin.DisableConsoleColor()
@@ -41,20 +47,27 @@ func main() {
 	}
 	defer appLogger.Close()
 
-	// -- Postgres --
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
-		cfg.Env.Postgres.Host, cfg.Env.Postgres.User, cfg.Env.Postgres.Password,
-		cfg.Env.Postgres.DBName, cfg.Env.Postgres.Port)
+	db := database.NewPostgresDatabase(cfg.Env)
 
-	db, err := gorm.Open(driverPostgres.Open(dsn), &gorm.Config{})
+	err = db.AutoMigrate(
+		&entity.User{},
+		&entity.Profile{},
+		&entity.ProfileBusinessDetails{},
+		&entity.ProfilePersonDetails{},
+		&entity.AuthorizedSignatory{},
+	)
+
 	if err != nil {
-		appLogger.Fatal("Failed to connect to Postgres", logger.Field{Key: "error", Value: err})
-	}
-
-	// --- Auto Migrate ---
-	if err := db.AutoMigrate(&entity.User{}); err != nil {
 		appLogger.Fatal("Failed to migrate database", logger.Field{Key: "error", Value: err})
 	}
+
+	profileRepo := postgres.NewProfileRepository(db)
+	minioStorage, err := storage.NewMinioClient(*cfg.Env)
+	if err != nil {
+		appLogger.Fatal("Failed to initialize Minio client", logger.Field{Key: "error", Value: err})
+	}
+	profileService := service.NewProfileService(profileRepo, minioStorage)
+	profileHandler := profile.NewProfileHandler(profileService)
 
 	// --- Redis ---
 	redisClient, err := redis.NewRedisClient(
@@ -87,7 +100,7 @@ func main() {
 
 	// 8. Setup Router
 	// Initialize the V1 Router
-	v1Router := v1.NewRouter(authController)
+	v1Router := v1.NewRouter(authController, profileHandler)
 
 	// Get the handler (which is a Gin Engine)
 	handler := v1Router.RegisterRoutes()
@@ -102,5 +115,4 @@ func main() {
 	if err := http.ListenAndServe(":"+cfg.Env.Server.Port, handler); err != nil {
 		appLogger.Error("Error starting server", logger.Field{Key: "error", Value: err})
 	}
-
 }
