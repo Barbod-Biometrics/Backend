@@ -52,7 +52,7 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha
-            type=raw,value=latest,enable={{ github.ref_name == 'develop' && github.ref_name != 'tmp/deployment' }}
+            type=raw,value=latest,enable=${{ github.ref_name == 'develop' && github.ref_name != 'tmp/deployment' }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
