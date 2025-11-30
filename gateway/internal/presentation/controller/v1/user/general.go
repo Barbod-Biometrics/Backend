@@ -16,6 +16,16 @@ func NewAuthController(authUsecase *service.AuthUsecase) *GeneralUserController 
 	return &GeneralUserController{authUsecase: authUsecase}
 }
 
+// @Summary Request OTP
+// @Description Request a one-time password to be sent to a phone number
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body auth.RequestOTPRequest true "Request OTP Request"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /auth/request-otp [post]
 func (g *GeneralUserController) RequestOTPHandler(c *gin.Context) {
 	var req auth.RequestOTPRequest
 
@@ -43,6 +53,16 @@ func (g *GeneralUserController) RequestOTPHandler(c *gin.Context) {
 
 }
 
+// @Summary Verify OTP
+// @Description Verify OTP and return auth tokens
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body auth.VerifyOTPRequest true "Verify OTP Request"
+// @Success 200 {object} auth.UserInfoResponse
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Router /auth/verify-otp [post]
 func (g *GeneralUserController) VerifyOTPHandler(c *gin.Context) {
 	var req auth.VerifyOTPRequest
 
