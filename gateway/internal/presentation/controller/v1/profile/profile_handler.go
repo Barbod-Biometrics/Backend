@@ -28,6 +28,7 @@ func (h *ProfileHandler) getUserID(c *gin.Context) uint64 {
 
 // CreateDraft creates a new profile draft
 // @Summary Create Profile Draft
+// @Security BearerAuth
 // @Description Create a new profile draft
 // @Tags Profiles
 // @Accept json
@@ -55,6 +56,7 @@ func (h *ProfileHandler) CreateDraft(c *gin.Context) {
 
 // UpdateDraft updates fields of an existing profile draft
 // @Summary Update Profile Draft
+// @Security BearerAuth
 // @Description Update a profile draft (partial updates allowed)
 // @Tags Profiles
 // @Accept json
@@ -92,6 +94,7 @@ func (h *ProfileHandler) UpdateDraft(c *gin.Context) {
 
 // SaveDocument handles POST /api/v1/profiles/:id/documents
 // @Summary Save Document URL
+// @Security BearerAuth
 // @Description Save a document URL for a profile (e.g., national card, business docs)
 // @Tags Profiles
 // @Accept json
@@ -129,6 +132,7 @@ func (h *ProfileHandler) SaveDocument(c *gin.Context) {
 
 // Submit handles POST /api/v1/profiles/:id/submit
 // @Summary Submit Profile
+// @Security BearerAuth
 // @Description Submit a profile for verification (final submission)
 // @Tags Profiles
 // @Accept json
@@ -159,6 +163,7 @@ func (h *ProfileHandler) Submit(c *gin.Context) {
 
 // GetProfile handles GET /api/v1/profiles/:id
 // @Summary Get Profile
+// @Security BearerAuth
 // @Description Get a profile by id
 // @Tags Profiles
 // @Accept json
@@ -189,6 +194,7 @@ func (h *ProfileHandler) GetProfile(c *gin.Context) {
 
 // GetUploadUrl handles POST /api/v1/profiles/upload-url
 // @Summary Get Upload URL
+// @Security BearerAuth
 // @Description Get a pre-signed upload URL for document uploads
 // @Tags Profiles
 // @Accept json

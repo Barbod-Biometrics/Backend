@@ -27,6 +27,10 @@ import (
 // @description This is the Gateway service API documentation for Barbod Biometrics.
 // @host localhost:8080
 // @BasePath /api/v1
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer {your JWT token}" to authorize requests (without quotes)
 func main() {
 
 	gin.DisableConsoleColor()
