@@ -33,15 +33,12 @@ func JWTMiddleware(keyManager domainJWT.KeyManager) gin.HandlerFunc {
 
 		// Parse and validate the token
 		token, err := jwt.Parse(tokenString, func(tok *jwt.Token) (interface{}, error) {
-			// Ensure signing method is RSA
-			if _, ok := tok.Method.(*jwt.SigningMethodRSA); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %v", tok.Header["alg"])
-			}
+
 			return keyManager.GetPublicKey(), nil
 		}, jwt.WithValidMethods([]string{jwt.SigningMethodRS256.Alg()}))
 
 		if err != nil || !token.Valid {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": fmt.Sprintf("invalid token: %v", err)})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
 			return
 		}
 
@@ -82,15 +79,15 @@ func extractUserID(sub interface{}) (uint64, error) {
 	}
 }
 
-// GetUserIDFromContext extracts user ID from gin context
-// Returns 0 if user ID is not found or invalid
-func GetUserIDFromContext(c *gin.Context) uint64 {
+// GetUserIDFromContext extracts user ID from gin context.
+// Returns the user ID and an error if not found or invalid.
+func GetUserIDFromContext(c *gin.Context) (uint64, error) {
 	v, exists := c.Get(ContextKeyUserID)
 	if !exists {
-		return 0
+		return 0, fmt.Errorf("user ID not found in context")
 	}
 	if uid, ok := v.(uint64); ok {
-		return uid
+		return uid, nil
 	}
-	return 0
+	return 0, fmt.Errorf("user ID in context has invalid type: %T", v)
 }

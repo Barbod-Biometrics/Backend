@@ -23,7 +23,11 @@ func NewProfileHandler(u usecase.ProfileUsecase) *ProfileHandler {
 // getUserID extracts the authenticated user's ID from the request context.
 // The user ID is set by the JWT middleware after validating the access token.
 func (h *ProfileHandler) getUserID(c *gin.Context) uint64 {
-	return middleware.GetUserIDFromContext(c)
+	userID, err := middleware.GetUserIDFromContext(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+	}
+	return userID
 }
 
 // CreateDraft creates a new profile draft
