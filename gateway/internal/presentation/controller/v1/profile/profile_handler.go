@@ -6,6 +6,7 @@ import (
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/profile"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/middleware"
 	"github.com/gin-gonic/gin"
 )
 
@@ -19,12 +20,10 @@ func NewProfileHandler(u usecase.ProfileUsecase) *ProfileHandler {
 	}
 }
 
-// --- Helper to get UserID ---
-// TODO: Replace this with actual JWT middleware logic later
+// getUserID extracts the authenticated user's ID from the request context.
+// The user ID is set by the JWT middleware after validating the access token.
 func (h *ProfileHandler) getUserID(c *gin.Context) uint64 {
-	// For testing now, return a static ID (e.g., 1)
-	// Later, this will be: c.GetUint64("userID")
-	return 1
+	return middleware.GetUserIDFromContext(c)
 }
 
 // CreateDraft creates a new profile draft

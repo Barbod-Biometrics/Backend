@@ -4,26 +4,31 @@ import (
 	"net/http"
 
 	_ "github.com/Barbod-Biometrics/Backend/gateway/docs"
+	domainJWT "github.com/Barbod-Biometrics/Backend/gateway/internal/domain/jwt"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/user"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/middleware"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
-	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
-	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/user"
 	"github.com/gin-gonic/gin"
 )
 
 type Route struct {
 	authController    *user.GeneralUserController
 	profileController *profile.ProfileHandler
+	jwtKeyManager     domainJWT.KeyManager
 }
 
 func NewRouter(
 	authController *user.GeneralUserController,
 	profileHandler *profile.ProfileHandler,
+	jwtKeyManager domainJWT.KeyManager,
 ) *Route {
 	return &Route{
 		authController:    authController,
 		profileController: profileHandler,
+		jwtKeyManager:     jwtKeyManager,
 	}
 }
 
@@ -43,6 +48,7 @@ func (r *Route) RegisterRoutes() http.Handler {
 			auth.POST("/verify-otp", r.authController.VerifyOTPHandler)
 		}
 		profiles := v1.Group("/profiles")
+		profiles.Use(middleware.JWTMiddleware(r.jwtKeyManager))
 		{
 			profiles.POST("/", r.profileController.CreateDraft)
 			profiles.PATCH("/:id", r.profileController.UpdateDraft)
