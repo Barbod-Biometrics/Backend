@@ -16,8 +16,7 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
 )
 
-
-type Telemetry struct {	
+type Telemetry struct {
 	tracerProvider *trace.TracerProvider
 	meterProvider  *metric.MeterProvider
 	resource       *resource.Resource
@@ -44,14 +43,29 @@ func InitTelemetry(ctx context.Context, config *bootstrap.Telemetry) (*Telemetry
 		return nil, fmt.Errorf("failed to initialize tracer provider: %w", err)
 	}
 
-	meterProvider, err := initMeterProvider(ctx, config.OTLPEndpoint, res)
-	if err != nil {
-		tracerProvider.Shutdown(ctx)
-		return nil, fmt.Errorf("failed to initialize meter provider: %w", err)
-	}
+
+	var meterProvider *metric.MeterProvider
+	// Disable metrics provider for now to avoid exporting metrics to
+	// backends that don't implement the OTLP metrics endpoint (e.g. Jaeger
+	// all-in-one). To re-enable metrics, uncomment the code below and ensure
+	// the `OTLPEndpoint` points to an OTLP-compatible collector.
+	/*
+		var meterProvider *metric.MeterProvider
+		if !isLikelyJaegerEndpoint(config.OTLPEndpoint) {
+			meterProvider, err = initMeterProvider(ctx, config.OTLPEndpoint, res)
+			if err != nil {
+				tracerProvider.Shutdown(ctx)
+				return nil, fmt.Errorf("failed to initialize meter provider: %w", err)
+			}
+		}
+	*/
 
 	otel.SetTracerProvider(tracerProvider)
-	otel.SetMeterProvider(meterProvider)
+	// otel.SetMeterProvider is intentionally disabled while metrics exporter
+	// remains off to prevent 404s against non-metrics endpoints.
+	// if meterProvider != nil {
+	//     otel.SetMeterProvider(meterProvider)
+	// }
 
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
 		propagation.TraceContext{},
@@ -88,7 +102,7 @@ func initTracerProvider(ctx context.Context, endpoint string, res *resource.Reso
 func initMeterProvider(ctx context.Context, endpoint string, res *resource.Resource) (*metric.MeterProvider, error) {
 	metricExporter, err := otlpmetrichttp.New(ctx,
 		otlpmetrichttp.WithEndpoint(extractEndpoint(endpoint)),
-		otlpmetrichttp.WithInsecure(), 
+		otlpmetrichttp.WithInsecure(),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create metric exporter: %w", err)
@@ -103,7 +117,6 @@ func initMeterProvider(ctx context.Context, endpoint string, res *resource.Resou
 
 	return meterProvider, nil
 }
-
 
 func (t *Telemetry) Shutdown(ctx context.Context) error {
 	if t.tracerProvider == nil && t.meterProvider == nil {
@@ -129,7 +142,6 @@ func (t *Telemetry) Shutdown(ctx context.Context) error {
 
 	return err
 }
-
 
 func extractEndpoint(endpoint string) string {
 	// Remove http:// or https:// prefix if present
