@@ -5,6 +5,7 @@ import (
 
 	_ "github.com/Barbod-Biometrics/Backend/gateway/docs"
 	domainJWT "github.com/Barbod-Biometrics/Backend/gateway/internal/domain/jwt"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/admin"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/user"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/middleware"
@@ -15,20 +16,23 @@ import (
 )
 
 type Route struct {
-	authController    *user.GeneralUserController
-	profileController *profile.ProfileHandler
-	jwtKeyManager     domainJWT.KeyManager
+	authController         *user.GeneralUserController
+	profileController      *profile.ProfileHandler
+	adminProfileController *admin.AdminProfileHandler
+	jwtKeyManager          domainJWT.KeyManager
 }
 
 func NewRouter(
 	authController *user.GeneralUserController,
 	profileHandler *profile.ProfileHandler,
+	adminProfileHandler *admin.AdminProfileHandler,
 	jwtKeyManager domainJWT.KeyManager,
 ) *Route {
 	return &Route{
-		authController:    authController,
-		profileController: profileHandler,
-		jwtKeyManager:     jwtKeyManager,
+		authController:         authController,
+		profileController:      profileHandler,
+		adminProfileController: adminProfileHandler,
+		jwtKeyManager:          jwtKeyManager,
 	}
 }
 
@@ -56,6 +60,20 @@ func (r *Route) RegisterRoutes() http.Handler {
 			profiles.POST("/:id/documents", r.profileController.SaveDocument)
 			profiles.POST("/:id/submit", r.profileController.Submit)
 			profiles.POST("/upload-url", r.profileController.GetUploadUrl)
+		}
+
+		// Admin routes - require JWT + admin role
+		adminGroup := v1.Group("/admin")
+		adminGroup.Use(middleware.JWTMiddleware(r.jwtKeyManager))
+		adminGroup.Use(middleware.AdminMiddleware())
+		{
+			adminProfiles := adminGroup.Group("/profiles")
+			{
+				adminProfiles.GET("", r.adminProfileController.ListProfiles)
+				adminProfiles.GET("/:id", r.adminProfileController.GetProfileDetail)
+				adminProfiles.POST("/:id/approve", r.adminProfileController.ApproveProfile)
+				adminProfiles.POST("/:id/reject", r.adminProfileController.RejectProfile)
+			}
 		}
 	}
 
