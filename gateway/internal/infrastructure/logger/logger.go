@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -253,6 +255,17 @@ func toZapFields(fields []logger.Field) []zap.Field {
 	return zapFields
 }
 
+func addTraceContext(ctx context.Context, fields []zap.Field) []zap.Field {
+	spanCtx := trace.SpanContextFromContext(ctx)
+	if spanCtx.IsValid() {
+		fields = append(fields,
+			zap.String("trace_id", spanCtx.TraceID().String()),
+			zap.String("span_id", spanCtx.SpanID().String()),
+		)
+	}
+	return fields
+}
+
 func (l *Logger) Debug(msg string, fields ...logger.Field) {
 	l.zap.Debug(msg, toZapFields(fields)...)
 }
@@ -271,6 +284,30 @@ func (l *Logger) Error(msg string, fields ...logger.Field) {
 
 func (l *Logger) Fatal(msg string, fields ...logger.Field) {
 	l.zap.Fatal(msg, toZapFields(fields)...)
+}
+
+func (l *Logger) DebugContext(ctx context.Context, msg string, fields ...logger.Field) {
+	zapFields := toZapFields(fields)
+	zapFields = addTraceContext(ctx, zapFields)
+	l.zap.Debug(msg, zapFields...)
+}
+
+func (l *Logger) InfoContext(ctx context.Context, msg string, fields ...logger.Field) {
+	zapFields := toZapFields(fields)
+	zapFields = addTraceContext(ctx, zapFields)
+	l.zap.Info(msg, zapFields...)
+}
+
+func (l *Logger) WarnContext(ctx context.Context, msg string, fields ...logger.Field) {
+	zapFields := toZapFields(fields)
+	zapFields = addTraceContext(ctx, zapFields)
+	l.zap.Warn(msg, zapFields...)
+}
+
+func (l *Logger) ErrorContext(ctx context.Context, msg string, fields ...logger.Field) {
+	zapFields := toZapFields(fields)
+	zapFields = addTraceContext(ctx, zapFields)
+	l.zap.Error(msg, zapFields...)
 }
 
 func (l *Logger) WithFields(fields map[string]interface{}) logger.Logger {
