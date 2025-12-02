@@ -6,6 +6,7 @@ import (
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/profile"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/middleware"
 	"github.com/gin-gonic/gin"
 )
 
@@ -19,16 +20,19 @@ func NewProfileHandler(u usecase.ProfileUsecase) *ProfileHandler {
 	}
 }
 
-// --- Helper to get UserID ---
-// TODO: Replace this with actual JWT middleware logic later
+// getUserID extracts the authenticated user's ID from the request context.
+// The user ID is set by the JWT middleware after validating the access token.
 func (h *ProfileHandler) getUserID(c *gin.Context) uint64 {
-	// For testing now, return a static ID (e.g., 1)
-	// Later, this will be: c.GetUint64("userID")
-	return 1
+	userID, err := middleware.GetUserIDFromContext(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+	}
+	return userID
 }
 
 // CreateDraft creates a new profile draft
 // @Summary Create Profile Draft
+// @Security BearerAuth
 // @Description Create a new profile draft
 // @Tags Profiles
 // @Accept json
@@ -56,6 +60,7 @@ func (h *ProfileHandler) CreateDraft(c *gin.Context) {
 
 // UpdateDraft updates fields of an existing profile draft
 // @Summary Update Profile Draft
+// @Security BearerAuth
 // @Description Update a profile draft (partial updates allowed)
 // @Tags Profiles
 // @Accept json
@@ -93,6 +98,7 @@ func (h *ProfileHandler) UpdateDraft(c *gin.Context) {
 
 // SaveDocument handles POST /api/v1/profiles/:id/documents
 // @Summary Save Document URL
+// @Security BearerAuth
 // @Description Save a document URL for a profile (e.g., national card, business docs)
 // @Tags Profiles
 // @Accept json
@@ -130,6 +136,7 @@ func (h *ProfileHandler) SaveDocument(c *gin.Context) {
 
 // Submit handles POST /api/v1/profiles/:id/submit
 // @Summary Submit Profile
+// @Security BearerAuth
 // @Description Submit a profile for verification (final submission)
 // @Tags Profiles
 // @Accept json
@@ -160,6 +167,7 @@ func (h *ProfileHandler) Submit(c *gin.Context) {
 
 // GetProfile handles GET /api/v1/profiles/:id
 // @Summary Get Profile
+// @Security BearerAuth
 // @Description Get a profile by id
 // @Tags Profiles
 // @Accept json
@@ -190,6 +198,7 @@ func (h *ProfileHandler) GetProfile(c *gin.Context) {
 
 // GetUploadUrl handles POST /api/v1/profiles/upload-url
 // @Summary Get Upload URL
+// @Security BearerAuth
 // @Description Get a pre-signed upload URL for document uploads
 // @Tags Profiles
 // @Accept json

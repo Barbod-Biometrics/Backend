@@ -29,6 +29,10 @@ import (
 // @description This is the Gateway service API documentation for Barbod Biometrics.
 // @host localhost:8080
 // @BasePath /api/v1
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer {your JWT token}" to authorize requests (without quotes)
 func main() {
 
 	gin.DisableConsoleColor()
@@ -48,7 +52,6 @@ func main() {
 		return
 	}
 	defer appLogger.Close()
-
 
 	ctx := context.Background()
 	otelTelemetry, err := telemetry.InitTelemetry(ctx, &cfg.Env.Telemetry)
@@ -109,8 +112,8 @@ func main() {
 	authController := user.NewAuthController(authUsecase)
 
 	// 8. Setup Router
-	// Initialize the V1 Router with serviceName from telemetry config
-	v1Router := v1.NewRouter(authController, profileHandler, cfg.Env.Telemetry.ServiceName)
+	// Initialize the V1 Router
+	v1Router := v1.NewRouter(authController, profileHandler, jwtKeyManager, cfg.Env.Telemetry.ServiceName)
 
 	// Get the handler (which is a Gin Engine)
 	handler := v1Router.RegisterRoutes()
