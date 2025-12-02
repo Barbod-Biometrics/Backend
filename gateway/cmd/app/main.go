@@ -15,10 +15,10 @@ import (
 	Logger "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/logger"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/repository/postgres"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
-	"github.com/Barbod-Biometrics/Backend/gateway/pkg/database"
-	"github.com/Barbod-Biometrics/Backend/gateway/pkg/storage"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/user"
 	v1 "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/routes/http/v1"
+	"github.com/Barbod-Biometrics/Backend/gateway/pkg/database"
+	"github.com/Barbod-Biometrics/Backend/gateway/pkg/storage"
 	"github.com/gin-gonic/gin"
 )
 
@@ -27,6 +27,10 @@ import (
 // @description This is the Gateway service API documentation for Barbod Biometrics.
 // @host localhost:8080
 // @BasePath /api/v1
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer {your JWT token}" to authorize requests (without quotes)
 func main() {
 
 	gin.DisableConsoleColor()
@@ -100,7 +104,7 @@ func main() {
 
 	// 8. Setup Router
 	// Initialize the V1 Router
-	v1Router := v1.NewRouter(authController, profileHandler)
+	v1Router := v1.NewRouter(authController, profileHandler, jwtKeyManager)
 
 	// Get the handler (which is a Gin Engine)
 	handler := v1Router.RegisterRoutes()
