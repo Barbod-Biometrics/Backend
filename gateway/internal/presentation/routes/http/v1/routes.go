@@ -6,6 +6,7 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
+	apikey "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/apiKey"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/user"
 	"github.com/gin-gonic/gin"
@@ -14,15 +15,18 @@ import (
 type Route struct {
 	authController    *user.GeneralUserController
 	profileController *profile.ProfileHandler
+	apiKeyController  *apikey.ApiKeyHandler
 }
 
 func NewRouter(
 	authController *user.GeneralUserController,
 	profileHandler *profile.ProfileHandler,
+	apiKeyHandler *apikey.ApiKeyHandler,
 ) *Route {
 	return &Route{
 		authController:    authController,
 		profileController: profileHandler,
+		apiKeyController:  apiKeyHandler,
 	}
 }
 
@@ -49,6 +53,10 @@ func (r *Route) RegisterRoutes() http.Handler {
 			profiles.POST("/:id/documents", r.profileController.SaveDocument)
 			profiles.POST("/:id/submit", r.profileController.Submit)
 			profiles.POST("/upload-url", r.profileController.GetUploadUrl)
+		}
+		api_key := v1.Group("/api-key")
+		{
+			api_key.POST("/regenerate", r.apiKeyController.RegenerateKey)
 		}
 	}
 

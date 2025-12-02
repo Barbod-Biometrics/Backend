@@ -19,7 +19,7 @@ type APIKeyService struct {
 	apiKeyRepo repository.APIKeyRepository
 }
 
-var _ usecase.APIKeyService = (*APIKeyService)(nil)
+var _ usecase.APIKeyUsecase = (*APIKeyService)(nil)
 
 func NewAPIKeyService(apiKeyRepo repository.APIKeyRepository) *APIKeyService {
 	return &APIKeyService{
