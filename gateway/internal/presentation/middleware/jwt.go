@@ -11,8 +11,11 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// ContextKeyUserID is the key used to store user ID in gin context
-const ContextKeyUserID = "userID"
+// Context keys for storing user information
+const (
+	ContextKeyUserID  = "userID"
+	ContextKeyIsAdmin = "isAdmin"
+)
 
 // JWTMiddleware creates a middleware that validates JWT tokens and extracts user ID
 func JWTMiddleware(keyManager domainJWT.KeyManager) gin.HandlerFunc {
@@ -55,8 +58,12 @@ func JWTMiddleware(keyManager domainJWT.KeyManager) gin.HandlerFunc {
 			return
 		}
 
-		// Set user ID in context for handlers to use
+		// Extract is_admin claim (defaults to false if not present)
+		isAdmin := extractIsAdmin(claims["is_admin"])
+
+		// Set user ID and admin status in context for handlers to use
 		c.Set(ContextKeyUserID, userID)
+		c.Set(ContextKeyIsAdmin, isAdmin)
 		c.Next()
 	}
 }
@@ -79,6 +86,17 @@ func extractUserID(sub interface{}) (uint64, error) {
 	}
 }
 
+// extractIsAdmin extracts is_admin from the claim (defaults to false)
+func extractIsAdmin(claim interface{}) bool {
+	if claim == nil {
+		return false
+	}
+	if isAdmin, ok := claim.(bool); ok {
+		return isAdmin
+	}
+	return false
+}
+
 // GetUserIDFromContext extracts user ID from gin context.
 // Returns the user ID and an error if not found or invalid.
 func GetUserIDFromContext(c *gin.Context) (uint64, error) {
@@ -90,4 +108,29 @@ func GetUserIDFromContext(c *gin.Context) (uint64, error) {
 		return uid, nil
 	}
 	return 0, fmt.Errorf("user ID in context has invalid type: %T", v)
+}
+
+// IsAdminFromContext checks if the current user is an admin.
+// Returns false if not found or not an admin.
+func IsAdminFromContext(c *gin.Context) bool {
+	v, exists := c.Get(ContextKeyIsAdmin)
+	if !exists {
+		return false
+	}
+	if isAdmin, ok := v.(bool); ok {
+		return isAdmin
+	}
+	return false
+}
+
+// AdminMiddleware is a middleware that requires the user to be an admin.
+// It must be used AFTER JWTMiddleware.
+func AdminMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if !IsAdminFromContext(c) {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "admin access required"})
+			return
+		}
+		c.Next()
+	}
 }
