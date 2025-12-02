@@ -41,6 +41,21 @@ services:
     volumes:
       - minio-data:/data
 
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: barbod-jaeger
+    restart: always
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "4318:4318"    # OTLP HTTP receiver
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:16686/api/traces"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
   gateway:
     image: ghcr.io/barbod-biometrics/gateway:latest
     # build: # This is for testing the apis locally and do not have to get the image from the repository (remove the comments if you want to test locally)
@@ -67,6 +82,11 @@ services:
       MINIO_PANEL_PORT: ${MINIO_PANEL_PORT}
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      OTEL_ENABLED: ${OTEL_ENABLED}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME}
+      OTEL_SERVICE_VERSION: ${OTEL_SERVICE_VERSION}
+      OTEL_ENVIRONMENT: ${OTEL_ENVIRONMENT}
       # JWT  and OTP backdoor (for now) Config is passed if not hardcoded defaults
       JWT_ACCESS_EXP_MIN: ${JWT_ACCESS_EXP_MIN}
       JWT_REFRESH_EXP_HOURS: ${JWT_REFRESH_EXP_HOURS}
@@ -78,6 +98,7 @@ services:
       - postgres
       - redis
       - minio
+      - jaeger
 
 volumes:
   postgres-data:

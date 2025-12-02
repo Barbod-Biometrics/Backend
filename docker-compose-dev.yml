@@ -41,6 +41,21 @@ services:
     volumes:
       - minio-data:/data
 
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: barbod-jaeger-dev
+    restart: always
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "4318:4318"    # OTLP HTTP receiver
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:16686/api/traces"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
   gateway:
     build:
       context: .
@@ -66,10 +81,16 @@ services:
       MINIO_PANEL_PORT: ${MINIO_PANEL_PORT}
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      OTEL_ENABLED: ${OTEL_ENABLED}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME}
+      OTEL_SERVICE_VERSION: ${OTEL_SERVICE_VERSION}
+      OTEL_ENVIRONMENT: ${OTEL_ENVIRONMENT}
     depends_on:
       - postgres
       - redis
       - minio
+      - jaeger
     volumes:
       - ./gateway:/app:cached
       # cache module download and compiled package objects across container restarts

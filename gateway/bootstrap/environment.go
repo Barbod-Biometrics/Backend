@@ -17,6 +17,7 @@ type Env struct {
 	Postgres     Postgres
 	Logger       Logger
 	JWT          JWT
+	Telemetry    Telemetry
 }
 
 type Postgres struct {
@@ -26,6 +27,7 @@ type Postgres struct {
 	Password string
 	DBName   string
 }
+
 type Server struct {
 	Port string
 	Mode string
@@ -67,6 +69,15 @@ type JWT struct {
 	AccessExpTime  time.Duration
 	RefreshExpTime time.Duration
 }
+
+type Telemetry struct {
+	Enabled        bool
+	OTLPEndpoint   string
+	ServiceName    string
+	ServiceVersion string
+	Environment    string
+}
+
 
 func NewEnvironment() *Env {
 	godotenv.Load(".env")
@@ -113,6 +124,13 @@ func NewEnvironment() *Env {
 			AccessExpTime:  time.Duration(getEnvInt("JWT_ACCESS_EXP_MIN", 15)) * time.Minute,
 			RefreshExpTime: time.Duration(getEnvInt("JWT_REFRESH_EXP_HOURS", 24*7)) * time.Hour,
 		},
+		Telemetry: Telemetry{
+			Enabled:        getEnvBool("OTEL_ENABLED", true),
+			OTLPEndpoint:   getEnvString("OTEL_EXPORTER_OTLP_ENDPOINT", "localhost:4317"),
+			ServiceName:    getEnvString("OTEL_SERVICE_NAME", "barbod-gateway"),
+			ServiceVersion: getEnvString("OTEL_SERVICE_VERSION", "1.0.0"),
+			Environment:    getEnvString("OTEL_ENVIRONMENT", "development"),
+		},
 	}
 }
 
@@ -128,6 +146,15 @@ func getEnvInt(key string, defaultVal int) int {
 func getEnvString(key string, defaultVal string) string {
 	if val := os.Getenv(key); val != "" {
 		return val
+	}
+	return defaultVal
+}
+
+func getEnvBool(key string, defaultVal bool) bool {
+	if val := os.Getenv(key); val != "" {
+		if parsed, err := strconv.ParseBool(val); err == nil {
+			return parsed
+		}
 	}
 	return defaultVal
 }
