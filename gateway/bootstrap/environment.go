@@ -17,6 +17,11 @@ type Env struct {
 	Postgres     Postgres
 	Logger       Logger
 	JWT          JWT
+	Admin        Admin
+}
+
+type Admin struct {
+	PhoneNumber string
 }
 
 type Postgres struct {
@@ -112,6 +117,9 @@ func NewEnvironment() *Env {
 		JWT: JWT{
 			AccessExpTime:  time.Duration(getEnvInt("JWT_ACCESS_EXP_MIN", 15)) * time.Minute,
 			RefreshExpTime: time.Duration(getEnvInt("JWT_REFRESH_EXP_HOURS", 24*7)) * time.Hour,
+		},
+		Admin: Admin{
+			PhoneNumber: os.Getenv("ADMIN_PHONE_NUMBER"),
 		},
 	}
 }
