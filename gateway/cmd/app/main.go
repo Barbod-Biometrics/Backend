@@ -15,10 +15,10 @@ import (
 	Logger "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/logger"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/repository/postgres"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
-	"github.com/Barbod-Biometrics/Backend/gateway/pkg/database"
-	"github.com/Barbod-Biometrics/Backend/gateway/pkg/storage"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/user"
 	v1 "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/routes/http/v1"
+	"github.com/Barbod-Biometrics/Backend/gateway/pkg/database"
+	"github.com/Barbod-Biometrics/Backend/gateway/pkg/storage"
 	"github.com/gin-gonic/gin"
 )
 
