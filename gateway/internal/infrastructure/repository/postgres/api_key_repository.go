@@ -55,7 +55,7 @@ func (r *ApiKeyRepository) Revoke(ctx context.Context, keyID string) error {
 		return errors.New("invalid key id format")
 	}
 
-	result := db.WithContext(ctx).Model(&entity.APIKey{}).Where("ke_id = ?", id).Update("is_active", false)
+	result := db.WithContext(ctx).Model(&entity.APIKey{}).Where("key_id = ?", id).Update("is_active", false)
 	if result.Error != nil {
 		return result.Error
 	}
