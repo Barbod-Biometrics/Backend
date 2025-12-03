@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"errors"
+	"context"
 	"fmt"
 	"net/http"
 
 	"github.com/Barbod-Biometrics/Backend/gateway/bootstrap"
+	docs "github.com/Barbod-Biometrics/Backend/gateway/docs"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/service"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/enum"
@@ -17,6 +19,7 @@ import (
 	Logger "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/logger"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/repository/postgres"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/admin"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/telemetry"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/user"
 	v1 "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/routes/http/v1"
@@ -29,7 +32,6 @@ import (
 // @title Barbod Biometrics Gateway API
 // @version 1.0
 // @description This is the Gateway service API documentation for Barbod Biometrics.
-// @host localhost:8080
 // @BasePath /api/v1
 // @securityDefinitions.apikey BearerAuth
 // @in header
@@ -54,6 +56,14 @@ func main() {
 		return
 	}
 	defer appLogger.Close()
+
+	ctx := context.Background()
+	otelTelemetry, err := telemetry.InitTelemetry(ctx, &cfg.Env.Telemetry)
+	setSwaggerHost(cfg.Env.Server.Host, cfg.Env.Server.Port)
+	if err != nil {
+		appLogger.Error("Failed to initialize OpenTelemetry", logger.Field{Key: "error", Value: err})
+	}
+	defer otelTelemetry.Shutdown(ctx)
 
 	db := database.NewPostgresDatabase(cfg.Env)
 
@@ -113,7 +123,7 @@ func main() {
 
 	// 9. Setup Router
 	// Initialize the V1 Router
-	v1Router := v1.NewRouter(authController, profileHandler, adminProfileHandler, jwtKeyManager)
+	v1Router := v1.NewRouter(authController, profileHandler, adminProfileHandler, jwtKeyManager, cfg.Env.Telemetry.ServiceName)
 
 	// Get the handler (which is a Gin Engine)
 	handler := v1Router.RegisterRoutes()
@@ -169,5 +179,15 @@ func seedAdminUser(db *gorm.DB, adminPhone string, appLogger logger.Logger) {
 		appLogger.Info("Existing user promoted to admin", logger.Field{Key: "phone", Value: adminPhone})
 	} else {
 		appLogger.Info("Admin user already exists", logger.Field{Key: "phone", Value: adminPhone})
+	}
+}
+
+func setSwaggerHost(host string, port string) {
+	if host == "" {
+		docs.SwaggerInfo.Host = "localhost:" + port
+	}
+
+	if host != "" && port != "" {
+		docs.SwaggerInfo.Host = host + ":" + port
 	}
 }

@@ -9,10 +9,9 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/user"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/middleware"
+	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-
-	"github.com/gin-gonic/gin"
 )
 
 type Route struct {
@@ -20,6 +19,7 @@ type Route struct {
 	profileController      *profile.ProfileHandler
 	adminProfileController *admin.AdminProfileHandler
 	jwtKeyManager          domainJWT.KeyManager
+	serviceName       string
 }
 
 func NewRouter(
@@ -27,12 +27,14 @@ func NewRouter(
 	profileHandler *profile.ProfileHandler,
 	adminProfileHandler *admin.AdminProfileHandler,
 	jwtKeyManager domainJWT.KeyManager,
+	serviceName string,
 ) *Route {
 	return &Route{
 		authController:         authController,
 		profileController:      profileHandler,
 		adminProfileController: adminProfileHandler,
 		jwtKeyManager:          jwtKeyManager,
+		serviceName:       serviceName,
 	}
 }
 
@@ -41,6 +43,7 @@ func (r *Route) RegisterRoutes() http.Handler {
 
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
+	router.Use(middleware.OpenTelemetryMiddleware(r.serviceName))
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
