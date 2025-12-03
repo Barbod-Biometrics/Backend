@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/Barbod-Biometrics/Backend/gateway/bootstrap"
+	docs "github.com/Barbod-Biometrics/Backend/gateway/docs"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/service"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/enum"
@@ -27,7 +28,7 @@ import (
 // @title Barbod Biometrics Gateway API
 // @version 1.0
 // @description This is the Gateway service API documentation for Barbod Biometrics.
-// @host localhost:8080
+// @host nigga.ir:8080
 // @BasePath /api/v1
 // @securityDefinitions.apikey BearerAuth
 // @in header
@@ -55,6 +56,7 @@ func main() {
 
 	ctx := context.Background()
 	otelTelemetry, err := telemetry.InitTelemetry(ctx, &cfg.Env.Telemetry)
+	setSwaggerHost(cfg.Env.Server.Host, cfg.Env.Server.Port)
 	if err != nil {
 		appLogger.Error("Failed to initialize OpenTelemetry", logger.Field{Key: "error", Value: err})
 	}
@@ -127,5 +129,15 @@ func main() {
 
 	if err := http.ListenAndServe(":"+cfg.Env.Server.Port, handler); err != nil {
 		appLogger.Error("Error starting server", logger.Field{Key: "error", Value: err})
+	}
+}
+
+func setSwaggerHost(host string, port string) {
+	if host == "" {
+		docs.SwaggerInfo.Host = "localhost:" + port
+	}
+
+	if host != "" && port != "" {
+		docs.SwaggerInfo.Host = host + ":" + port
 	}
 }

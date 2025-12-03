@@ -30,6 +30,7 @@ type Postgres struct {
 
 type Server struct {
 	Port string
+	Host string
 	Mode string
 }
 
@@ -78,13 +79,13 @@ type Telemetry struct {
 	Environment    string
 }
 
-
 func NewEnvironment() *Env {
 	godotenv.Load(".env")
 	return &Env{
 		Server: Server{
 			Port: os.Getenv("SERVER_PORT"),
 			Mode: getEnvString("SERVER_MODE", "debug"),
+			Host: getEnvString("SERVER_HOST", "localhost"),
 		},
 		PrimaryRedis: Redis{
 			Port:     os.Getenv("REDIS_PORT"),
