@@ -45,11 +45,9 @@ func (s *ProfileService) CreateDraft(ctx context.Context, userID uint64, req pro
 		CreatedAt:          time.Now(),
 	}
 
-	if newProfile.ProfileType == entity.ProfileTypePersonal {
-		newProfile.PersonDetails = &entity.ProfilePersonDetails{}
-	} else {
-		newProfile.BusinessDetails = &entity.ProfileBusinessDetails{}
-	}
+	// NOTE: We intentionally do NOT create PersonDetails/BusinessDetails here.
+	// They will be created when the user provides actual data via UpdateDraft.
+	// Creating them with empty values would violate unique constraints on NationalID/MobileNumber.
 
 	if err := s.profileRepo.Create(ctx, newProfile); err != nil {
 		return nil, fmt.Errorf("failed to create profile: %w", err)
@@ -73,6 +71,12 @@ func (s *ProfileService) UpdateDraft(ctx context.Context, userID uint64, profile
 	}
 
 	if existing.ProfileType == entity.ProfileTypePersonal && req.PersonDetails != nil {
+		// Create PersonDetails if it doesn't exist yet (draft was created without it)
+		if existing.PersonDetails == nil {
+			existing.PersonDetails = &entity.ProfilePersonDetails{
+				ProfileID: existing.ProfileID,
+			}
+		}
 		err = s.updatePersonalDetails(existing.PersonDetails, req.PersonDetails)
 		if err != nil {
 			return nil, fmt.Errorf("failed to update personal details: %w", err)
@@ -80,6 +84,12 @@ func (s *ProfileService) UpdateDraft(ctx context.Context, userID uint64, profile
 	}
 
 	if existing.ProfileType == entity.ProfileTypeBusiness && req.BusinessDetails != nil {
+		// Create BusinessDetails if it doesn't exist yet (draft was created without it)
+		if existing.BusinessDetails == nil {
+			existing.BusinessDetails = &entity.ProfileBusinessDetails{
+				ProfileID: existing.ProfileID,
+			}
+		}
 		err = s.updateBusinessDetails(existing.BusinessDetails, req.BusinessDetails)
 		if err != nil {
 			return nil, fmt.Errorf("failed to update business details: %w", err)

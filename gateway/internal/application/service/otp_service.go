@@ -130,6 +130,6 @@ func (s *otpService) generateOTP(length int) (string, error) {
 		return "", err
 	}
 
-	format := fmt.Sprintf("%%0%ddd", length)
+	format := fmt.Sprintf("%%0%dd", length)
 	return fmt.Sprintf(format, n.Int64()), nil
 }
