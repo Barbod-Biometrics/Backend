@@ -28,7 +28,6 @@ import (
 // @title Barbod Biometrics Gateway API
 // @version 1.0
 // @description This is the Gateway service API documentation for Barbod Biometrics.
-// @host nigga.ir:8080
 // @BasePath /api/v1
 // @securityDefinitions.apikey BearerAuth
 // @in header
