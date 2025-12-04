@@ -30,7 +30,7 @@ func NewApiKeyHandler(apiKeyUsecase usecase.APIKeyUsecase, logger logger.Logger)
 // @Accept json
 // @Produce json
 // @Param profile_id path int true "Profile ID"
-// @Success 200 {object} apikey.NewAPIKeyResponse
+// @Success 200 {object} business.NewAPIKeyResponse
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /api-key/{profile_id}/regenerate [POST]
