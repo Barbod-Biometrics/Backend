@@ -6,6 +6,7 @@ import (
 	apikey "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/apiKey"
 	_ "github.com/Barbod-Biometrics/Backend/gateway/docs"
 	domainJWT "github.com/Barbod-Biometrics/Backend/gateway/internal/domain/jwt"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/admin"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/user"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/middleware"
@@ -19,6 +20,7 @@ type Route struct {
 	profileController *profile.ProfileHandler
 	apiKeyController  *apikey.ApiKeyHandler
 	jwtKeyManager     domainJWT.KeyManager
+	adminProfileController *admin.AdminProfileHandler
 	serviceName       string
 }
 
@@ -26,6 +28,7 @@ func NewRouter(
 	authController *user.GeneralUserController,
 	profileHandler *profile.ProfileHandler,
 	apiKeyHandler *apikey.ApiKeyHandler,
+	adminProfileHandler *admin.AdminProfileHandler,
 	jwtKeyManager domainJWT.KeyManager,
 	serviceName string,
 ) *Route {
@@ -34,6 +37,7 @@ func NewRouter(
 		profileController: profileHandler,
 		apiKeyController:  apiKeyHandler,
 		jwtKeyManager:     jwtKeyManager,
+		adminProfileController: adminProfileHandler,
 		serviceName:       serviceName,
 	}
 }
@@ -67,6 +71,20 @@ func (r *Route) RegisterRoutes() http.Handler {
 		api_key := v1.Group("/api-key")
 		{
 			api_key.POST("/:profile_id/regenerate", r.apiKeyController.RegenerateKey)
+    }
+
+		// Admin routes - require JWT + admin role
+		adminGroup := v1.Group("/admin")
+		adminGroup.Use(middleware.JWTMiddleware(r.jwtKeyManager))
+		adminGroup.Use(middleware.AdminMiddleware())
+		{
+			adminProfiles := adminGroup.Group("/profiles")
+			{
+				adminProfiles.GET("", r.adminProfileController.ListProfiles)
+				adminProfiles.GET("/:id", r.adminProfileController.GetProfileDetail)
+				adminProfiles.POST("/:id/approve", r.adminProfileController.ApproveProfile)
+				adminProfiles.POST("/:id/reject", r.adminProfileController.RejectProfile)
+			}
 		}
 	}
 
