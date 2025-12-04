@@ -52,7 +52,7 @@ type BusinessDetailsDTO struct {
 	RepNationalID      *string `json:"rep_national_id" binding:"required,len=10,numeric,omitempty"`
 	RepDOB             *string `json:"rep_dob" binding:"required,datetime=2006-01-02,omitempty"`
 	RepMobileNumber    *string `json:"rep_mobile_number" binding:"required,len=11,numeric,omitempty"`
-	BusinessNationalID *string `json:"business_national_id" binding:"required,len=11,numeric,omitempty"`
+	BusinessNationalID *string `json:"business_national_id" binding:"omitempty,len=11,numeric"`
 
 	BusinessInfo *BusinessMetaDTO `json:"business_info,omitempty"`
 	LocationInfo *LocationDTO     `json:"location_info,omitempty"`
@@ -79,4 +79,3 @@ type GetUploadUrlRequest struct {
 	DocumentType  string `json:"document_type" binding:"required,oneof=national_card_front national_card_back id_book_page_one establishment_notice statutes introduction_letter official_gazette"`
 	FileExtension string `json:"file_extension" binding:"required,oneof=.jpg .jpeg .png .pdf"`
 }
-
