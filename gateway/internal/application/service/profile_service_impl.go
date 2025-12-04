@@ -416,9 +416,7 @@ func (s *ProfileService) validateProfileCompleteness(p *entity.Profile) error {
 		if pd.DOB.IsZero() {
 			return fmt.Errorf("date of birth is required for personal profile")
 		}
-		if pd.Documents == nil || (pd.Documents.NationalCardFront == "" || pd.Documents.NationalCardBack == "" || pd.Documents.IdBookPageOne == "") {
-			return fmt.Errorf("all identity documents (national_card_front, national_card_back, id_book_page_one) are required for personal profile")
-		}
+		// Documents are optional for personal profile
 
 	case entity.ProfileTypeBusiness:
 		bd := p.BusinessDetails
@@ -440,15 +438,10 @@ func (s *ProfileService) validateProfileCompleteness(p *entity.Profile) error {
 		if bd.RepDOB.IsZero() {
 			return fmt.Errorf("representative date of birth is required for business profile")
 		}
-		if bd.BusinessNationalID == "" {
-			return fmt.Errorf("business national ID is required for business profile")
-		}
-		if bd.SupplementaryDocs == nil || bd.SupplementaryDocs.EstablishmentNotice == "" || bd.SupplementaryDocs.Statutes == "" {
-			return fmt.Errorf("required business supplementary documents (establishment_notice, statutes) are missing")
-		}
-		if len(bd.Signatories) == 0 {
-			return fmt.Errorf("at least one authorized signatory is required for business profile")
-		}
+		// BusinessNationalID is optional
+		// SupplementaryDocs are optional
+		// Signatories are optional
+		// Validate signatories only if provided (signatories are optional)
 		for i, sgn := range bd.Signatories {
 			idx := i + 1
 			if sgn.FirstName == "" {
@@ -466,9 +459,7 @@ func (s *ProfileService) validateProfileCompleteness(p *entity.Profile) error {
 			if sgn.DOB == nil || sgn.DOB.IsZero() {
 				return fmt.Errorf("date of birth is required for signatory %d", idx)
 			}
-			if sgn.Documents == nil || (sgn.Documents.NationalCardFront == "" && sgn.Documents.NationalCardBack == "" && sgn.Documents.IdBookPageOne == "") {
-				return fmt.Errorf("at least one identity document is required for signatory %d", idx)
-			}
+			// Documents are optional for signatories
 		}
 
 	default:
