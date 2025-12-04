@@ -44,7 +44,8 @@ func NewRouter(
 
 func (r *Route) RegisterRoutes() http.Handler {
 	router := gin.New()
-
+	
+	router.Use(middleware.NewCorsMiddleware().CORS())
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 	router.Use(middleware.OpenTelemetryMiddleware(r.serviceName))
