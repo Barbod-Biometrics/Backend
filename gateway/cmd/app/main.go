@@ -17,8 +17,9 @@ import (
 	infraJWT "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/jwt"
 	Logger "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/logger"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/repository/postgres"
-	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/admin"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/telemetry"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/admin"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/apikey"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/user"
 	v1 "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/routes/http/v1"
@@ -72,6 +73,7 @@ func main() {
 		&entity.ProfileBusinessDetails{},
 		&entity.ProfilePersonDetails{},
 		&entity.AuthorizedSignatory{},
+		&entity.APIKey{},
 	)
 
 	if err != nil {
@@ -104,11 +106,15 @@ func main() {
 	cacheRepo := redis.NewCacheRepository(redisClient)
 	jwtKeyManager := infraJWT.NewJWTKeyManager()
 	smsService := sms.NewSMSService(cfg.Env.SMSGateway.APIKey, cfg.Env.OTP.BackdoorCode)
+	apiKeyRepo := postgres.NewApiKeyRepository(db)
+
+	apiControllerLogger, _ := Logger.NewModuleLogger("apikey_controller", loggerCfg)
 
 	// 5. Initialize Application Layer (Services)
 	jwtService := service.NewJWTService(cfg, jwtKeyManager)
 	otpService := service.NewOTPService(cacheRepo, cfg)
 	adminProfileService := service.NewAdminProfileService(profileRepo)
+	apiKeyService := service.NewAPIKeyService(apiKeyRepo, appLogger) // <--- Init Service
 
 	// 6. Initialize Usecases
 	authUsecase := service.NewAuthUsecase(userRepo, otpService, smsService, jwtService)
@@ -116,13 +122,20 @@ func main() {
 	// 7. Initialize Controllers
 	authController := user.NewAuthController(authUsecase)
 	adminProfileHandler := admin.NewAdminProfileHandler(adminProfileService)
+	apiKeyController := apikey.NewApiKeyHandler(apiKeyService, apiControllerLogger)
 
 	// 8. Seed admin user from environment variable
 	seedAdminUser(db, cfg.Env.Admin.PhoneNumber, appLogger)
 
 	// 9. Setup Router
-	// Initialize the V1 Router
-	v1Router := v1.NewRouter(authController, profileHandler, adminProfileHandler, jwtKeyManager, cfg.Env.Telemetry.ServiceName)
+	v1Router := v1.NewRouter(
+		authController,
+		profileHandler,
+		apiKeyController,
+		adminProfileHandler,
+		jwtKeyManager,
+		cfg.Env.Telemetry.ServiceName,
+	)
 
 	// Get the handler (which is a Gin Engine)
 	handler := v1Router.RegisterRoutes()
