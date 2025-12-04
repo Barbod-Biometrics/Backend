@@ -3,9 +3,8 @@ package v1
 import (
 	"net/http"
 
-	apikey "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/apiKey"
-	_ "github.com/Barbod-Biometrics/Backend/gateway/docs"
 	domainJWT "github.com/Barbod-Biometrics/Backend/gateway/internal/domain/jwt"
+	apikey "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/apikey"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/user"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/middleware"

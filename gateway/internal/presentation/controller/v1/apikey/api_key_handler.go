@@ -24,12 +24,13 @@ func NewApiKeyHandler(apiKeyUsecase usecase.APIKeyUsecase, logger logger.Logger)
 
 // Regenerate handles replacing a lost API Key
 // @Summary Regenerate API Key
+// @Security BearerAuth
 // @Description Revokes the existing active key and generate a new one.
-// @Tags API Keys
+// @Tags API-Keys
 // @Accept json
 // @Produce json
-// @Param profile_id path in true "Profile ID"
-// @Success 200 {object} apiKey.NewAPIKeyResponse
+// @Param profile_id path int true "Profile ID"
+// @Success 200 {object} apikey.NewAPIKeyResponse
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /api-key/{profile_id}/regenerate [POST]
