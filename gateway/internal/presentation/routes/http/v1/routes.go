@@ -3,9 +3,9 @@ package v1
 import (
 	"net/http"
 
-	_ "github.com/Barbod-Biometrics/Backend/gateway/docs"
 	domainJWT "github.com/Barbod-Biometrics/Backend/gateway/internal/domain/jwt"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/admin"
+	apikey "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/apikey"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/user"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/wallet"
@@ -18,6 +18,7 @@ import (
 type Route struct {
 	authController         *user.GeneralUserController
 	profileController      *profile.ProfileHandler
+	apiKeyController       *apikey.ApiKeyHandler
 	adminProfileController *admin.AdminProfileHandler
 	walletController       *wallet.WalletHandler
 	jwtKeyManager          domainJWT.KeyManager
@@ -27,6 +28,7 @@ type Route struct {
 func NewRouter(
 	authController *user.GeneralUserController,
 	profileHandler *profile.ProfileHandler,
+	apiKeyHandler *apikey.ApiKeyHandler,
 	adminProfileHandler *admin.AdminProfileHandler,
 	walletHandler *wallet.WalletHandler,
 	jwtKeyManager domainJWT.KeyManager,
@@ -35,6 +37,7 @@ func NewRouter(
 	return &Route{
 		authController:         authController,
 		profileController:      profileHandler,
+		apiKeyController:       apiKeyHandler,
 		adminProfileController: adminProfileHandler,
 		walletController:       walletHandler,
 		jwtKeyManager:          jwtKeyManager,
@@ -73,6 +76,10 @@ func (r *Route) RegisterRoutes() http.Handler {
 			profiles.GET("/:id/wallet/summary", r.walletController.GetWalletSummary)
 			profiles.GET("/:id/wallet/transactions", r.walletController.GetTransactions)
 			profiles.POST("/:id/wallet/deposit", r.walletController.Deposit)
+		}
+		api_key := v1.Group("/api-key")
+		{
+			api_key.POST("/:profile_id/regenerate", r.apiKeyController.RegenerateKey)
 		}
 
 		// Admin routes - require JWT + admin role
