@@ -22,6 +22,7 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/apikey"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/user"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/wallet"
 	v1 "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/routes/http/v1"
 	"github.com/Barbod-Biometrics/Backend/gateway/pkg/database"
 	"github.com/Barbod-Biometrics/Backend/gateway/pkg/storage"
@@ -74,6 +75,7 @@ func main() {
 		&entity.ProfilePersonDetails{},
 		&entity.AuthorizedSignatory{},
 		&entity.APIKey{},
+		&entity.Transaction{},
 	)
 
 	if err != nil {
@@ -81,12 +83,16 @@ func main() {
 	}
 
 	profileRepo := postgres.NewProfileRepository(db)
+	transactionRepo := postgres.NewTransactionRepository(db)
+	unitOfWork := postgres.NewGormUnitOfWork(db)
 	minioStorage, err := storage.NewMinioClient(*cfg.Env)
 	if err != nil {
 		appLogger.Fatal("Failed to initialize Minio client", logger.Field{Key: "error", Value: err})
 	}
 	profileService := service.NewProfileService(profileRepo, minioStorage)
 	profileHandler := profile.NewProfileHandler(profileService)
+	walletService := service.NewWalletService(profileRepo, transactionRepo, unitOfWork)
+	walletHandler := wallet.NewWalletHandler(walletService)
 
 	// --- Redis ---
 	redisClient, err := redis.NewRedisClient(
@@ -133,6 +139,7 @@ func main() {
 		profileHandler,
 		apiKeyController,
 		adminProfileHandler,
+    walletHandler,
 		jwtKeyManager,
 		cfg.Env.Telemetry.ServiceName,
 	)
