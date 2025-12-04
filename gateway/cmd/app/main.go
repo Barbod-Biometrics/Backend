@@ -17,10 +17,11 @@ import (
 	infraJWT "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/jwt"
 	Logger "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/logger"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/repository/postgres"
-	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/admin"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/telemetry"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/admin"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/user"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/wallet"
 	v1 "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/routes/http/v1"
 	"github.com/Barbod-Biometrics/Backend/gateway/pkg/database"
 	"github.com/Barbod-Biometrics/Backend/gateway/pkg/storage"
@@ -72,6 +73,7 @@ func main() {
 		&entity.ProfileBusinessDetails{},
 		&entity.ProfilePersonDetails{},
 		&entity.AuthorizedSignatory{},
+		&entity.Transaction{},
 	)
 
 	if err != nil {
@@ -79,12 +81,16 @@ func main() {
 	}
 
 	profileRepo := postgres.NewProfileRepository(db)
+	transactionRepo := postgres.NewTransactionRepository(db)
+	unitOfWork := postgres.NewGormUnitOfWork(db)
 	minioStorage, err := storage.NewMinioClient(*cfg.Env)
 	if err != nil {
 		appLogger.Fatal("Failed to initialize Minio client", logger.Field{Key: "error", Value: err})
 	}
 	profileService := service.NewProfileService(profileRepo, minioStorage)
 	profileHandler := profile.NewProfileHandler(profileService)
+	walletService := service.NewWalletService(profileRepo, transactionRepo, unitOfWork)
+	walletHandler := wallet.NewWalletHandler(walletService)
 
 	// --- Redis ---
 	redisClient, err := redis.NewRedisClient(
@@ -122,7 +128,7 @@ func main() {
 
 	// 9. Setup Router
 	// Initialize the V1 Router
-	v1Router := v1.NewRouter(authController, profileHandler, adminProfileHandler, jwtKeyManager, cfg.Env.Telemetry.ServiceName)
+	v1Router := v1.NewRouter(authController, profileHandler, adminProfileHandler, walletHandler, jwtKeyManager, cfg.Env.Telemetry.ServiceName)
 
 	// Get the handler (which is a Gin Engine)
 	handler := v1Router.RegisterRoutes()

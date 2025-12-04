@@ -8,6 +8,7 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/admin"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/user"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/wallet"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/middleware"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -18,14 +19,16 @@ type Route struct {
 	authController         *user.GeneralUserController
 	profileController      *profile.ProfileHandler
 	adminProfileController *admin.AdminProfileHandler
+	walletController       *wallet.WalletHandler
 	jwtKeyManager          domainJWT.KeyManager
-	serviceName       string
+	serviceName            string
 }
 
 func NewRouter(
 	authController *user.GeneralUserController,
 	profileHandler *profile.ProfileHandler,
 	adminProfileHandler *admin.AdminProfileHandler,
+	walletHandler *wallet.WalletHandler,
 	jwtKeyManager domainJWT.KeyManager,
 	serviceName string,
 ) *Route {
@@ -33,8 +36,9 @@ func NewRouter(
 		authController:         authController,
 		profileController:      profileHandler,
 		adminProfileController: adminProfileHandler,
+		walletController:       walletHandler,
 		jwtKeyManager:          jwtKeyManager,
-		serviceName:       serviceName,
+		serviceName:            serviceName,
 	}
 }
 
@@ -64,6 +68,11 @@ func (r *Route) RegisterRoutes() http.Handler {
 			profiles.POST("/:id/documents", r.profileController.SaveDocument)
 			profiles.POST("/:id/submit", r.profileController.Submit)
 			profiles.POST("/upload-url", r.profileController.GetUploadUrl)
+
+			// Wallet routes
+			profiles.GET("/:id/wallet/summary", r.walletController.GetWalletSummary)
+			profiles.GET("/:id/wallet/transactions", r.walletController.GetTransactions)
+			profiles.POST("/:id/wallet/deposit", r.walletController.Deposit)
 		}
 
 		// Admin routes - require JWT + admin role
