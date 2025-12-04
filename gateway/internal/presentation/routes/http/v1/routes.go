@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	domainJWT "github.com/Barbod-Biometrics/Backend/gateway/internal/domain/jwt"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/admin"
 	apikey "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/apikey"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/user"
@@ -14,26 +15,29 @@ import (
 )
 
 type Route struct {
-	authController    *user.GeneralUserController
-	profileController *profile.ProfileHandler
-	apiKeyController  *apikey.ApiKeyHandler
-	jwtKeyManager     domainJWT.KeyManager
-	serviceName       string
+	authController         *user.GeneralUserController
+	profileController      *profile.ProfileHandler
+	apiKeyController       *apikey.ApiKeyHandler
+	jwtKeyManager          domainJWT.KeyManager
+	adminProfileController *admin.AdminProfileHandler
+	serviceName            string
 }
 
 func NewRouter(
 	authController *user.GeneralUserController,
 	profileHandler *profile.ProfileHandler,
 	apiKeyHandler *apikey.ApiKeyHandler,
+	adminProfileHandler *admin.AdminProfileHandler,
 	jwtKeyManager domainJWT.KeyManager,
 	serviceName string,
 ) *Route {
 	return &Route{
-		authController:    authController,
-		profileController: profileHandler,
-		apiKeyController:  apiKeyHandler,
-		jwtKeyManager:     jwtKeyManager,
-		serviceName:       serviceName,
+		authController:         authController,
+		profileController:      profileHandler,
+		apiKeyController:       apiKeyHandler,
+		jwtKeyManager:          jwtKeyManager,
+		adminProfileController: adminProfileHandler,
+		serviceName:            serviceName,
 	}
 }
 
@@ -66,6 +70,20 @@ func (r *Route) RegisterRoutes() http.Handler {
 		api_key := v1.Group("/api-key")
 		{
 			api_key.POST("/:profile_id/regenerate", r.apiKeyController.RegenerateKey)
+		}
+
+		// Admin routes - require JWT + admin role
+		adminGroup := v1.Group("/admin")
+		adminGroup.Use(middleware.JWTMiddleware(r.jwtKeyManager))
+		adminGroup.Use(middleware.AdminMiddleware())
+		{
+			adminProfiles := adminGroup.Group("/profiles")
+			{
+				adminProfiles.GET("", r.adminProfileController.ListProfiles)
+				adminProfiles.GET("/:id", r.adminProfileController.GetProfileDetail)
+				adminProfiles.POST("/:id/approve", r.adminProfileController.ApproveProfile)
+				adminProfiles.POST("/:id/reject", r.adminProfileController.RejectProfile)
+			}
 		}
 	}
 

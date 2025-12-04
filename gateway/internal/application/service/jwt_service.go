@@ -31,12 +31,13 @@ func NewJWTService(config *bootstrap.Config, keyManager domainJWT.KeyManager) *J
 
 var _ usecase.TokenService = (*JWTService)(nil)
 
-func (j *JWTService) GenerateTokens(ctx context.Context, userID uint64) (string, string, error) {
+func (j *JWTService) GenerateTokens(ctx context.Context, userID uint64, isAdmin bool) (string, string, error) {
 
 	accessTokenClaims := jwt.MapClaims{
-		"sub": userID,
-		"exp": time.Now().Add(j.config.Env.JWT.AccessExpTime).Unix(),
-		"iat": time.Now().Unix(),
+		"sub":      userID,
+		"is_admin": isAdmin,
+		"exp":      time.Now().Add(j.config.Env.JWT.AccessExpTime).Unix(),
+		"iat":      time.Now().Unix(),
 	}
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodRS256, accessTokenClaims)
 	accessTokenString, err := accessToken.SignedString(j.keyManager.GetPrivateKey())
@@ -46,9 +47,10 @@ func (j *JWTService) GenerateTokens(ctx context.Context, userID uint64) (string,
 	}
 
 	refreshTokenClaims := jwt.MapClaims{
-		"sub": userID,
-		"exp": time.Now().Add(j.config.Env.JWT.RefreshExpTime).Unix(),
-		"iat": time.Now().Unix(),
+		"sub":      userID,
+		"is_admin": isAdmin,
+		"exp":      time.Now().Add(j.config.Env.JWT.RefreshExpTime).Unix(),
+		"iat":      time.Now().Unix(),
 	}
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodRS256, refreshTokenClaims)
 	refreshTokenString, err := refreshToken.SignedString(j.keyManager.GetPrivateKey())

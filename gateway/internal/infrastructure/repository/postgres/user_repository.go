@@ -39,3 +39,16 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*entity.
 	err := r.getDB(ctx).WithContext(ctx).Where("email = ?", email).First(&user).Error
 	return &user, err
 }
+
+func (r *UserRepository) GetByID(ctx context.Context, userID uint64) (*entity.User, error) {
+	var user entity.User
+	err := r.getDB(ctx).WithContext(ctx).First(&user, userID).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (r *UserRepository) Update(ctx context.Context, user *entity.User) error {
+	return r.getDB(ctx).WithContext(ctx).Save(user).Error
+}

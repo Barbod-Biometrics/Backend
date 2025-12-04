@@ -67,6 +67,7 @@ func (uc *AuthUsecase) VerifyOTP(ctx context.Context, req auth.VerifyOTPRequest)
 
 		newUser := &entity.User{
 			PhoneNumber: req.PhoneNumber,
+			IsAdmin:     false,
 		}
 
 		if err := uc.userRepo.CreateUser(ctx, newUser); err != nil {
@@ -76,7 +77,7 @@ func (uc *AuthUsecase) VerifyOTP(ctx context.Context, req auth.VerifyOTPRequest)
 		user = newUser
 	}
 
-	accessToken, refreshToken, err := uc.tokenService.GenerateTokens(ctx, user.UserID)
+	accessToken, refreshToken, err := uc.tokenService.GenerateTokens(ctx, user.UserID, user.IsAdmin)
 
 	if err != nil {
 		return nil, errors.New("failed to generate tokens")
