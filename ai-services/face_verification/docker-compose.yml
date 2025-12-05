@@ -1,0 +1,40 @@
+version: "3.8"
+
+services:
+  face-verification:
+    build: .
+    image: face-verification:latest
+    container_name: face-verification
+    environment:
+      - USE_GPU=${USE_GPU:-true}
+      - GPU_ID=${GPU_ID:-0}
+      - USE_FP16=${USE_FP16:-true}
+      - BATCH_SIZE=${BATCH_SIZE:-32}
+      - USE_TENSORRT=${USE_TENSORRT:-true}
+      
+      - FRAME_INTERVAL=${FRAME_INTERVAL:-5}
+      - INSIGHTFACE_SIMILARITY_THRESHOLD=${INSIGHTFACE_SIMILARITY_THRESHOLD:-0.35}
+      - DEEPFACE_SIMILARITY_THRESHOLD=${DEEPFACE_SIMILARITY_THRESHOLD:-0.4}
+      - VERIFICATION_THRESHOLD=${VERIFICATION_THRESHOLD:-0.70}
+      - SPOOF_RATE_THRESHOLD=${SPOOF_RATE_THRESHOLD:-0.30}
+      - LIVENESS_SCORE_THRESHOLD=${LIVENESS_SCORE_THRESHOLD:-0.9}
+      
+      - PORT=${PORT:-5100}
+      - HOST=${HOST:-0.0.0.0}
+      - FLASK_ENV=${FLASK_ENV:-production}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - DEBUG=${DEBUG:-false}
+    ports:
+      - "${PORT:-5100}:5100"
+    volumes:
+      - ./models:/app/models
+      - ./logs:/app/logs
+    shm_size: "2gb"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped

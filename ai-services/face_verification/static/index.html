@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Verification Service</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔐 Face Verification Service</h1>
+            <p>Test face cropping and verification</p>
+        </header>
+
+        <div class="status-bar">
+            <div class="status-item">
+                <span class="status-label">Service:</span>
+                <span class="status-value" id="health-status">Checking...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Version:</span>
+                <span class="status-value" id="service-version">-</span>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-button active" data-tab="crop">Crop Image</button>
+            <button class="tab-button" data-tab="verify">Verify Face</button>
+            <button class="tab-button" data-tab="config">Configuration</button>
+        </div>
+
+        <!-- CROP TAB -->
+        <div id="crop" class="tab-content active">
+            <h2>📸 Crop Image to Passport Photo</h2>
+            
+            <div class="section">
+                <label>Select Image:</label>
+                <input type="file" id="crop-input" accept="image/*">
+                <p class="help-text">Max 10MB. Supported: JPG, PNG, BMP, WEBP</p>
+            </div>
+
+            <div class="preview-container">
+                <div class="preview" id="crop-preview">
+                    <p>Image preview</p>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" id="crop-btn">Crop Image</button>
+
+            <div id="crop-result" class="result hidden">
+                <div class="result-content">
+                    <h3 id="crop-title"></h3>
+                    <p id="crop-message"></p>
+                    <div id="crop-details" class="details"></div>
+                    <button class="btn btn-secondary" id="crop-download-btn">Download</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VERIFY TAB -->
+        <div id="verify" class="tab-content">
+            <h2>✅ Verify Face in Video</h2>
+            
+            <div class="section">
+                <label>Reference Photo:</label>
+                <input type="file" id="verify-photo" accept="image/*">
+                <p class="help-text">Single face photo (JPG, PNG, etc.)</p>
+            </div>
+
+            <div class="section">
+                <label>Video File:</label>
+                <input type="file" id="verify-video" accept="video/*">
+                <p class="help-text">Max 500MB. Supported: MP4, MOV, AVI, MKV, FLV, WMV</p>
+            </div>
+
+            <div class="file-info">
+                <div class="file-item">
+                    <span id="photo-file-name">No file selected</span>
+                </div>
+                <div class="file-item">
+                    <span id="video-file-name">No file selected</span>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" id="verify-btn">Verify</button>
+
+            <div id="verify-result" class="result hidden">
+                <div class="result-content">
+                    <div id="verify-header">
+                        <h3 id="verify-title"></h3>
+                        <p id="verify-message"></p>
+                    </div>
+
+                    <div id="verify-stats" class="stats-grid hidden">
+                        <div class="stat-box">
+                            <div class="stat-value" id="stat-verification"></div>
+                            <div class="stat-label">Verification Rate</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value" id="stat-spoof"></div>
+                            <div class="stat-label">Spoof Rate</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value" id="stat-real"></div>
+                            <div class="stat-label">Real Face Rate</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value" id="stat-frames"></div>
+                            <div class="stat-label">Frames Processed</div>
+                        </div>
+                    </div>
+
+                    <details class="expandable">
+                        <summary>📊 Detailed Stats</summary>
+                        <div id="verify-details" class="details"></div>
+                    </details>
+
+                    <details class="expandable" id="verify-errors-details" style="display: none;">
+                        <summary>⚠️ Errors & Messages</summary>
+                        <div id="verify-errors" class="details"></div>
+                    </details>
+
+                    <details class="expandable">
+                        <summary>🔍 Frame Results</summary>
+                        <div id="verify-frames" class="frame-results"></div>
+                    </details>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONFIG TAB -->
+        <div id="config" class="tab-content">
+            <h2>⚙️ Service Configuration</h2>
+            <div id="config-content" class="config-box"></div>
+        </div>
+    </div>
+
+    <footer>
+        <p>Face Verification Service API Tester</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
