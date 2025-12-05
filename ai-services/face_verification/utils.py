@@ -7,7 +7,6 @@ logger = logging.getLogger(__name__)
 
 
 class ValidationError(Exception):
-    """Custom exception for validation errors"""
     def __init__(self, error_code, message):
         self.error_code = error_code
         self.message = message
@@ -95,7 +94,6 @@ def validate_video_file(file_obj, filename):
 
 
 def safe_delete_file(filepath):
-    """Safely delete a file, ignoring errors"""
     try:
         if filepath and os.path.exists(filepath):
             os.unlink(filepath)
