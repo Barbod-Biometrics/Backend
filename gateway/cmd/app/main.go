@@ -124,9 +124,9 @@ func main() {
 
 	// 6. Initialize Usecases
 	authUsecase := service.NewAuthUsecase(userRepo, otpService, smsService, jwtService)
-
+	userUsecase := service.NewUserService(userRepo)
 	// 7. Initialize Controllers
-	authController := user.NewAuthController(authUsecase)
+	authController := user.NewUserController(authUsecase, *userUsecase)
 	adminProfileHandler := admin.NewAdminProfileHandler(adminProfileService)
 	apiKeyController := apikey.NewApiKeyHandler(apiKeyService, apiControllerLogger)
 
@@ -139,7 +139,7 @@ func main() {
 		profileHandler,
 		apiKeyController,
 		adminProfileHandler,
-    walletHandler,
+		walletHandler,
 		jwtKeyManager,
 		cfg.Env.Telemetry.ServiceName,
 	)

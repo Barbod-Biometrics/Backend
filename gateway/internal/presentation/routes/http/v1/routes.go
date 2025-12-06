@@ -16,7 +16,7 @@ import (
 )
 
 type Route struct {
-	authController         *user.GeneralUserController
+	userController         *user.GeneralUserController
 	profileController      *profile.ProfileHandler
 	apiKeyController       *apikey.ApiKeyHandler
 	adminProfileController *admin.AdminProfileHandler
@@ -26,7 +26,7 @@ type Route struct {
 }
 
 func NewRouter(
-	authController *user.GeneralUserController,
+	userController *user.GeneralUserController,
 	profileHandler *profile.ProfileHandler,
 	apiKeyHandler *apikey.ApiKeyHandler,
 	adminProfileHandler *admin.AdminProfileHandler,
@@ -35,7 +35,7 @@ func NewRouter(
 	serviceName string,
 ) *Route {
 	return &Route{
-		authController:         authController,
+		userController:         userController,
 		profileController:      profileHandler,
 		apiKeyController:       apiKeyHandler,
 		adminProfileController: adminProfileHandler,
@@ -47,7 +47,7 @@ func NewRouter(
 
 func (r *Route) RegisterRoutes() http.Handler {
 	router := gin.New()
-	
+
 	router.Use(middleware.NewCorsMiddleware().CORS())
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
@@ -59,8 +59,8 @@ func (r *Route) RegisterRoutes() http.Handler {
 	{
 		auth := v1.Group("/auth")
 		{
-			auth.POST("/request-otp", r.authController.RequestOTPHandler)
-			auth.POST("/verify-otp", r.authController.VerifyOTPHandler)
+			auth.POST("/request-otp", r.userController.RequestOTPHandler)
+			auth.POST("/verify-otp", r.userController.VerifyOTPHandler)
 		}
 		profiles := v1.Group("/profiles")
 		profiles.Use(middleware.JWTMiddleware(r.jwtKeyManager))
@@ -94,6 +94,13 @@ func (r *Route) RegisterRoutes() http.Handler {
 				adminProfiles.POST("/:id/approve", r.adminProfileController.ApproveProfile)
 				adminProfiles.POST("/:id/reject", r.adminProfileController.RejectProfile)
 			}
+		}
+
+		user := v1.Group("/user")
+		user.Use(middleware.JWTMiddleware(r.jwtKeyManager))
+		{
+			user.GET("/info", r.userController.GetUserProfileHandler)
+			user.POST("/update-info", r.userController.UpdateProfileHandler)
 		}
 	}
 
