@@ -60,7 +60,7 @@ func (g *GeneralUserController) GetUserProfileHandler(c *gin.Context) {
 // @Produce json
 // @Security BearerAuth
 // @Param request body user.UpdateProfileRequest true "Update profile Request"
-// @Success 200 {object} map[string]interfaceP{}
+// @Success 200 {object} user.UserInfoResponse
 // @Failure 400 {object} map[string]string
 // @Failure 409 {object} map[string]string
 // @Failure 500 {object} map[string]string
