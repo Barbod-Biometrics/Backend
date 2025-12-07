@@ -87,6 +87,7 @@ func (uc *AuthUsecase) VerifyOTP(ctx context.Context, req auth.VerifyOTPRequest)
 		AccessToken:   accessToken,
 		RefereshToken: refreshToken,
 		PhoneNumber:   req.PhoneNumber,
+		IsAdmin:       user.IsAdmin,
 	}, nil
 
 }
