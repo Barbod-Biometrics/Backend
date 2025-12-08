@@ -63,7 +63,7 @@ func (s *ProfileService) UpdateDraft(ctx context.Context, userID uint64, profile
 	}
 
 	if existing.VerificationStatus != entity.StatusDraft && existing.VerificationStatus != entity.StatusRejected {
-		return nil, fmt.Errorf("cannot update a profile that is peding or verified")
+		return nil, fmt.Errorf("cannot update a profile that is pending or verified")
 	}
 
 	if req.ProfileName != nil {
