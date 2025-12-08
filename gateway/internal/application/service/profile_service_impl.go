@@ -486,3 +486,17 @@ func (s *ProfileService) GetUploadUrl(ctx context.Context, userID uint64, req pr
 		ExpiresAt: time.Now().Add(15 * time.Minute).Format(time.RFC3339),
 	}, nil
 }
+
+func (s *ProfileService) GetUserProfiles(ctx context.Context, userID uint64) ([]*profile.ProfileResponse, error) {
+	profiles, err := s.profileRepo.GetByUserID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get profiles for user ID %d: %w", userID, err)
+	}
+
+	var resp []*profile.ProfileResponse
+	for _, p := range profiles {
+		resp = append(resp, s.mapEntityToResponse(p))
+	}
+
+	return resp, nil
+}
