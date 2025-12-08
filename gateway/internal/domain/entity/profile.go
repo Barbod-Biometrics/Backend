@@ -96,7 +96,7 @@ type ProfileBusinessDetails struct {
 	RepDOB          time.Time `gorm:"type:date;not null" json:"rep_dob"`
 	RepMobileNumber string    `gorm:"type:varchar(15);not null;unique" json:"rep_mobile_number"`
 
-	BusinessNationalID string `gorm:"type:varchar(15);not null;unique" json:"business_national_id"`
+	BusinessNationalID *string `gorm:"type:varchar(15);unique" json:"business_national_id"`
 
 	BusinessInfo      *BusinessMetaData  `gorm:"type:jsonb;serializer:json" json:"business_info"`
 	LocationInfo      *LocationInfo      `gorm:"type:jsonb;serializer:json" json:"location_info"`

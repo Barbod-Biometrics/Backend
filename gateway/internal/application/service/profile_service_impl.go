@@ -129,12 +129,14 @@ func (s *ProfileService) mapEntityToResponse(e *entity.Profile) *profile.Profile
 
 	if e.BusinessDetails != nil {
 		resp.BusinessDetails = &profile.BusinessDetailsResponse{
-			RepFirstName:       e.BusinessDetails.RepFirstName,
-			RepLastName:        e.BusinessDetails.RepLastName,
-			RepNationalID:      e.BusinessDetails.RepNationalID,
-			RepDOB:             &e.BusinessDetails.RepDOB,
-			RepMobileNumber:    e.BusinessDetails.RepMobileNumber,
-			BusinessNationalID: e.BusinessDetails.BusinessNationalID,
+			RepFirstName:    e.BusinessDetails.RepFirstName,
+			RepLastName:     e.BusinessDetails.RepLastName,
+			RepNationalID:   e.BusinessDetails.RepNationalID,
+			RepDOB:          &e.BusinessDetails.RepDOB,
+			RepMobileNumber: e.BusinessDetails.RepMobileNumber,
+		}
+		if e.BusinessDetails.BusinessNationalID != nil {
+			resp.BusinessDetails.BusinessNationalID = *e.BusinessDetails.BusinessNationalID
 		}
 
 		resp.BusinessDetails.LocationInfo = s.mapLocationEntityToDTO(e.BusinessDetails.LocationInfo)
@@ -261,7 +263,7 @@ func (s *ProfileService) updateBusinessDetails(target *entity.ProfileBusinessDet
 	}
 
 	if source.BusinessNationalID != nil {
-		target.BusinessNationalID = *source.BusinessNationalID
+		target.BusinessNationalID = source.BusinessNationalID
 	}
 
 	if source.BusinessInfo != nil {

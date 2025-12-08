@@ -166,7 +166,7 @@ func (s *AdminProfileService) GetProfileDetail(ctx context.Context, profileID ui
 			RepNationalID:      p.BusinessDetails.RepNationalID,
 			RepDOB:             &dob,
 			RepMobileNumber:    p.BusinessDetails.RepMobileNumber,
-			BusinessNationalID: p.BusinessDetails.BusinessNationalID,
+			BusinessNationalID: *p.BusinessDetails.BusinessNationalID,
 		}
 		if p.BusinessDetails.BusinessInfo != nil {
 			resp.BusinessDetails.BusinessInfo = &profile.BusinessMetaDTO{
