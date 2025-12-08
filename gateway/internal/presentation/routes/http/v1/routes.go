@@ -47,7 +47,7 @@ func NewRouter(
 
 func (r *Route) RegisterRoutes() http.Handler {
 	router := gin.New()
-	
+
 	router.Use(middleware.NewCorsMiddleware().CORS())
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
@@ -71,6 +71,7 @@ func (r *Route) RegisterRoutes() http.Handler {
 			profiles.POST("/:id/documents", r.profileController.SaveDocument)
 			profiles.POST("/:id/submit", r.profileController.Submit)
 			profiles.POST("/upload-url", r.profileController.GetUploadUrl)
+			profiles.GET("/", r.profileController.GetUserProfiles)
 
 			// Wallet routes
 			profiles.GET("/:id/wallet/summary", r.walletController.GetWalletSummary)

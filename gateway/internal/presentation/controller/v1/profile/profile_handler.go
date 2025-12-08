@@ -223,3 +223,24 @@ func (h *ProfileHandler) GetUploadUrl(c *gin.Context) {
 
 	c.JSON(http.StatusOK, resp)
 }
+
+// GetUserProfiles handles GET /api/v1/profiles
+// @Summary Get User Profiles
+// @Security BearerAuth
+// @Description Get all profiles associated with the authenticated user
+// @Tags Profiles
+// @Accept json
+// @Produce json
+// @Success 200 {array} profile.ProfileResponse
+// @Failure 500 {object} map[string]string
+// @Router /profiles/ [get]
+func (h *ProfileHandler) GetUserProfiles(c *gin.Context) {
+	userID := h.getUserID(c)
+	resp, err := h.profileUsecase.GetUserProfiles(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
