@@ -16,7 +16,7 @@ import (
 )
 
 type Route struct {
-	authController         *user.GeneralUserController
+	authController         *user.UserHandler
 	profileController      *profile.ProfileHandler
 	apiKeyController       *apikey.ApiKeyHandler
 	adminProfileController *admin.AdminProfileHandler
@@ -26,7 +26,7 @@ type Route struct {
 }
 
 func NewRouter(
-	authController *user.GeneralUserController,
+	authController *user.UserHandler,
 	profileHandler *profile.ProfileHandler,
 	apiKeyHandler *apikey.ApiKeyHandler,
 	adminProfileHandler *admin.AdminProfileHandler,
@@ -47,7 +47,7 @@ func NewRouter(
 
 func (r *Route) RegisterRoutes() http.Handler {
 	router := gin.New()
-	
+
 	router.Use(middleware.NewCorsMiddleware().CORS())
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())

@@ -8,12 +8,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type GeneralUserController struct {
+type UserHandler struct {
 	authUsecase *service.AuthUsecase
 }
 
-func NewAuthController(authUsecase *service.AuthUsecase) *GeneralUserController {
-	return &GeneralUserController{authUsecase: authUsecase}
+func NewAuthController(authUsecase *service.AuthUsecase) *UserHandler {
+	return &UserHandler{authUsecase: authUsecase}
 }
 
 // @Summary Request OTP
@@ -26,7 +26,7 @@ func NewAuthController(authUsecase *service.AuthUsecase) *GeneralUserController 
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /auth/request-otp [post]
-func (g *GeneralUserController) RequestOTPHandler(c *gin.Context) {
+func (h *UserHandler) RequestOTPHandler(c *gin.Context) {
 	var req auth.RequestOTPRequest
 
 	// bind and validate
@@ -39,7 +39,7 @@ func (g *GeneralUserController) RequestOTPHandler(c *gin.Context) {
 	}
 
 	// call usecase
-	if err := g.authUsecase.RequestOTP(c.Request.Context(), req); err != nil {
+	if err := h.authUsecase.RequestOTP(c.Request.Context(), req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
 		})
@@ -63,7 +63,7 @@ func (g *GeneralUserController) RequestOTPHandler(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 401 {object} map[string]string
 // @Router /auth/verify-otp [post]
-func (g *GeneralUserController) VerifyOTPHandler(c *gin.Context) {
+func (h *UserHandler) VerifyOTPHandler(c *gin.Context) {
 	var req auth.VerifyOTPRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -74,7 +74,7 @@ func (g *GeneralUserController) VerifyOTPHandler(c *gin.Context) {
 		return
 	}
 
-	response, err := g.authUsecase.VerifyOTP(c.Request.Context(), req)
+	response, err := h.authUsecase.VerifyOTP(c.Request.Context(), req)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": err.Error(),

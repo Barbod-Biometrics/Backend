@@ -34,15 +34,15 @@ func NewApiKeyHandler(apiKeyUsecase usecase.APIKeyUsecase, logger logger.Logger)
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /api-key/{profile_id}/regenerate [POST]
-func (c *ApiKeyHandler) RegenerateKey(ctx *gin.Context) {
+func (h *ApiKeyHandler) RegenerateKey(c *gin.Context) {
 
-	c.logger.Info("received regenerate api key request", logger.Field{Key: "ip", Value: ctx.ClientIP()})
+	h.logger.Info("received regenerate api key request", logger.Field{Key: "ip", Value: c.ClientIP()})
 
-	profileIDStr := ctx.Param("profile_id")
+	profileIDStr := c.Param("profile_id")
 	ProfileID, err := strconv.ParseUint(profileIDStr, 10, 64)
 	if err != nil {
-		c.logger.Warn("regenerate request failed: invalid profile_id", logger.Field{Key: "input_id", Value: profileIDStr})
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid profile ID"})
+		h.logger.Warn("regenerate request failed: invalid profile_id", logger.Field{Key: "input_id", Value: profileIDStr})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid profile ID"})
 		return
 	}
 
@@ -50,9 +50,9 @@ func (c *ApiKeyHandler) RegenerateKey(ctx *gin.Context) {
 		ProfileID: ProfileID,
 	}
 
-	rawKey, err := c.apiKeyUsecase.RegenerateKey(ctx.Request.Context(), req.ProfileID)
+	rawKey, err := h.apiKeyUsecase.RegenerateKey(c.Request.Context(), req.ProfileID)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -61,7 +61,7 @@ func (c *ApiKeyHandler) RegenerateKey(ctx *gin.Context) {
 		APIKey:    rawKey,
 	}
 
-	c.logger.Info("api key regenerated successfully", logger.Field{Key: "profile_id", Value: req.ProfileID})
+	h.logger.Info("api key regenerated successfully", logger.Field{Key: "profile_id", Value: req.ProfileID})
 
-	ctx.JSON(http.StatusOK, resp)
+	c.JSON(http.StatusOK, resp)
 }

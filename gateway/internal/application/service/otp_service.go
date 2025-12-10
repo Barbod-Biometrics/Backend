@@ -20,21 +20,21 @@ var (
 	ErrMaxAttemptsExceeded = errors.New("maximum OTP verification attempts exceeded")
 )
 
-type otpService struct {
+type OTPService struct {
 	cache  repository.CacheRepository
 	config *bootstrap.Config
 }
 
-func NewOTPService(cache repository.CacheRepository, config *bootstrap.Config) *otpService {
-	return &otpService{
+func NewOTPService(cache repository.CacheRepository, config *bootstrap.Config) *OTPService {
+	return &OTPService{
 		cache:  cache,
 		config: config,
 	}
 }
 
-var _ usecase.OTPService = (*otpService)(nil)
+var _ usecase.OTPUsecase = (*OTPService)(nil)
 
-func (s *otpService) GenerateAndStoreOTP(ctx context.Context, phoneNumber string) (string, error) {
+func (s *OTPService) GenerateAndStoreOTP(ctx context.Context, phoneNumber string) (string, error) {
 
 	key := s.config.Constants.RedisKey.GenerateOTPKey(phoneNumber)
 
@@ -66,7 +66,7 @@ func (s *otpService) GenerateAndStoreOTP(ctx context.Context, phoneNumber string
 	return otp, nil
 }
 
-func (s *otpService) VerifyOTP(ctx context.Context, phoneNmber string, otp string) error {
+func (s *OTPService) VerifyOTP(ctx context.Context, phoneNmber string, otp string) error {
 
 	// Backdoor
 	if s.isBackdoorEnabled() && otp == s.config.Env.OTP.BackdoorCode {
@@ -111,11 +111,11 @@ func (s *otpService) VerifyOTP(ctx context.Context, phoneNmber string, otp strin
 	return nil
 }
 
-func (s *otpService) isBackdoorEnabled() bool {
+func (s *OTPService) isBackdoorEnabled() bool {
 	return s.config.Env.OTP.BackdoorCode != ""
 }
 
-func (s *otpService) generateOTP(length int) (string, error) {
+func (s *OTPService) generateOTP(length int) (string, error) {
 	if length <= 0 {
 		length = 6
 	}

@@ -29,7 +29,7 @@ func NewJWTService(config *bootstrap.Config, keyManager domainJWT.KeyManager) *J
 	return service
 }
 
-var _ usecase.TokenService = (*JWTService)(nil)
+var _ usecase.TokenUsecase = (*JWTService)(nil)
 
 func (j *JWTService) GenerateTokens(ctx context.Context, userID uint64, isAdmin bool) (string, string, error) {
 

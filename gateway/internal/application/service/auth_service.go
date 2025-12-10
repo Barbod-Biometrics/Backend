@@ -14,12 +14,12 @@ import (
 
 type AuthUsecase struct {
 	userRepo     repository.UserRepository
-	otpService   usecase.OTPService
+	otpService   usecase.OTPUsecase
 	smsService   communication.SMSService
-	tokenService usecase.TokenService
+	tokenService usecase.TokenUsecase
 }
 
-func NewAuthUsecase(userRepo repository.UserRepository, otpService usecase.OTPService, smsService communication.SMSService, tokenService usecase.TokenService) *AuthUsecase {
+func NewAuthUsecase(userRepo repository.UserRepository, otpService usecase.OTPUsecase, smsService communication.SMSService, tokenService usecase.TokenUsecase) *AuthUsecase {
 	return &AuthUsecase{
 		userRepo:     userRepo,
 		otpService:   otpService,
