@@ -9,6 +9,9 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/localization"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/exception"
 	"github.com/gin-gonic/gin"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 func getLangFromRequest(c *gin.Context) string {
@@ -46,10 +49,28 @@ func ErrorTranslationMiddleware() gin.HandlerFunc {
 		var lastErr error = c.Errors.Last().Err
 
 		if appErr, ok := exception.GetApplicationError(lastErr); ok {
+			// start a short span to trace localization attempts
+			tracer := otel.Tracer("gateway/middleware/localization")
+			ctx := c.Request.Context()
+			ctx, span := tracer.Start(ctx, "localization.translate")
+			defer span.End()
+
 			lang := getLangFromRequest(c)
+			span.SetAttributes(
+				attribute.String("request.lang", lang),
+				attribute.String("error.code", string(appErr.Code)),
+				attribute.String("http.route", c.FullPath()),
+				attribute.Int("http.status_code", appErr.StatusCode),
+			)
+
 			translated := localization.GetErrorMessage(lang, appErr.Code)
 			if translated == "" {
+				span.SetAttributes(attribute.Bool("localization.translated", false))
+				span.AddEvent("translation.missing")
 				translated = appErr.Message
+			} else {
+				span.SetAttributes(attribute.Bool("localization.translated", true))
+				span.AddEvent("translation.found")
 			}
 
 			resp := gin.H{
