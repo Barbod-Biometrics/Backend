@@ -111,7 +111,7 @@ func main() {
 	userRepo := postgres.NewUserRepository(db)
 	cacheRepo := redis.NewCacheRepository(redisClient)
 	jwtKeyManager := infraJWT.NewJWTKeyManager()
-	smsService := sms.NewSMSService(cfg.Env.SMSGateway.APIKey, cfg.Env.OTP.BackdoorCode)
+	SMSService := sms.NewSMSService(cfg.Env.SMSGateway.APIKey, cfg.Env.OTP.BackdoorCode)
 	apiKeyRepo := postgres.NewApiKeyRepository(db)
 
 	apiControllerLogger, _ := Logger.NewModuleLogger("apikey_controller", loggerCfg)
@@ -123,7 +123,7 @@ func main() {
 	apiKeyService := service.NewAPIKeyService(apiKeyRepo, appLogger) // <--- Init Service
 
 	// 6. Initialize Usecases
-	authUsecase := service.NewAuthUsecase(userRepo, otpService, smsService, jwtService)
+	authUsecase := service.NewAuthService(userRepo, otpService, SMSService, jwtService)
 
 	// 7. Initialize Controllers
 	authController := user.NewAuthController(authUsecase)
@@ -139,7 +139,7 @@ func main() {
 		profileHandler,
 		apiKeyController,
 		adminProfileHandler,
-    walletHandler,
+		walletHandler,
 		jwtKeyManager,
 		cfg.Env.Telemetry.ServiceName,
 	)

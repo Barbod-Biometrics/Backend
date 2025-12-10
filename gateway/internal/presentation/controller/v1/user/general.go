@@ -9,10 +9,10 @@ import (
 )
 
 type UserHandler struct {
-	authUsecase *service.AuthUsecase
+	authUsecase *service.AuthService
 }
 
-func NewAuthController(authUsecase *service.AuthUsecase) *UserHandler {
+func NewAuthController(authUsecase *service.AuthService) *UserHandler {
 	return &UserHandler{authUsecase: authUsecase}
 }
 

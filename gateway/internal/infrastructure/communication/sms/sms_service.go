@@ -7,21 +7,23 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/communication"
 )
 
-type smsService struct {
+type SMSService struct {
 	apiKey       string
 	backdoorCode string // backdoor code for testing
 	// provider SMSProvider
 }
 
-func NewSMSService(apiKey string, backdoorCode string) communication.SMSService {
-	return &smsService{
+func NewSMSService(apiKey string, backdoorCode string) *SMSService {
+	return &SMSService{
 		apiKey:       apiKey,
 		backdoorCode: backdoorCode,
 	}
 
 }
 
-func (s *smsService) Send(ctx context.Context, phoneNumber string, message string) error {
+var _ communication.SMSService = (*SMSService)(nil)
+
+func (s *SMSService) Send(ctx context.Context, phoneNumber string, message string) error {
 
 	// Backdoor
 	if s.backdoorCode != "" {

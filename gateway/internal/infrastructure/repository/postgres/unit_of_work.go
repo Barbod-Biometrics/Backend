@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type gormUnitOfWork struct {
+type GormUnitOfWork struct {
 	db *gorm.DB
 }
 
@@ -16,10 +16,10 @@ type ctxKey string
 const dbTxKey ctxKey = "db_tx"
 
 func NewGormUnitOfWork(db *gorm.DB) repository.UnitOfWork {
-	return &gormUnitOfWork{db: db}
+	return &GormUnitOfWork{db: db}
 }
 
-func (u *gormUnitOfWork) Do(ctx context.Context, fn func(ctx context.Context) error) error {
+func (u *GormUnitOfWork) Do(ctx context.Context, fn func(ctx context.Context) error) error {
 	return u.db.Transaction(func(tx *gorm.DB) error {
 		txCtx := context.WithValue(ctx, dbTxKey, tx)
 
