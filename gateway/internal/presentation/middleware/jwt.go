@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/exception"
 	domainJWT "github.com/Barbod-Biometrics/Backend/gateway/internal/domain/jwt"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -22,13 +23,17 @@ func JWTMiddleware(keyManager domainJWT.KeyManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing authorization header"})
+			appErr := exception.NewApplicationError(exception.ErrorCodeMissingToken, "missing authorization header", nil)
+			c.Error(appErr)
+			c.Abort()
 			return
 		}
 
 		parts := strings.Fields(authHeader)
 		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid authorization header format"})
+			appErr := exception.NewApplicationError(exception.ErrorCodeInvalidToken, "invalid authorization header format", nil)
+			c.Error(appErr)
+			c.Abort()
 			return
 		}
 
@@ -41,20 +46,26 @@ func JWTMiddleware(keyManager domainJWT.KeyManager) gin.HandlerFunc {
 		}, jwt.WithValidMethods([]string{jwt.SigningMethodRS256.Alg()}))
 
 		if err != nil || !token.Valid {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
+			appErr := exception.NewApplicationError(exception.ErrorCodeInvalidToken, "invalid or expired token", err)
+			c.Error(appErr)
+			c.Abort()
 			return
 		}
 
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token claims"})
+			appErr := exception.NewApplicationError(exception.ErrorCodeInvalidToken, "invalid token claims", nil)
+			c.Error(appErr)
+			c.Abort()
 			return
 		}
 
 		// Extract user ID from "sub" claim
 		userID, err := extractUserID(claims["sub"])
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid user id in token"})
+			appErr := exception.NewApplicationError(exception.ErrorCodeInvalidToken, "invalid user id in token", err)
+			c.Error(appErr)
+			c.Abort()
 			return
 		}
 
