@@ -5,6 +5,7 @@ import (
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/auth"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/service"
+	v1 "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1"
 	"github.com/gin-gonic/gin"
 )
 
@@ -31,10 +32,7 @@ func (g *GeneralUserController) RequestOTPHandler(c *gin.Context) {
 
 	// bind and validate
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Invalid request body",
-			"details": err.Error(),
-		})
+		v1.HandleValidationError(c, err)
 		return
 	}
 
@@ -67,10 +65,7 @@ func (g *GeneralUserController) VerifyOTPHandler(c *gin.Context) {
 	var req auth.VerifyOTPRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Invalid request body",
-			"details": err.Error(),
-		})
+		v1.HandleValidationError(c, err)
 		return
 	}
 
