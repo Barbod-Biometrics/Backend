@@ -25,7 +25,6 @@ var ConfigSet = wire.NewSet(
 // Logger Set
 var LoggerSet = wire.NewSet(
 	ProvideAppLogger,
-	ProvideAPIControllerLogger,
 	ProvideGenericLogger,
 )
 
@@ -37,17 +36,15 @@ var InfrastructureSet = wire.NewSet(
 	ProvideJWTKeyManager,
 	ProvideSMSService,
 
-	// Bind Structs to Interfaces for Infrastructure
 	wire.Bind(new(domainJWT.KeyManager), new(*jwt.JWTKeyManager)),
 	wire.Bind(new(communication.SMSService), new(*sms.SMSService)),
 )
 
-// 4. Repository Set
+// Repository Set
 var RepositorySet = wire.NewSet(
 	postgres.NewUserRepository,
 	postgres.NewGormUnitOfWork,
 
-	// Bindings for Struct-returning repositories
 	postgres.NewProfileRepository,
 	wire.Bind(new(repository.ProfileRepository), new(*postgres.ProfileRepository)),
 
@@ -61,27 +58,24 @@ var RepositorySet = wire.NewSet(
 	wire.Bind(new(repository.CacheRepository), new(*redis.CacheRepository)),
 )
 
-// 5. Service Set
+// Service Set
 var ServiceSet = wire.NewSet(
-	// These constructors return Interfaces directly -> NO BIND NEEDED
 	service.NewProfileService,
 	service.NewWalletService,
 	service.NewAdminProfileService,
 
-	// These constructors return Structs -> BIND REQUIRED
 	service.NewJWTService,
 	service.NewOTPService,
 	service.NewAuthService,
 	service.NewAPIKeyService,
 
-	// Binds for the struct-returning services
 	wire.Bind(new(usecase.TokenUsecase), new(*service.JWTService)),
 	wire.Bind(new(usecase.OTPUsecase), new(*service.OTPService)),
 	wire.Bind(new(usecase.AuthUsecase), new(*service.AuthService)),
 	wire.Bind(new(usecase.APIKeyUsecase), new(*service.APIKeyService)),
 )
 
-// 6. Controller Set
+// Controller Set
 var ControllerSet = wire.NewSet(
 	ProvideAuthController,
 	ProvideProfileHandler,
@@ -90,7 +84,7 @@ var ControllerSet = wire.NewSet(
 	ProvideWalletHandler,
 )
 
-// 7. Router Set
+// Router Set
 var RouterSet = wire.NewSet(
 	ProvideRouter,
 )

@@ -52,11 +52,7 @@ func InitializeApplication() (*Application, error) {
 	apiKeyRepository := postgres.NewApiKeyRepository(db)
 	logger := ProvideGenericLogger(appLogger)
 	apiKeyService := service.NewAPIKeyService(apiKeyRepository, logger)
-	controllerLogger, err := ProvideAPIControllerLogger(loggerConfig)
-	if err != nil {
-		return nil, err
-	}
-	apiKeyHandler := ProvideAPIKeyController(apiKeyService, controllerLogger)
+	apiKeyHandler := ProvideAPIKeyController(apiKeyService, logger)
 	adminProfileUsecase := service.NewAdminProfileService(profileRepository)
 	adminProfileHandler := ProvideAdminProfileHandler(adminProfileUsecase)
 	transactionRepository := postgres.NewTransactionRepository(db)
@@ -70,20 +66,19 @@ func InitializeApplication() (*Application, error) {
 
 // wire.go:
 
-// 1. Config Set
+// Config Set
 var ConfigSet = wire.NewSet(
 	ProvideConfig,
 	ProvideLoggerConfig,
 )
 
-// 2. Logger Set
+// Logger Set
 var LoggerSet = wire.NewSet(
 	ProvideAppLogger,
-	ProvideAPIControllerLogger,
 	ProvideGenericLogger,
 )
 
-// 3. Infrastructure Set
+// Infrastructure Set
 var InfrastructureSet = wire.NewSet(
 	ProvidePostgresDatabase,
 	ProvideRedisClient,
@@ -92,13 +87,13 @@ var InfrastructureSet = wire.NewSet(
 	ProvideSMSService, wire.Bind(new(jwt.KeyManager), new(*jwt2.JWTKeyManager)), wire.Bind(new(communication.SMSService), new(*sms.SMSService)),
 )
 
-// 4. Repository Set
+// Repository Set
 var RepositorySet = wire.NewSet(postgres.NewUserRepository, postgres.NewGormUnitOfWork, postgres.NewProfileRepository, wire.Bind(new(repository.ProfileRepository), new(*postgres.ProfileRepository)), postgres.NewTransactionRepository, wire.Bind(new(repository.TransactionRepository), new(*postgres.TransactionRepository)), postgres.NewApiKeyRepository, wire.Bind(new(repository.APIKeyRepository), new(*postgres.ApiKeyRepository)), redis.NewCacheRepository, wire.Bind(new(repository.CacheRepository), new(*redis.CacheRepository)))
 
-// 5. Service Set
+// Service Set
 var ServiceSet = wire.NewSet(service.NewProfileService, service.NewWalletService, service.NewAdminProfileService, service.NewJWTService, service.NewOTPService, service.NewAuthService, service.NewAPIKeyService, wire.Bind(new(usecase.TokenUsecase), new(*service.JWTService)), wire.Bind(new(usecase.OTPUsecase), new(*service.OTPService)), wire.Bind(new(usecase.AuthUsecase), new(*service.AuthService)), wire.Bind(new(usecase.APIKeyUsecase), new(*service.APIKeyService)))
 
-// 6. Controller Set
+// Controller Set
 var ControllerSet = wire.NewSet(
 	ProvideAuthController,
 	ProvideProfileHandler,
@@ -107,7 +102,7 @@ var ControllerSet = wire.NewSet(
 	ProvideWalletHandler,
 )
 
-// 7. Router Set
+// Router Set
 var RouterSet = wire.NewSet(
 	ProvideRouter,
 )

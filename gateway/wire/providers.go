@@ -22,11 +22,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// --- Custom Types for Distinct Dependencies ---
 type AppLogger logger.Logger
-type ControllerLogger logger.Logger
-
-// --- Configuration & Logger Providers ---
 
 func ProvideConfig() *bootstrap.Config {
 	return bootstrap.Run()
@@ -45,17 +41,9 @@ func ProvideAppLogger(loggerCfg *Logger.LoggerConfig) (AppLogger, error) {
 	return AppLogger(log), err
 }
 
-func ProvideAPIControllerLogger(loggerCfg *Logger.LoggerConfig) (ControllerLogger, error) {
-	log, err := Logger.NewModuleLogger("apikey_controller", loggerCfg)
-	return ControllerLogger(log), err
-}
-
-// ProvideGenericLogger converts AppLogger back to the interface for Services that need it
 func ProvideGenericLogger(l AppLogger) logger.Logger {
 	return logger.Logger(l)
 }
-
-// --- Infrastructure Providers ---
 
 func ProvidePostgresDatabase(cfg *bootstrap.Config) *gorm.DB {
 	return database.NewPostgresDatabase(cfg.Env)
@@ -83,11 +71,8 @@ func ProvideSMSService(cfg *bootstrap.Config) *sms.SMSService {
 	return sms.NewSMSService(cfg.Env.SMSGateway.APIKey, cfg.Env.OTP.BackdoorCode)
 }
 
-// --- Controller Providers ---
-
+// This should get change in the hotfix of after the merge of this branch
 func ProvideAuthController(authUsecase usecase.AuthUsecase) *user.UserHandler {
-	// Note: We cast usecase to *service.AuthService because your controller expects the concrete struct currently.
-	// Ideally controller should accept interface, but this works for now.
 	return user.NewAuthController(authUsecase.(*service.AuthService))
 }
 
@@ -97,9 +82,9 @@ func ProvideProfileHandler(profileUsecase usecase.ProfileUsecase) *profile.Profi
 
 func ProvideAPIKeyController(
 	apikeKeyUsecase usecase.APIKeyUsecase,
-	controllerLogger ControllerLogger,
+	l logger.Logger,
 ) *apikey.ApiKeyHandler {
-	return apikey.NewApiKeyHandler(apikeKeyUsecase, logger.Logger(controllerLogger))
+	return apikey.NewApiKeyHandler(apikeKeyUsecase, logger.Logger(l))
 }
 
 func ProvideAdminProfileHandler(adminProfileUsecase usecase.AdminProfileUsecase) *admin.AdminProfileHandler {
@@ -109,8 +94,6 @@ func ProvideAdminProfileHandler(adminProfileUsecase usecase.AdminProfileUsecase)
 func ProvideWalletHandler(walletUsecase usecase.WalletUsecase) *wallet.WalletHandler {
 	return wallet.NewWalletHandler(walletUsecase)
 }
-
-// --- Router & App Providers ---
 
 func ProvideRouter(
 	authController *user.UserHandler,
