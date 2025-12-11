@@ -64,7 +64,10 @@ func (uc *AuthUsecase) VerifyOTP(ctx context.Context, req auth.VerifyOTPRequest)
 
 	user, err := uc.userRepo.GetByPhoneNumber(ctx, req.PhoneNumber)
 	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
 
+	if user == nil {
 		newUser := &entity.User{
 			PhoneNumber: req.PhoneNumber,
 			IsAdmin:     false,
