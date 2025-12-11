@@ -7,7 +7,6 @@ import (
 
 	userdto "github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/user"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
-	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
 )
 
@@ -30,7 +29,7 @@ func NewUserService(userRepo repository.UserRepository) *UserService {
 
 var _ usecase.UserService = (*UserService)(nil)
 
-func (s *UserService) GetUserByID(ctx context.Context, userID uint64) (*entity.User, error) {
+func (s *UserService) GetUserByID(ctx context.Context, userID uint64) (*userdto.UserInfoResponse, error) {
 	user, err := s.UserRepo.GetByID(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user: %w", err)
@@ -40,7 +39,10 @@ func (s *UserService) GetUserByID(ctx context.Context, userID uint64) (*entity.U
 		return nil, ErrUserNotFound
 	}
 
-	return user, nil
+	return &userdto.UserInfoResponse{
+		PhoneNumber: user.PhoneNumber,
+		Email:       user.Email,
+	}, nil
 }
 
 func (s *UserService) UpdateProfile(ctx context.Context, req userdto.UpdateProfileRequest) (*userdto.UserInfoResponse, error) {
