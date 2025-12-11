@@ -9,7 +9,7 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/communication/sms"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/database/redis"
-	infraJWT "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/jwt"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/jwt"
 	Logger "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/logger"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/repository/postgres"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/admin"
@@ -50,6 +50,7 @@ var RepositorySet = wire.NewSet(
 	postgres.NewUserRepository,
 	postgres.NewProfileRepository,
 	postgres.NewTransactionRepository,
+	postgres.NewApiKeyRepository,
 	redis.NewCacheRepository,
 	postgres.NewGormUnitOfWork,
 
@@ -138,9 +139,8 @@ func ProvideMinioClient(cfg *bootstrap.Config, appLogger AppLogger) (*storage.Mi
 	return storage.NewMinioClient(*cfg.Env)
 }
 
-// check this before moving further
-func ProvideJWTKeyManager() *infraJWT.JWTKeyManager {
-	return &infraJWT.JWTKeyManager{}
+func ProvideJWTKeyManager() *jwt.JWTKeyManager {
+	return jwt.NewJWTKeyManager()
 }
 func ProvideSMSService(cfg *bootstrap.Config) *sms.SMSService {
 	return sms.NewSMSService(cfg.Env.SMSGateway.APIKey, cfg.Env.OTP.BackdoorCode)
@@ -175,7 +175,7 @@ func ProvideRouter(
 	apiKeyController *apikey.ApiKeyHandler,
 	adminProfileHandler *admin.AdminProfileHandler,
 	walletHandler *wallet.WalletHandler,
-	jwtKeyManager *infraJWT.JWTKeyManager,
+	jwtKeyManager *jwt.JWTKeyManager,
 	cfg *bootstrap.Config,
 ) *v1.Route {
 	return v1.NewRouter(
