@@ -1,16 +1,23 @@
 package exception
 
-type ValidationError struct {
-	*ApplicationError
+import (
+	"bytes"
+	"strings"
+)
+
+type ValidationErrors struct {
+	Errors []FieldError
 }
 
-func NewValidationError(message string, err error) *ValidationError {
-	return &ValidationError{ApplicationError: NewApplicationError(ErrorCodeValidationFailed, message, err)}
-}
-
-func (v *ValidationError) Unwrap() error {
-	if v == nil {
-		return nil
+func (ve ValidationErrors) Error() string {
+	buff := bytes.NewBufferString("")
+	for i := 0; i < len(ve.Errors); i++ {
+		buff.WriteString(ve.Errors[i].Error())
+		buff.WriteString("\n")
 	}
-	return v.ApplicationError
+	return strings.TrimSpace(buff.String())
+}
+
+func (v *ValidationErrors) Add(field, tag string) {
+	v.Errors = append(v.Errors, FieldError{Field: field, Tag: tag})
 }

@@ -2,8 +2,10 @@ package localization
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/localization"
 	"github.com/go-playground/locales/en_US"
 	"github.com/go-playground/locales/fa_IR"
 	ut "github.com/go-playground/universal-translator"
@@ -44,8 +46,49 @@ func (t *TranslationService) loadAndAddTranslations() {
 	addTranslations("en_US", English, t.uv)
 }
 
-func (t *TranslationService) GetTranslator(locale string) (ut.Translator, bool) {
-	return t.uv.GetTranslator(locale)
+var _ localization.Translator = (*TranslationService)(nil)
+
+func (t *TranslationService) GetTranslator(locale string) localization.TranslatorInstance {
+	switch locale {
+	case "", "fa":
+		locale = "fa_IR"
+	case "en":
+		locale = "en_US"
+	}
+
+	translator, found := t.uv.GetTranslator(locale)
+	if !found {
+		translator, _ = t.uv.GetTranslator("en_US")
+		locale = "en_US"
+	}
+
+	return &translatorInstance{
+		translator: translator,
+		locale:     locale,
+	}
+}
+
+type translatorInstance struct {
+	translator ut.Translator
+	locale     string
+}
+
+func (ti *translatorInstance) Translate(key string, params ...string) (string, error) {
+	translation, err := ti.translator.T(key)
+	if err != nil {
+		return key, err
+	}
+
+	for i, param := range params {
+		placeholder := fmt.Sprintf("{%d}", i)
+		translation = strings.ReplaceAll(translation, placeholder, param)
+	}
+
+	return translation, nil
+}
+
+func (ti *translatorInstance) Locale() string {
+	return ti.locale
 }
 
 func AddToTranslationsMap(locale string, key string, value string) {

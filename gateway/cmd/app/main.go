@@ -139,9 +139,10 @@ func main() {
 		profileHandler,
 		apiKeyController,
 		adminProfileHandler,
-    walletHandler,
+		walletHandler,
 		jwtKeyManager,
 		cfg.Env.Telemetry.ServiceName,
+		cfg.Constants,
 	)
 
 	// Get the handler (which is a Gin Engine)
