@@ -56,10 +56,9 @@ func (r *Route) RegisterRoutes() http.Handler {
 	translatorService := localization.GetService()
 
 	router.Use(middleware.NewCorsMiddleware().CORS())
-	router.Use(gin.Logger())
-	router.Use(gin.Recovery())
 	router.Use(middleware.NewLocalization(translatorService).Localization())
 	router.Use(middleware.NewRecovery(r.constants).Recovery)
+	router.Use(gin.Logger())
 	router.Use(middleware.OpenTelemetryMiddleware(r.serviceName))
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
