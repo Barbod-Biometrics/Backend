@@ -39,9 +39,13 @@ func (s *UserService) GetUserByID(ctx context.Context, userID uint64) (*userdto.
 		return nil, ErrUserNotFound
 	}
 
+	email := ""
+	if user.Email != nil {
+		email = *user.Email
+	}
 	return &userdto.UserInfoResponse{
 		PhoneNumber: user.PhoneNumber,
-		Email:       user.Email,
+		Email:       email,
 	}, nil
 }
 
@@ -71,7 +75,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, req userdto.UpdateProfi
 		hasChanged = true
 	}
 
-	if req.Email != "" && req.Email != user.Email {
+	if req.Email != "" && (user.Email == nil || req.Email != *user.Email) {
 		existingUser, err := s.UserRepo.GetByEmail(ctx, req.Email)
 		if err != nil {
 			return nil, fmt.Errorf("failed to check email: %w", err)
@@ -81,14 +85,18 @@ func (s *UserService) UpdateProfile(ctx context.Context, req userdto.UpdateProfi
 			return nil, ErrEmailAlreadyExist
 		}
 
-		user.Email = req.Email
+		user.Email = &req.Email
 		hasChanged = true
 	}
 
 	if !hasChanged {
+		email := ""
+		if user.Email != nil {
+			email = *user.Email
+		}
 		return &userdto.UserInfoResponse{
 			PhoneNumber: user.PhoneNumber,
-			Email:       user.Email,
+			Email:       email,
 		}, nil
 	}
 
@@ -96,8 +104,12 @@ func (s *UserService) UpdateProfile(ctx context.Context, req userdto.UpdateProfi
 		return nil, fmt.Errorf("failed to update user: %w", err)
 	}
 
+	email := ""
+	if user.Email != nil {
+		email = *user.Email
+	}
 	return &userdto.UserInfoResponse{
 		PhoneNumber: user.PhoneNumber,
-		Email:       user.Email,
+		Email:       email,
 	}, nil
 }
