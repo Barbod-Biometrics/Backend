@@ -5,6 +5,8 @@ import (
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/auth"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/service"
+	exception "github.com/Barbod-Biometrics/Backend/gateway/internal/domain/exception"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/middleware"
 	"github.com/gin-gonic/gin"
 )
 
@@ -31,8 +33,14 @@ func (g *GeneralUserController) RequestOTPHandler(c *gin.Context) {
 
 	// bind and validate
 	if err := c.ShouldBindJSON(&req); err != nil {
+		msg := "Invalid request body"
+		if tr := middleware.GetTranslator(c); tr != nil {
+			if tmsg, terr := tr.Translate("errors.invalid_request_body"); terr == nil && tmsg != "" {
+				msg = tmsg
+			}
+		}
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Invalid request body",
+			"error":   msg,
 			"details": err.Error(),
 		})
 		return
@@ -40,15 +48,27 @@ func (g *GeneralUserController) RequestOTPHandler(c *gin.Context) {
 
 	// call usecase
 	if err := g.authUsecase.RequestOTP(c.Request.Context(), req); err != nil {
+		msg := err.Error()
+		if tr := middleware.GetTranslator(c); tr != nil {
+			if tmsg, terr := tr.Translate("errors.generic"); terr == nil && tmsg != "" {
+				msg = tmsg
+			}
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
+			"error": msg,
 		})
 		return
 	}
 
 	// send response
+	message := "OTP sent successfully"
+	if tr := middleware.GetTranslator(c); tr != nil {
+		if tmsg, terr := tr.Translate("successMessage.phoneVerification"); terr == nil && tmsg != "" {
+			message = tmsg
+		}
+	}
 	c.JSON(http.StatusOK, gin.H{
-		"message": "OTP sent successfully",
+		"message": message,
 	})
 
 }
@@ -67,8 +87,14 @@ func (g *GeneralUserController) VerifyOTPHandler(c *gin.Context) {
 	var req auth.VerifyOTPRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
+		msg := "Invalid request body"
+		if tr := middleware.GetTranslator(c); tr != nil {
+			if tmsg, terr := tr.Translate("errors.invalid_request_body"); terr == nil && tmsg != "" {
+				msg = tmsg
+			}
+		}
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Invalid request body",
+			"error":   msg,
 			"details": err.Error(),
 		})
 		return
@@ -76,8 +102,17 @@ func (g *GeneralUserController) VerifyOTPHandler(c *gin.Context) {
 
 	response, err := g.authUsecase.VerifyOTP(c.Request.Context(), req)
 	if err != nil {
+		// if this is an auth-related error, wrap as domain auth error when appropriate
+		authErr := exception.NewUnauthorizedError("", err)
+		msg := err.Error()
+		if tr := middleware.GetTranslator(c); tr != nil {
+			if tmsg, terr := tr.Translate("errors." + authErr.Type); terr == nil && tmsg != "" {
+				msg = tmsg
+			}
+		}
 		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": err.Error(),
+			"error": msg,
+			"type":  authErr.Type,
 		})
 		return
 	}
