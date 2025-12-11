@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/exception"
+	exception "github.com/Barbod-Biometrics/Backend/gateway/internal/domain/exception"
 	domainJWT "github.com/Barbod-Biometrics/Backend/gateway/internal/domain/jwt"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -23,17 +23,27 @@ func JWTMiddleware(keyManager domainJWT.KeyManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			appErr := exception.NewApplicationError(exception.ErrorCodeMissingToken, "missing authorization header", nil)
-			c.Error(appErr)
-			c.Abort()
+			err := exception.NewUnauthorizedError("missing authorization header", nil)
+			msg := err.Message
+			if tr := GetTranslator(c); tr != nil {
+				if tmsg, terr := tr.Translate("errors." + err.Type); terr == nil && tmsg != "" {
+					msg = tmsg
+				}
+			}
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": msg, "type": err.Type})
 			return
 		}
 
 		parts := strings.Fields(authHeader)
 		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-			appErr := exception.NewApplicationError(exception.ErrorCodeInvalidToken, "invalid authorization header format", nil)
-			c.Error(appErr)
-			c.Abort()
+			err := exception.NewUnauthorizedError("invalid authorization header format", nil)
+			msg := err.Message
+			if tr := GetTranslator(c); tr != nil {
+				if tmsg, terr := tr.Translate("errors." + err.Type); terr == nil && tmsg != "" {
+					msg = tmsg
+				}
+			}
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": msg, "type": err.Type})
 			return
 		}
 
@@ -46,26 +56,42 @@ func JWTMiddleware(keyManager domainJWT.KeyManager) gin.HandlerFunc {
 		}, jwt.WithValidMethods([]string{jwt.SigningMethodRS256.Alg()}))
 
 		if err != nil || !token.Valid {
-			appErr := exception.NewApplicationError(exception.ErrorCodeInvalidToken, "invalid or expired token", err)
-			c.Error(appErr)
-			c.Abort()
+			// If token parsing returned an error, wrap it as an auth error
+			authErr := exception.NewInvalidTokenError(err)
+			msg := authErr.Message
+			if tr := GetTranslator(c); tr != nil {
+				if tmsg, terr := tr.Translate("errors." + authErr.Type); terr == nil && tmsg != "" {
+					msg = tmsg
+				}
+			}
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": msg, "type": authErr.Type})
 			return
 		}
 
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
-			appErr := exception.NewApplicationError(exception.ErrorCodeInvalidToken, "invalid token claims", nil)
-			c.Error(appErr)
-			c.Abort()
+			authErr := exception.NewInvalidTokenError(fmt.Errorf("invalid token claims"))
+			msg := authErr.Message
+			if tr := GetTranslator(c); tr != nil {
+				if tmsg, terr := tr.Translate("errors." + authErr.Type); terr == nil && tmsg != "" {
+					msg = tmsg
+				}
+			}
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": msg, "type": authErr.Type})
 			return
 		}
 
 		// Extract user ID from "sub" claim
 		userID, err := extractUserID(claims["sub"])
 		if err != nil {
-			appErr := exception.NewApplicationError(exception.ErrorCodeInvalidToken, "invalid user id in token", err)
-			c.Error(appErr)
-			c.Abort()
+			authErr := exception.NewInvalidTokenError(err)
+			msg := authErr.Message
+			if tr := GetTranslator(c); tr != nil {
+				if tmsg, terr := tr.Translate("errors." + authErr.Type); terr == nil && tmsg != "" {
+					msg = tmsg
+				}
+			}
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": msg, "type": authErr.Type})
 			return
 		}
 
