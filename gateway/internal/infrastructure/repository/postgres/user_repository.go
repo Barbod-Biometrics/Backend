@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"errors"
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
@@ -14,7 +15,7 @@ type UserRepository struct {
 }
 
 func (r *UserRepository) getDB(ctx context.Context) *gorm.DB {
-	if tx, ok := ctx.Value(dbTxKey).(*gorm.DB); ok {
+	if tx, ok := ctx.Value("db_tx").(*gorm.DB); ok {
 		return tx
 	}
 	return r.db
@@ -31,19 +32,34 @@ func (r *UserRepository) CreateUser(ctx context.Context, user *entity.User) erro
 func (r *UserRepository) GetByPhoneNumber(ctx context.Context, phoneNumber string) (*entity.User, error) {
 	var user entity.User
 	err := r.getDB(ctx).WithContext(ctx).Where("phone_number = ?", phoneNumber).First(&user).Error
-	return &user, err
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &user, nil
 }
 
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*entity.User, error) {
 	var user entity.User
 	err := r.getDB(ctx).WithContext(ctx).Where("email = ?", email).First(&user).Error
-	return &user, err
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &user, nil
 }
 
 func (r *UserRepository) GetByID(ctx context.Context, userID uint64) (*entity.User, error) {
 	var user entity.User
 	err := r.getDB(ctx).WithContext(ctx).First(&user, userID).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return &user, nil
