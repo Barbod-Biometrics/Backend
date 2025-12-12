@@ -12,14 +12,14 @@ import (
 )
 
 type GeneralUserController struct {
-	authUsecase *service.AuthService
-	userUsecase usecase.UserService
+	authUsecase usecase.AuthUsecase
+	userUsecase usecase.UserUsecase
 }
 
-func NewUserController(authUsecase *service.AuthService, userUsecase service.UserService) *GeneralUserController {
+func NewUserController(authUsecase usecase.AuthUsecase, userUsecase usecase.UserUsecase) *GeneralUserController {
 	return &GeneralUserController{
 		authUsecase: authUsecase,
-		userUsecase: &userUsecase,
+		userUsecase: userUsecase,
 	}
 }
 

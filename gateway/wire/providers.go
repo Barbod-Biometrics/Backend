@@ -2,7 +2,6 @@ package wire
 
 import (
 	"github.com/Barbod-Biometrics/Backend/gateway/bootstrap"
-	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/service"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/enum"
 	domainJWT "github.com/Barbod-Biometrics/Backend/gateway/internal/domain/jwt"
@@ -71,9 +70,8 @@ func ProvideSMSService(cfg *bootstrap.Config) *sms.SMSService {
 	return sms.NewSMSService(cfg.Env.SMSGateway.APIKey, cfg.Env.OTP.BackdoorCode)
 }
 
-// This should get change in the hotfix of after the merge of this branch
-func ProvideAuthController(authUsecase usecase.AuthUsecase) *user.UserHandler {
-	return user.NewAuthController(authUsecase.(*service.AuthService))
+func ProvideUserController(authUsecase usecase.AuthUsecase, userUsecase usecase.UserUsecase) *user.GeneralUserController {
+	return user.NewUserController(authUsecase, userUsecase)
 }
 
 func ProvideProfileHandler(profileUsecase usecase.ProfileUsecase) *profile.ProfileHandler {
@@ -96,7 +94,7 @@ func ProvideWalletHandler(walletUsecase usecase.WalletUsecase) *wallet.WalletHan
 }
 
 func ProvideRouter(
-	authController *user.UserHandler,
+	authController *user.GeneralUserController,
 	profileHandler *profile.ProfileHandler,
 	apiKeyController *apikey.ApiKeyHandler,
 	adminProfileHandler *admin.AdminProfileHandler,

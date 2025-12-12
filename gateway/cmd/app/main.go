@@ -6,26 +6,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Barbod-Biometrics/Backend/gateway/bootstrap"
 	docs "github.com/Barbod-Biometrics/Backend/gateway/docs"
-	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/service"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
-	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/enum"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
-	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/communication/sms"
-	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/database/redis"
-	infraJWT "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/jwt"
-	Logger "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/logger"
-	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/repository/postgres"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/telemetry"
-	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/admin"
-	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/apikey"
-	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
-	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/user"
-	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/wallet"
-	v1 "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/routes/http/v1"
-	"github.com/Barbod-Biometrics/Backend/gateway/pkg/database"
-	"github.com/Barbod-Biometrics/Backend/gateway/pkg/storage"
+	appWire "github.com/Barbod-Biometrics/Backend/gateway/wire"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -41,34 +26,34 @@ import (
 func main() {
 
 	gin.DisableConsoleColor()
-	cfg := bootstrap.Run()
 
-	loggerCfg := &Logger.LoggerConfig{
-		LogLevel:      string(enum.LogLevelInfo),
-		ConsoleOutput: cfg.Env.Logger.ConsoleOutput,
-		LogFile:       cfg.Env.Logger.LogFile,
-	}
-
-	fmt.Printf("logfile: %s\n", cfg.Env.Logger.LogFile)
-
-	appLogger, err := Logger.NewModuleLogger("app", loggerCfg)
+	app, err := appWire.InitializeApplication()
 	if err != nil {
-		fmt.Printf("Failed to initialize logger: %v\n", err)
+		fmt.Printf("FATAL: Failed to initialize application: %v\n", err)
 		return
 	}
-	defer appLogger.Close()
 
+	defer app.Close()
+
+	cfg := app.Config
+
+	appLogger := logger.Logger(app.Logger)
+
+	appLogger.Info("Application initialized successfully", logger.Field{Key: "logfile", Value: cfg.Env.Logger.LogFile})
+
+	// Initializing Telemetry
 	ctx := context.Background()
 	otelTelemetry, err := telemetry.InitTelemetry(ctx, &cfg.Env.Telemetry)
-	setSwaggerHost(cfg.Env.Server.Host, cfg.Env.Server.Port)
 	if err != nil {
 		appLogger.Error("Failed to initialize OpenTelemetry", logger.Field{Key: "error", Value: err})
 	}
 	defer otelTelemetry.Shutdown(ctx)
 
-	db := database.NewPostgresDatabase(cfg.Env)
+	// Swagger setup
+	setSwaggerHost(cfg.Env.Server.Host, cfg.Env.Server.Port)
 
-	err = db.AutoMigrate(
+	// Database Migration
+	err = app.DB.AutoMigrate(
 		&entity.User{},
 		&entity.Profile{},
 		&entity.ProfileBusinessDetails{},
@@ -77,75 +62,15 @@ func main() {
 		&entity.APIKey{},
 		&entity.Transaction{},
 	)
-
 	if err != nil {
 		appLogger.Fatal("Failed to migrate database", logger.Field{Key: "error", Value: err})
 	}
 
-	profileRepo := postgres.NewProfileRepository(db)
-	transactionRepo := postgres.NewTransactionRepository(db)
-	unitOfWork := postgres.NewGormUnitOfWork(db)
-	minioStorage, err := storage.NewMinioClient(*cfg.Env)
-	if err != nil {
-		appLogger.Fatal("Failed to initialize Minio client", logger.Field{Key: "error", Value: err})
-	}
-	profileService := service.NewProfileService(profileRepo, minioStorage)
-	profileHandler := profile.NewProfileHandler(profileService)
-	walletService := service.NewWalletService(profileRepo, transactionRepo, unitOfWork)
-	walletHandler := wallet.NewWalletHandler(walletService)
+	// Seed Admin User
+	seedAdminUser(app.DB, cfg.Env.Admin.PhoneNumber, appLogger)
 
-	// --- Redis ---
-	redisClient, err := redis.NewRedisClient(
-		cfg.Env.PrimaryRedis.Address,
-		cfg.Env.PrimaryRedis.Port,
-		cfg.Env.PrimaryRedis.Password,
-		cfg.Env.PrimaryRedis.DB,
-		cfg.Env.PrimaryRedis.PoolSize,
-	)
-	if err != nil {
-		appLogger.Fatal("Failed to connect to Redis", logger.Field{Key: "error", Value: err})
-	}
-	defer redisClient.Close()
-
-	// 4. Initialize Infrastructure Layer
-	userRepo := postgres.NewUserRepository(db)
-	cacheRepo := redis.NewCacheRepository(redisClient)
-	jwtKeyManager := infraJWT.NewJWTKeyManager()
-	smsService := sms.NewSMSService(cfg.Env.SMSGateway.APIKey, cfg.Env.OTP.BackdoorCode)
-	apiKeyRepo := postgres.NewApiKeyRepository(db)
-
-	apiControllerLogger, _ := Logger.NewModuleLogger("apikey_controller", loggerCfg)
-
-	// 5. Initialize Application Layer (Services)
-	jwtService := service.NewJWTService(cfg, jwtKeyManager)
-	otpService := service.NewOTPService(cacheRepo, cfg)
-	adminProfileService := service.NewAdminProfileService(profileRepo)
-	apiKeyService := service.NewAPIKeyService(apiKeyRepo, appLogger) // <--- Init Service
-
-	// 6. Initialize Usecases
-	authUsecase := service.NewAuthService(userRepo, otpService, smsService, jwtService)
-	userUsecase := service.NewUserService(userRepo)
-	// 7. Initialize Controllers
-	authController := user.NewUserController(authUsecase, *userUsecase)
-	adminProfileHandler := admin.NewAdminProfileHandler(adminProfileService)
-	apiKeyController := apikey.NewApiKeyHandler(apiKeyService, apiControllerLogger)
-
-	// 8. Seed admin user from environment variable
-	seedAdminUser(db, cfg.Env.Admin.PhoneNumber, appLogger)
-
-	// 9. Setup Router
-	v1Router := v1.NewRouter(
-		authController,
-		profileHandler,
-		apiKeyController,
-		adminProfileHandler,
-		walletHandler,
-		jwtKeyManager,
-		cfg.Env.Telemetry.ServiceName,
-	)
-
-	// Get the handler (which is a Gin Engine)
-	handler := v1Router.RegisterRoutes()
+	// Server Start
+	handler := app.Route.RegisterRoutes()
 
 	appLogger.Info("Starting the gateway application",
 		logger.Field{Key: "port", Value: cfg.Env.Server.Port},
@@ -157,6 +82,7 @@ func main() {
 	if err := http.ListenAndServe(":"+cfg.Env.Server.Port, handler); err != nil {
 		appLogger.Error("Error starting server", logger.Field{Key: "error", Value: err})
 	}
+
 }
 
 // seedAdminUser creates or updates the admin user based on ADMIN_PHONE_NUMBER env variable

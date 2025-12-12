@@ -41,7 +41,8 @@ func InitializeApplication() (*Application, error) {
 	jwtKeyManager := ProvideJWTKeyManager()
 	jwtService := service.NewJWTService(config, jwtKeyManager)
 	authService := service.NewAuthService(userRepository, otpService, smsService, jwtService)
-	userHandler := ProvideAuthController(authService)
+	userService := service.NewUserService(userRepository)
+	generalUserController := ProvideUserController(authService, userService)
 	profileRepository := postgres.NewProfileRepository(db)
 	minioClient, err := ProvideMinioClient(config)
 	if err != nil {
@@ -59,7 +60,7 @@ func InitializeApplication() (*Application, error) {
 	unitOfWork := postgres.NewGormUnitOfWork(db)
 	walletUsecase := service.NewWalletService(profileRepository, transactionRepository, unitOfWork)
 	walletHandler := ProvideWalletHandler(walletUsecase)
-	route := ProvideRouter(userHandler, profileHandler, apiKeyHandler, adminProfileHandler, walletHandler, jwtKeyManager, config)
+	route := ProvideRouter(generalUserController, profileHandler, apiKeyHandler, adminProfileHandler, walletHandler, jwtKeyManager, config)
 	application := NewApplication(config, appLogger, db, redisClient, route, minioClient)
 	return application, nil
 }
@@ -91,11 +92,11 @@ var InfrastructureSet = wire.NewSet(
 var RepositorySet = wire.NewSet(postgres.NewUserRepository, postgres.NewGormUnitOfWork, postgres.NewProfileRepository, wire.Bind(new(repository.ProfileRepository), new(*postgres.ProfileRepository)), postgres.NewTransactionRepository, wire.Bind(new(repository.TransactionRepository), new(*postgres.TransactionRepository)), postgres.NewApiKeyRepository, wire.Bind(new(repository.APIKeyRepository), new(*postgres.ApiKeyRepository)), redis.NewCacheRepository, wire.Bind(new(repository.CacheRepository), new(*redis.CacheRepository)))
 
 // Service Set
-var ServiceSet = wire.NewSet(service.NewProfileService, service.NewWalletService, service.NewAdminProfileService, service.NewJWTService, service.NewOTPService, service.NewAuthService, service.NewAPIKeyService, wire.Bind(new(usecase.TokenUsecase), new(*service.JWTService)), wire.Bind(new(usecase.OTPUsecase), new(*service.OTPService)), wire.Bind(new(usecase.AuthUsecase), new(*service.AuthService)), wire.Bind(new(usecase.APIKeyUsecase), new(*service.APIKeyService)))
+var ServiceSet = wire.NewSet(service.NewProfileService, service.NewWalletService, service.NewAdminProfileService, service.NewUserService, service.NewJWTService, service.NewOTPService, service.NewAuthService, service.NewAPIKeyService, wire.Bind(new(usecase.UserUsecase), new(*service.UserService)), wire.Bind(new(usecase.TokenUsecase), new(*service.JWTService)), wire.Bind(new(usecase.OTPUsecase), new(*service.OTPService)), wire.Bind(new(usecase.AuthUsecase), new(*service.AuthService)), wire.Bind(new(usecase.APIKeyUsecase), new(*service.APIKeyService)))
 
 // Controller Set
 var ControllerSet = wire.NewSet(
-	ProvideAuthController,
+	ProvideUserController,
 	ProvideProfileHandler,
 	ProvideAPIKeyController,
 	ProvideAdminProfileHandler,
