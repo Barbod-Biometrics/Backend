@@ -12,23 +12,25 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
 )
 
-type AuthUsecase struct {
+var _ usecase.AuthUsecase = (*AuthService)(nil)
+
+type AuthService struct {
 	userRepo     repository.UserRepository
-	otpService   usecase.OTPService
-	smsService   communication.SMSService
-	tokenService usecase.TokenService
+	otpService   usecase.OTPUsecase
+	SMSService   communication.SMSService
+	tokenService usecase.TokenUsecase
 }
 
-func NewAuthUsecase(userRepo repository.UserRepository, otpService usecase.OTPService, smsService communication.SMSService, tokenService usecase.TokenService) *AuthUsecase {
-	return &AuthUsecase{
+func NewAuthService(userRepo repository.UserRepository, otpService usecase.OTPUsecase, SMSService communication.SMSService, tokenService usecase.TokenUsecase) *AuthService {
+	return &AuthService{
 		userRepo:     userRepo,
 		otpService:   otpService,
-		smsService:   smsService,
+		SMSService:   SMSService,
 		tokenService: tokenService,
 	}
 }
 
-func (uc *AuthUsecase) RequestOTP(ctx context.Context, req auth.RequestOTPRequest) error {
+func (uc *AuthService) RequestOTP(ctx context.Context, req auth.RequestOTPRequest) error {
 
 	plainOTP, err := uc.otpService.GenerateAndStoreOTP(ctx, req.PhoneNumber)
 	if err != nil {
@@ -39,7 +41,7 @@ func (uc *AuthUsecase) RequestOTP(ctx context.Context, req auth.RequestOTPReques
 	}
 
 	message := fmt.Sprintf("Your Barbod Biomentrics code is: %s", plainOTP)
-	if err := uc.smsService.Send(ctx, req.PhoneNumber, message); err != nil {
+	if err := uc.SMSService.Send(ctx, req.PhoneNumber, message); err != nil {
 		// if OTP fails we have to delete it from the cache later (due to shortage of time it has not been implemented)
 		return fmt.Errorf("failed to send sms: %w", err)
 	}
@@ -47,7 +49,7 @@ func (uc *AuthUsecase) RequestOTP(ctx context.Context, req auth.RequestOTPReques
 	return nil
 }
 
-func (uc *AuthUsecase) VerifyOTP(ctx context.Context, req auth.VerifyOTPRequest) (*auth.UserInfoResponse, error) {
+func (uc *AuthService) VerifyOTP(ctx context.Context, req auth.VerifyOTPRequest) (*auth.UserInfoResponse, error) {
 
 	if err := uc.otpService.VerifyOTP(ctx, req.PhoneNumber, req.OTP); err != nil {
 		if errors.Is(err, ErrOTPNotFound) {

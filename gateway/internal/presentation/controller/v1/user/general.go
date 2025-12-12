@@ -12,14 +12,14 @@ import (
 )
 
 type GeneralUserController struct {
-	authUsecase *service.AuthUsecase
-	userUsecase usecase.UserService
+	authUsecase usecase.AuthUsecase
+	userUsecase usecase.UserUsecase
 }
 
-func NewUserController(authUsecase *service.AuthUsecase, userUsecase service.UserService) *GeneralUserController {
+func NewUserController(authUsecase usecase.AuthUsecase, userUsecase usecase.UserUsecase) *GeneralUserController {
 	return &GeneralUserController{
 		authUsecase: authUsecase,
-		userUsecase: &userUsecase,
+		userUsecase: userUsecase,
 	}
 }
 
@@ -115,7 +115,7 @@ func (g *GeneralUserController) UpdateProfileHandler(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /auth/request-otp [post]
-func (g *GeneralUserController) RequestOTPHandler(c *gin.Context) {
+func (h *GeneralUserController) RequestOTPHandler(c *gin.Context) {
 	var req auth.RequestOTPRequest
 
 	// bind and validate
@@ -128,7 +128,7 @@ func (g *GeneralUserController) RequestOTPHandler(c *gin.Context) {
 	}
 
 	// call usecase
-	if err := g.authUsecase.RequestOTP(c.Request.Context(), req); err != nil {
+	if err := h.authUsecase.RequestOTP(c.Request.Context(), req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
 		})
@@ -152,7 +152,7 @@ func (g *GeneralUserController) RequestOTPHandler(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 401 {object} map[string]string
 // @Router /auth/verify-otp [post]
-func (g *GeneralUserController) VerifyOTPHandler(c *gin.Context) {
+func (h *GeneralUserController) VerifyOTPHandler(c *gin.Context) {
 	var req auth.VerifyOTPRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -163,7 +163,7 @@ func (g *GeneralUserController) VerifyOTPHandler(c *gin.Context) {
 		return
 	}
 
-	response, err := g.authUsecase.VerifyOTP(c.Request.Context(), req)
+	response, err := h.authUsecase.VerifyOTP(c.Request.Context(), req)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": err.Error(),

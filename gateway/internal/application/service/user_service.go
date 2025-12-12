@@ -27,7 +27,7 @@ func NewUserService(userRepo repository.UserRepository) *UserService {
 	}
 }
 
-var _ usecase.UserService = (*UserService)(nil)
+var _ usecase.UserUsecase = (*UserService)(nil)
 
 func (s *UserService) GetUserByID(ctx context.Context, userID uint64) (*userdto.UserInfoResponse, error) {
 	user, err := s.UserRepo.GetByID(ctx, userID)
