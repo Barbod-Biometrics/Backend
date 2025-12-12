@@ -24,5 +24,8 @@ RUN go mod download
 # install swag (swag CLI) so dev container can generate swagger docs
 RUN go install github.com/swaggo/swag/cmd/swag@latest
 
+# install wire (wire CLI) so dev container can generate dependency injection code
+RUN go install github.com/google/wire/cmd/wire@latest
+
 # Default command will be overridden by docker-compose, but kept for completeness
 CMD ["air"]
