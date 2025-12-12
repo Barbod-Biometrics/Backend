@@ -1,6 +1,8 @@
 package wire
 
 import (
+	"context"
+
 	"github.com/Barbod-Biometrics/Backend/gateway/bootstrap"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/enum"
@@ -10,6 +12,7 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/database/redis"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/jwt"
 	Logger "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/logger"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/telemetry"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/admin"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/apikey"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
@@ -60,6 +63,11 @@ func ProvideRedisClient(cfg *bootstrap.Config) (*redis.RedisClient, error) {
 
 func ProvideMinioClient(cfg *bootstrap.Config) (*storage.MinioClient, error) {
 	return storage.NewMinioClient(*cfg.Env)
+}
+
+func ProvideTelemetry(cfg *bootstrap.Config) (*telemetry.Telemetry, error) {
+	ctx := context.Background()
+	return telemetry.InitTelemetry(ctx, &cfg.Env.Telemetry)
 }
 
 func ProvideJWTKeyManager() *jwt.JWTKeyManager {
@@ -120,6 +128,7 @@ type Application struct {
 	RedisClient *redis.RedisClient
 	Route       *v1.Route
 	MinioClient *storage.MinioClient
+	Telemetry   *telemetry.Telemetry
 }
 
 func NewApplication(
@@ -129,6 +138,7 @@ func NewApplication(
 	redisClient *redis.RedisClient,
 	route *v1.Route,
 	minioClient *storage.MinioClient,
+	telemetryClient *telemetry.Telemetry,
 ) *Application {
 	return &Application{
 		Config:      cfg,
@@ -137,6 +147,7 @@ func NewApplication(
 		RedisClient: redisClient,
 		Route:       route,
 		MinioClient: minioClient,
+		Telemetry:   telemetryClient,
 	}
 }
 
@@ -146,6 +157,12 @@ func (app *Application) Close() error {
 	}
 	if app.RedisClient != nil {
 		app.RedisClient.Close()
+	}
+	if app.Telemetry != nil {
+		ctx := context.Background()
+		if err := app.Telemetry.Shutdown(ctx); err != nil {
+			return err
+		}
 	}
 	return nil
 }

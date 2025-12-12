@@ -61,7 +61,11 @@ func InitializeApplication() (*Application, error) {
 	walletUsecase := service.NewWalletService(profileRepository, transactionRepository, unitOfWork)
 	walletHandler := ProvideWalletHandler(walletUsecase)
 	route := ProvideRouter(generalUserController, profileHandler, apiKeyHandler, adminProfileHandler, walletHandler, jwtKeyManager, config)
-	application := NewApplication(config, appLogger, db, redisClient, route, minioClient)
+	telemetry, err := ProvideTelemetry(config)
+	if err != nil {
+		return nil, err
+	}
+	application := NewApplication(config, appLogger, db, redisClient, route, minioClient, telemetry)
 	return application, nil
 }
 
@@ -84,6 +88,7 @@ var InfrastructureSet = wire.NewSet(
 	ProvidePostgresDatabase,
 	ProvideRedisClient,
 	ProvideMinioClient,
+	ProvideTelemetry,
 	ProvideJWTKeyManager,
 	ProvideSMSService, wire.Bind(new(jwt.KeyManager), new(*jwt2.JWTKeyManager)), wire.Bind(new(communication.SMSService), new(*sms.SMSService)),
 )

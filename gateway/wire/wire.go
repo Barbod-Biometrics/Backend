@@ -33,6 +33,7 @@ var InfrastructureSet = wire.NewSet(
 	ProvidePostgresDatabase,
 	ProvideRedisClient,
 	ProvideMinioClient,
+	ProvideTelemetry,
 	ProvideJWTKeyManager,
 	ProvideSMSService,
 
