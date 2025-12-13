@@ -9,7 +9,7 @@ import (
 	docs "github.com/Barbod-Biometrics/Backend/gateway/docs"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
-	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/telemetry"
+
 	appWire "github.com/Barbod-Biometrics/Backend/gateway/wire"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -37,17 +37,7 @@ func main() {
 
 	cfg := app.Config
 
-	appLogger := logger.Logger(app.Logger)
-
-	appLogger.Info("Application initialized successfully", logger.Field{Key: "logfile", Value: cfg.Env.Logger.LogFile})
-
-	// Initializing Telemetry
-	ctx := context.Background()
-	otelTelemetry, err := telemetry.InitTelemetry(ctx, &cfg.Env.Telemetry)
-	if err != nil {
-		appLogger.Error("Failed to initialize OpenTelemetry", logger.Field{Key: "error", Value: err})
-	}
-	defer otelTelemetry.Shutdown(ctx)
+	app.Logger.Info("Application initialized successfully", logger.Field{Key: "logfile", Value: cfg.Env.Logger.LogFile})
 
 	// Swagger setup
 	setSwaggerHost(cfg.Env.Server.Host, cfg.Env.Server.Port)
@@ -63,16 +53,16 @@ func main() {
 		&entity.Transaction{},
 	)
 	if err != nil {
-		appLogger.Fatal("Failed to migrate database", logger.Field{Key: "error", Value: err})
+		app.Logger.Fatal("Failed to migrate database", logger.Field{Key: "error", Value: err})
 	}
 
 	// Seed Admin User
-	seedAdminUser(app.DB, cfg.Env.Admin.PhoneNumber, appLogger)
+	seedAdminUser(app.DB, cfg.Env.Admin.PhoneNumber, app.Logger)
 
 	// Server Start
 	handler := app.Route.RegisterRoutes()
 
-	appLogger.Info("Starting the gateway application",
+	app.Logger.Info("Starting the gateway application",
 		logger.Field{Key: "port", Value: cfg.Env.Server.Port},
 		logger.Field{Key: "database", Value: fmt.Sprintf("%s@%s:%s", cfg.Env.Postgres.User, cfg.Env.Postgres.Host, cfg.Env.Postgres.Port)},
 		logger.Field{Key: "redis", Value: fmt.Sprintf("%s:%s", cfg.Env.PrimaryRedis.Address, cfg.Env.PrimaryRedis.Port)},
@@ -80,7 +70,7 @@ func main() {
 	)
 
 	if err := http.ListenAndServe(":"+cfg.Env.Server.Port, handler); err != nil {
-		appLogger.Error("Error starting server", logger.Field{Key: "error", Value: err})
+		app.Logger.Error("Error starting server", logger.Field{Key: "error", Value: err})
 	}
 
 }
