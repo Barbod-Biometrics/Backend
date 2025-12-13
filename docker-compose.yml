@@ -20,7 +20,7 @@ services:
       - "6379:${REDIS_PORT}"
     volumes:
       - redis-data:/data
-    command: redis-server --appendonly yes # for data persistance
+    command: redis-server --appendonly yes --replica-read-only no # for data persistance
     healthcheck:  # for container health monitoring
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
