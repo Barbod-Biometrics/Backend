@@ -18,6 +18,11 @@ COPY gateway/pkg ./pkg
 
 COPY gateway/bootstrap ./bootstrap
 
+COPY gateway/wire ./wire
+
+RUN go install github.com/google/wire/cmd/wire@latest
+RUN wire ./wire
+
 RUN go install github.com/swaggo/swag/cmd/swag@latest
 RUN swag init -g ./cmd/app/main.go
 

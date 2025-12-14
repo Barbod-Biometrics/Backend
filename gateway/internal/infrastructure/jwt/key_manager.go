@@ -17,9 +17,11 @@ type JWTKeyManager struct {
 	isLoaded   bool
 }
 
-func NewJWTKeyManager() domainJWT.KeyManager {
+func NewJWTKeyManager() *JWTKeyManager {
 	return &JWTKeyManager{}
 }
+
+var _ domainJWT.KeyManager = (*JWTKeyManager)(nil)
 
 func (k *JWTKeyManager) LoadKeys(privateKeyPath, publicKeyPath string) error {
 	k.mutex.Lock()
