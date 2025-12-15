@@ -24,7 +24,7 @@ var English = map[string]interface{}{
 		"containsUppercase":      "The {0} should contain uppercase.",
 		"containsNumber":         "The {0} should contain number.",
 		"containsSpecialChar":    "The {0} should contain special character.",
-		"alreadyRegistered":      "Has been already registered with this {0}",
+		"alreadyRegistered":      "Has already been registered with this {0}",
 		"required":               "Field {0} is required",
 		"e164":                   "Phone number u have entered is not correct",
 		"eqfield":                "Password and {0} are not the same.",
