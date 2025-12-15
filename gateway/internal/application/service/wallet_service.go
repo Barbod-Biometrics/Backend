@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/profile"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/wallet"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/enum"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
 )
 
@@ -16,17 +18,20 @@ type WalletService struct {
 	profileRepo     repository.ProfileRepository
 	transactionRepo repository.TransactionRepository
 	unitOfWork      repository.UnitOfWork
+	logger          logger.Logger
 }
 
 func NewWalletService(
 	profileRepo repository.ProfileRepository,
 	transactionRepo repository.TransactionRepository,
 	unitOfWork repository.UnitOfWork,
+	logger logger.Logger,
 ) usecase.WalletUsecase {
 	return &WalletService{
 		profileRepo:     profileRepo,
 		transactionRepo: transactionRepo,
 		unitOfWork:      unitOfWork,
+		logger:          logger,
 	}
 }
 
@@ -143,6 +148,28 @@ func (s *WalletService) Deposit(ctx context.Context, userID uint64, profileID ui
 			Message:       "Deposit successful",
 		},
 	}, nil
+}
+
+func (s *WalletService) GetUsageSummary(ctx context.Context, profileID uint64) (*profile.UsageSummaryResponse, error) {
+	s.logger.Info("processing usage summary request",
+		logger.Field{Key: "profile_id", Value: profileID},
+	)
+
+	summary, err := s.transactionRepo.GetUsageSummary(ctx, profileID)
+	if err != nil {
+		s.logger.Error("failed to retrieve usage summary from repository",
+			logger.Field{Key: "profile_id", Value: profileID},
+			logger.Field{Key: "error", Value: err},
+		)
+		return nil, err
+	}
+
+	s.logger.Info("usage summary retrieved successfully",
+		logger.Field{Key: "profile_id", Value: profileID},
+	)
+
+	return summary, nil
+
 }
 
 func (s *WalletService) getProfileForUser(ctx context.Context, userID uint64, profileID uint64) (*entity.Profile, error) {
