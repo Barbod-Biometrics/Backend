@@ -19,7 +19,7 @@ var English = map[string]interface{}{
 		"generic":                "an error occurred, please try again.",
 		"numeric":                "The {0} should be a numeric value.",
 		"fileRequired":           "File is required.",
-		"minimumLength":          "The {0} Len must bigger than 7 characters.",
+		"minimumLength":          "The {0} length must be greater than 7 characters.",
 		"containsLowercase":      "The {0} should contain lowercase.",
 		"containsUppercase":      "The {0} should contain uppercase.",
 		"containsNumber":         "The {0} should contain number.",
