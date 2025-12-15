@@ -2,36 +2,25 @@ package postgres_test
 
 import (
 	"context"
-	"regexp"
+	"strconv"
 	"testing"
 	"time"
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 	repoPostgres "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/repository/postgres"
-	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/test/testcontainer"
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 )
 
-func setupMockDB(t *testing.T) (*gorm.DB, sqlmock.Sqlmock) {
-	db, mock, err := sqlmock.New()
-	assert.NoError(t, err)
-
-	dialector := postgres.New(postgres.Config{
-		Conn:       db,
-		DriverName: "postgres",
-	})
-
-	gormDB, err := gorm.Open(dialector, &gorm.Config{})
-	assert.NoError(t, err)
-
-	return gormDB, mock
-}
-
 func TestApiKeyRepository_Create(t *testing.T) {
-	db, mock := setupMockDB(t)
-	repo := repoPostgres.NewApiKeyRepository(db)
+	ctx := context.Background()
+	pg, err := testcontainer.SetupPostgres(ctx)
+	if err != nil {
+		t.Fatalf("failed to setup postgres container: %v", err)
+	}
+	defer pg.Terminate(ctx)
+
+	repo := repoPostgres.NewApiKeyRepository(pg.DB)
 
 	apiKey := &entity.APIKey{
 		ProfileID: 10,
@@ -41,75 +30,136 @@ func TestApiKeyRepository_Create(t *testing.T) {
 		CreatedAt: time.Now(),
 	}
 
-	mock.ExpectBegin()
-
-	mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "api_keys"`)).
-		WithArgs(apiKey.ProfileID, apiKey.KeyHash, apiKey.KeyPrefix, apiKey.IsActive, sqlmock.AnyArg()).
-		WillReturnRows(sqlmock.NewRows([]string{"key_id"}).AddRow(1))
-
-	mock.ExpectCommit()
-
-	err := repo.Create(context.Background(), apiKey)
+	err = repo.Create(context.Background(), apiKey)
 
 	assert.NoError(t, err)
-	assert.NoError(t, mock.ExpectationsWereMet())
+	assert.NotZero(t, apiKey.KeyID)
+
+	// Verify in DB
+	var count int64
+	pg.DB.Model(&entity.APIKey{}).Where("key_id = ?", apiKey.KeyID).Count(&count)
+	assert.Equal(t, int64(1), count)
 }
 
 func TestApiKeyRepository_GetByPrefix(t *testing.T) {
-	db, mock := setupMockDB(t)
-	repo := repoPostgres.NewApiKeyRepository(db)
+	ctx := context.Background()
+	pg, err := testcontainer.SetupPostgres(ctx)
+	if err != nil {
+		t.Fatalf("failed to setup postgres container: %v", err)
+	}
+	defer pg.Terminate(ctx)
 
-	prefix := "abcdef123"
+	repo := repoPostgres.NewApiKeyRepository(pg.DB)
 
-	rows := sqlmock.NewRows([]string{"key_id", "profile_id", "key_hash", "key_prefix", "is_active"}).
-		AddRow(1, 100, "somehash", prefix, true)
-
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "api_keys" WHERE key_prefix = $1 ORDER BY "api_keys"."key_id" LIMIT $2`)).WithArgs(prefix, 1).WillReturnRows(rows)
+	prefix := "abcdef12" // 8 chars
+	// seed
+	apiKey := entity.APIKey{
+		ProfileID: 100,
+		KeyHash:   "somehash",
+		KeyPrefix: prefix,
+		IsActive:  true,
+		CreatedAt: time.Now(),
+	}
+	err = pg.DB.Create(&apiKey).Error
+	assert.NoError(t, err)
 
 	result, err := repo.GetByPrefix(context.Background(), prefix)
 
 	assert.NoError(t, err)
-	assert.NotNil(t, result)
-	assert.Equal(t, uint64(100), result.ProfileID)
+	if assert.NotNil(t, result) {
+		assert.Equal(t, uint64(100), result.ProfileID)
+		assert.Equal(t, prefix, result.KeyPrefix)
+	}
 }
 
 func TestApiKeyRepository_GetActiveByProfileID(t *testing.T) {
-	db, mock := setupMockDB(t)
-	repo := repoPostgres.NewApiKeyRepository(db)
+	ctx := context.Background()
+	pg, err := testcontainer.SetupPostgres(ctx)
+	if err != nil {
+		t.Fatalf("failed to setup postgres container: %v", err)
+	}
+	defer pg.Terminate(ctx)
+
+	repo := repoPostgres.NewApiKeyRepository(pg.DB)
 
 	profileID := uint64(55)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "api_keys" WHERE profile_id = $1 AND is_active = $2 ORDER BY "api_keys"."key_id" LIMIT $3`)).
-		WithArgs(profileID, true, 1).
-		WillReturnRows(sqlmock.NewRows([]string{"key_id"}).AddRow(99))
+	// seed active
+	apiKey := entity.APIKey{
+		ProfileID: profileID,
+		KeyHash:   "hash_act",
+		KeyPrefix: "pref_act", // 8 chars
+		IsActive:  true,
+		CreatedAt: time.Now(),
+	}
+	err = pg.DB.Create(&apiKey).Error
+	assert.NoError(t, err)
+
+	// seed inactive
+	apiKeyInactive := entity.APIKey{
+		ProfileID: profileID,
+		KeyHash:   "hash_ina",
+		KeyPrefix: "pref_ina", // 8 chars
+		IsActive:  false,
+		CreatedAt: time.Now(),
+	}
+	err = pg.DB.Create(&apiKeyInactive).Error
+	assert.NoError(t, err)
 
 	result, err := repo.GetActiveByProfileID(context.Background(), profileID)
 
 	assert.NoError(t, err)
-	assert.Equal(t, uint64(99), result.KeyID)
+	if assert.NotNil(t, result) {
+		assert.Equal(t, apiKey.KeyID, result.KeyID)
+	}
 }
 
 func TestApiKeyRepository_Revoke(t *testing.T) {
-	db, mock := setupMockDB(t)
-	repo := repoPostgres.NewApiKeyRepository(db)
-	keyIDStr := "123"
+	ctx := context.Background()
+	pg, err := testcontainer.SetupPostgres(ctx)
+	if err != nil {
+		t.Fatalf("failed to setup postgres container: %v", err)
+	}
+	defer pg.Terminate(ctx)
 
-	mock.ExpectBegin()
+	repo := repoPostgres.NewApiKeyRepository(pg.DB)
 
-	mock.ExpectExec(regexp.QuoteMeta(`UPDATE "api_keys" SET "is_active"=$1 WHERE key_id = $2`)).
-		WithArgs(false, 123).
-		WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectCommit()
-
-	err := repo.Revoke(context.Background(), keyIDStr)
+	// seed
+	apiKey := entity.APIKey{
+		ProfileID: 123,
+		KeyHash:   "revoke_h",
+		KeyPrefix: "revoke_p", // 8 chars
+		IsActive:  true,
+		CreatedAt: time.Now(),
+	}
+	err = pg.DB.Create(&apiKey).Error
 	assert.NoError(t, err)
+
+	idStr := strconv.FormatUint(apiKey.KeyID, 10)
+	err = repo.Revoke(context.Background(), idStr)
+	assert.NoError(t, err)
+
+	// Verify it is inactive
+	var updatedKey entity.APIKey
+	err = pg.DB.First(&updatedKey, apiKey.KeyID).Error
+	assert.NoError(t, err)
+	assert.False(t, updatedKey.IsActive)
 }
 
 func TestApiKeyRepository_Revoke_InvalidID(t *testing.T) {
-	db, _ := setupMockDB(t)
-	repo := repoPostgres.NewApiKeyRepository(db)
+	ctx := context.Background()
+	pg, err := testcontainer.SetupPostgres(ctx)
+	if err != nil {
+		t.Fatalf("failed to setup postgres container: %v", err)
+	}
+	defer pg.Terminate(ctx)
 
-	err := repo.Revoke(context.Background(), "abc")
+	repo := repoPostgres.NewApiKeyRepository(pg.DB)
+
+	err = repo.Revoke(context.Background(), "abc")
 	assert.Error(t, err)
+	// We can't easily check exact error message unless we know it's not changing,
+	// but the original test checked "invalid key id format".
+	// Assuming the implementation returns that error for invalid strings.
 	assert.Equal(t, "invalid key id format", err.Error())
 }
