@@ -36,6 +36,9 @@ var InfrastructureSet = wire.NewSet(
 	ProvideTelemetry,
 	ProvideJWTKeyManager,
 	ProvideSMSService,
+	ProvideTranslator,
+	ProvideLocalizationTranslator,
+	ProvideRecovery,
 
 	wire.Bind(new(domainJWT.KeyManager), new(*jwt.JWTKeyManager)),
 	wire.Bind(new(communication.SMSService), new(*sms.SMSService)),

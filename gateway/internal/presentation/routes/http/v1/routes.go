@@ -3,7 +3,9 @@ package v1
 import (
 	"net/http"
 
+	"github.com/Barbod-Biometrics/Backend/gateway/bootstrap"
 	domainJWT "github.com/Barbod-Biometrics/Backend/gateway/internal/domain/jwt"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/localization"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/admin"
 	apikey "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/apikey"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
@@ -23,6 +25,7 @@ type Route struct {
 	walletController       *wallet.WalletHandler
 	jwtKeyManager          domainJWT.KeyManager
 	serviceName            string
+	constants              *bootstrap.Constants
 }
 
 func NewRouter(
@@ -33,6 +36,7 @@ func NewRouter(
 	walletHandler *wallet.WalletHandler,
 	jwtKeyManager domainJWT.KeyManager,
 	serviceName string,
+	constants *bootstrap.Constants,
 ) *Route {
 	return &Route{
 		userController:         userController,
@@ -42,15 +46,19 @@ func NewRouter(
 		walletController:       walletHandler,
 		jwtKeyManager:          jwtKeyManager,
 		serviceName:            serviceName,
+		constants:              constants,
 	}
 }
 
 func (r *Route) RegisterRoutes() http.Handler {
 	router := gin.New()
 
+	translatorService := localization.GetService()
+
 	router.Use(middleware.NewCorsMiddleware().CORS())
+	router.Use(middleware.NewLocalization(translatorService).Localization())
+	router.Use(middleware.NewRecovery(r.constants).Recovery)
 	router.Use(gin.Logger())
-	router.Use(gin.Recovery())
 	router.Use(middleware.OpenTelemetryMiddleware(r.serviceName))
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

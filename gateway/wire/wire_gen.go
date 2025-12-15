@@ -90,7 +90,10 @@ var InfrastructureSet = wire.NewSet(
 	ProvideMinioClient,
 	ProvideTelemetry,
 	ProvideJWTKeyManager,
-	ProvideSMSService, wire.Bind(new(jwt.KeyManager), new(*jwt2.JWTKeyManager)), wire.Bind(new(communication.SMSService), new(*sms.SMSService)),
+	ProvideSMSService,
+	ProvideTranslator,
+	ProvideLocalizationTranslator,
+	ProvideRecovery, wire.Bind(new(jwt.KeyManager), new(*jwt2.JWTKeyManager)), wire.Bind(new(communication.SMSService), new(*sms.SMSService)),
 )
 
 // Repository Set
