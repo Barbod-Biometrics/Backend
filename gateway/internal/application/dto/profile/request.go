@@ -83,7 +83,7 @@ type GetUploadUrlRequest struct {
 }
 
 type GetUsageSummaryRequest struct {
-	ProfileID uint64 `json:"-"`
+	ProfileID uint64 `json:"profile_id"`
 	// for probable filters in the future
 	FromDate *time.Time `json:"from_date,omitempty" query:"from_date"`
 	ToDate   *time.Time `json:"to_date,omitempty" query:"to_date"`

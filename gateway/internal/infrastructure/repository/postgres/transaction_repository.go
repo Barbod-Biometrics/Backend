@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/profile"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/enum"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
@@ -12,6 +13,8 @@ import (
 type TransactionRepository struct {
 	db *gorm.DB
 }
+
+var _ repository.TransactionRepository = &TransactionRepository{}
 
 func NewTransactionRepository(db *gorm.DB) *TransactionRepository {
 	return &TransactionRepository{db: db}
@@ -125,4 +128,41 @@ func (r *TransactionRepository) GetWalletSummary(ctx context.Context, profileID 
 		TotalWithdrawals: totalWithdrawals,
 		TransactionCount: transactionCount,
 	}, nil
+}
+
+func (r *TransactionRepository) GetUsageSummary(ctx context.Context, profileID uint64) (*profile.UsageSummaryResponse, error) {
+	db := r.getDB(ctx)
+
+	response := &profile.UsageSummaryResponse{
+		TotalSpend:       0,
+		ServiceBreakdown: []profile.ServiceUsageStats{},
+	}
+
+	// Query 1: The Grand Total (All time spend)
+	err := db.WithContext(ctx).
+		Model(&entity.Transaction{}).
+		Where("profile_id = ? AND transaction_type = ?", profileID, "withdrawal").
+		Select("COALESCE(ABS(SUM(amount)), 0)").
+		Scan(&response.TotalSpend).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Query 2: The Breakdown (Grouped by Service)
+	err = db.WithContext(ctx).
+		Table("transactions").
+		Select("services.service_name, count(transactions.transaction_id) as total_count, ABS(SUM(transactions.amount)) as total_cost").
+		Joins("JOIN verification_jobs ON verification_jobs.job_id = transactions.job_id").
+		Joins("JOIN services ON services.service_id = verification_jobs.service_id").
+		Where("transactions.profile_id = ? AND transactions.transaction_type = ?", profileID, "withdrawal").
+		Group("services.service_name").
+		Scan(&response.ServiceBreakdown).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+
 }
