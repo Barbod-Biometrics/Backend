@@ -4,6 +4,12 @@ import (
 	"time"
 )
 
+type ServiceUsageStats struct {
+	ServiceName string `json:"service_name"`
+	TotalCount  int    `json:"total_count:"`
+	TotalCost   int64  `json:"total_cost"`
+}
+
 type ProfileResponse struct {
 	ID                 string    `json:"id"`
 	Type               string    `json:"type"`
@@ -54,4 +60,9 @@ type UploadUrlResponse struct {
 	UploadUrl string `json:"upload_url"`
 	FileKey   string `json:"file_key"`
 	ExpiresAt string `json:"expires_at"`
+}
+
+type UsageSummaryResponse struct {
+	TotalSpend       int64               `json:"total_spend"`
+	ServiceBreakdown []ServiceUsageStats `json:"service_breakdown"`
 }

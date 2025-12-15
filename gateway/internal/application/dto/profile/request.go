@@ -1,5 +1,7 @@
 package profile
 
+import "time"
+
 type LocationDTO struct {
 	PostalCode  string `json:"postal_code"`
 	Province    string `json:"province"`
@@ -78,4 +80,11 @@ type SaveDocumentRequest struct {
 type GetUploadUrlRequest struct {
 	DocumentType  string `json:"document_type" binding:"required,oneof=national_card_front national_card_back id_book_page_one establishment_notice statutes introduction_letter official_gazette"`
 	FileExtension string `json:"file_extension" binding:"required,oneof=.jpg .jpeg .png .pdf"`
+}
+
+type GetUsageSummaryRequest struct {
+	ProfileID uint64 `json:"-"`
+	// for probable filters in the future
+	FromDate *time.Time `json:"from_date,omitempty" query:"from_date"`
+	ToDate   *time.Time `json:"to_date,omitempty" query:"to_date"`
 }
