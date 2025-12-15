@@ -49,6 +49,7 @@ func (h *TransactionHandler) GetUsageSummary(c *gin.Context) {
 	summary, err := h.transactionUsecase.GetUsageSummary(c.Request.Context(), req.ProfileID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve usage summary"})
+		return
 	}
 
 	c.JSON(http.StatusOK, summary)
