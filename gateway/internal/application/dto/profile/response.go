@@ -4,6 +4,7 @@ import (
 	"time"
 )
 
+// I'm not sure yet if this struct (ServiceUsageStats) should be here or not
 type ServiceUsageStats struct {
 	ServiceName string `json:"service_name"`
 	TotalCount  int    `json:"total_count:"`

@@ -6,18 +6,23 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/profile"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/enum"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
 	"gorm.io/gorm"
 )
 
 type TransactionRepository struct {
-	db *gorm.DB
+	db     *gorm.DB
+	logger logger.Logger
 }
 
 var _ repository.TransactionRepository = &TransactionRepository{}
 
-func NewTransactionRepository(db *gorm.DB) *TransactionRepository {
-	return &TransactionRepository{db: db}
+func NewTransactionRepository(db *gorm.DB, logger logger.Logger) *TransactionRepository {
+	return &TransactionRepository{
+		db:     db,
+		logger: logger,
+	}
 }
 
 func (r *TransactionRepository) getDB(ctx context.Context) *gorm.DB {
@@ -133,6 +138,10 @@ func (r *TransactionRepository) GetWalletSummary(ctx context.Context, profileID 
 func (r *TransactionRepository) GetUsageSummary(ctx context.Context, profileID uint64) (*profile.UsageSummaryResponse, error) {
 	db := r.getDB(ctx)
 
+	r.logger.Info("starting usage summary calculation",
+		logger.Field{Key: "profile_id", Value: profileID},
+	)
+
 	response := &profile.UsageSummaryResponse{
 		TotalSpend:       0,
 		ServiceBreakdown: []profile.ServiceUsageStats{},
@@ -146,6 +155,10 @@ func (r *TransactionRepository) GetUsageSummary(ctx context.Context, profileID u
 		Scan(&response.TotalSpend).Error
 
 	if err != nil {
+		r.logger.Error("failed to calculate total spend",
+			logger.Field{Key: "profile_id", Value: profileID},
+			logger.Field{Key: "error", Value: err},
+		)
 		return nil, err
 	}
 
@@ -160,8 +173,18 @@ func (r *TransactionRepository) GetUsageSummary(ctx context.Context, profileID u
 		Scan(&response.ServiceBreakdown).Error
 
 	if err != nil {
+		r.logger.Error("failed to fetch service breakdown",
+			logger.Field{Key: "profile_id", Value: profileID},
+			logger.Field{Key: "error", Value: err},
+		)
 		return nil, err
 	}
+
+	r.logger.Debug("usage summary calculated successfully",
+		logger.Field{Key: "profile_id", Value: profileID},
+		logger.Field{Key: "total_spend", Value: response.TotalSpend},
+		logger.Field{Key: "service_count", Value: len(response.ServiceBreakdown)},
+	)
 
 	return response, nil
 
