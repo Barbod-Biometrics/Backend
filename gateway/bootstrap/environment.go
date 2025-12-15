@@ -19,6 +19,7 @@ type Env struct {
 	JWT          JWT
 	Admin        Admin
 	Telemetry    Telemetry
+	Email        Email
 }
 
 type Admin struct {
@@ -84,6 +85,11 @@ type Telemetry struct {
 	Environment    string
 }
 
+type Email struct {
+	GmailAppPassword string
+	SenderEmail      string
+}
+
 func NewEnvironment() *Env {
 	godotenv.Load(".env")
 	return &Env{
@@ -139,6 +145,10 @@ func NewEnvironment() *Env {
 			ServiceName:    getEnvString("OTEL_SERVICE_NAME", "barbod-gateway"),
 			ServiceVersion: getEnvString("OTEL_SERVICE_VERSION", "1.0.0"),
 			Environment:    getEnvString("OTEL_ENVIRONMENT", "development"),
+		},
+		Email: Email{
+			GmailAppPassword: os.Getenv("GMAIL_APP_PASSWORD"),
+			SenderEmail:      os.Getenv("SENDER_GMAIL"),
 		},
 	}
 }
