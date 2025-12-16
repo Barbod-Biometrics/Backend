@@ -9,6 +9,7 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/enum"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
 )
 
@@ -16,17 +17,20 @@ type WalletService struct {
 	profileRepo     repository.ProfileRepository
 	transactionRepo repository.TransactionRepository
 	unitOfWork      repository.UnitOfWork
+	logger          logger.Logger
 }
 
 func NewWalletService(
 	profileRepo repository.ProfileRepository,
 	transactionRepo repository.TransactionRepository,
 	unitOfWork repository.UnitOfWork,
+	logger logger.Logger,
 ) usecase.WalletUsecase {
 	return &WalletService{
 		profileRepo:     profileRepo,
 		transactionRepo: transactionRepo,
 		unitOfWork:      unitOfWork,
+		logger:          logger,
 	}
 }
 

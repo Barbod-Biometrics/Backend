@@ -73,12 +73,14 @@ var ServiceSet = wire.NewSet(
 	service.NewOTPService,
 	service.NewAuthService,
 	service.NewAPIKeyService,
+	service.NewTransactionService,
 
 	wire.Bind(new(usecase.UserUsecase), new(*service.UserService)),
 	wire.Bind(new(usecase.TokenUsecase), new(*service.JWTService)),
 	wire.Bind(new(usecase.OTPUsecase), new(*service.OTPService)),
 	wire.Bind(new(usecase.AuthUsecase), new(*service.AuthService)),
 	wire.Bind(new(usecase.APIKeyUsecase), new(*service.APIKeyService)),
+	wire.Bind(new(usecase.TransactionUsecase), new(*service.TransactionService)),
 )
 
 // Controller Set
@@ -88,6 +90,7 @@ var ControllerSet = wire.NewSet(
 	ProvideAPIKeyController,
 	ProvideAdminProfileHandler,
 	ProvideWalletHandler,
+	ProvideTransactionHandler,
 )
 
 // Router Set

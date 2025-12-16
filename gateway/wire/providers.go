@@ -17,6 +17,7 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/admin"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/apikey"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/transaction"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/user"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/wallet"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/middleware"
@@ -111,8 +112,12 @@ func ProvideAdminProfileHandler(adminProfileUsecase usecase.AdminProfileUsecase)
 	return admin.NewAdminProfileHandler(adminProfileUsecase)
 }
 
-func ProvideWalletHandler(walletUsecase usecase.WalletUsecase) *wallet.WalletHandler {
-	return wallet.NewWalletHandler(walletUsecase)
+func ProvideWalletHandler(walletUsecase usecase.WalletUsecase, l logger.Logger) *wallet.WalletHandler {
+	return wallet.NewWalletHandler(walletUsecase, logger.Logger(l))
+}
+
+func ProvideTransactionHandler(transactionUsecase usecase.TransactionUsecase, l logger.Logger) *transaction.TransactionHandler {
+	return transaction.NewTransactionHandler(transactionUsecase, logger.Logger(l))
 }
 
 func ProvideRouter(
@@ -121,6 +126,7 @@ func ProvideRouter(
 	apiKeyController *apikey.ApiKeyHandler,
 	adminProfileHandler *admin.AdminProfileHandler,
 	walletHandler *wallet.WalletHandler,
+	transactionHandler *transaction.TransactionHandler,
 	jwtKeyManager domainJWT.KeyManager,
 	cfg *bootstrap.Config,
 ) *v1.Route {
@@ -130,6 +136,7 @@ func ProvideRouter(
 		apiKeyController,
 		adminProfileHandler,
 		walletHandler,
+		transactionHandler,
 		jwtKeyManager,
 		cfg.Env.Telemetry.ServiceName,
 		cfg.Constants,
