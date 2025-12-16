@@ -19,7 +19,7 @@ type Env struct {
 	JWT          JWT
 	Admin        Admin
 	Telemetry    Telemetry
-	Email        Email
+	Gmail        Gmail
 }
 
 type Admin struct {
@@ -85,9 +85,12 @@ type Telemetry struct {
 	Environment    string
 }
 
-type Email struct {
+type Gmail struct {
 	GmailAppPassword string
 	SenderEmail      string
+	SmtpHost         string
+	SmtpPort         int
+	TemplateDir      string
 }
 
 func NewEnvironment() *Env {
@@ -146,9 +149,12 @@ func NewEnvironment() *Env {
 			ServiceVersion: getEnvString("OTEL_SERVICE_VERSION", "1.0.0"),
 			Environment:    getEnvString("OTEL_ENVIRONMENT", "development"),
 		},
-		Email: Email{
+		Gmail: Gmail{
 			GmailAppPassword: os.Getenv("GMAIL_APP_PASSWORD"),
 			SenderEmail:      os.Getenv("SENDER_GMAIL"),
+			SmtpHost:         getEnvString("GMAIL_SMTP_HOST", "smtp.gmail.com"),
+			SmtpPort:         getEnvInt("GMAIL_SMTP_PORT", 587),
+			TemplateDir:      getEnvString("GMAIL_TEMPLATE_DIR", "templates/emails"),
 		},
 	}
 }
