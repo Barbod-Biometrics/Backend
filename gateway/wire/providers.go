@@ -8,6 +8,7 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/enum"
 	domainJWT "github.com/Barbod-Biometrics/Backend/gateway/internal/domain/jwt"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/communication/sms"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/database/redis"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/jwt"
@@ -102,8 +103,8 @@ func ProvideWalletHandler(walletUsecase usecase.WalletUsecase, l logger.Logger) 
 	return wallet.NewWalletHandler(walletUsecase, logger.Logger(l))
 }
 
-func ProvideTransactionHandler(transactionUsecase usecase.TransactionUsecase, l logger.Logger) *transaction.TransactionHandler {
-	return transaction.NewTransactionHandler(transactionUsecase, logger.Logger(l))
+func ProvideTransactionHandler(transactionUsecase usecase.TransactionUsecase, profileRepository repository.ProfileRepository, l logger.Logger) *transaction.TransactionHandler {
+	return transaction.NewTransactionHandler(transactionUsecase, profileRepository, logger.Logger(l))
 }
 
 func ProvideRouter(

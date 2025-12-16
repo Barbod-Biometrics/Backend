@@ -61,7 +61,7 @@ func InitializeApplication() (*Application, error) {
 	walletUsecase := service.NewWalletService(profileRepository, transactionRepository, unitOfWork, logger)
 	walletHandler := ProvideWalletHandler(walletUsecase, logger)
 	transactionService := service.NewTransactionService(transactionRepository, logger)
-	transactionHandler := ProvideTransactionHandler(transactionService, logger)
+	transactionHandler := ProvideTransactionHandler(transactionService, profileRepository, logger)
 	route := ProvideRouter(generalUserController, profileHandler, apiKeyHandler, adminProfileHandler, walletHandler, transactionHandler, jwtKeyManager, config)
 	telemetry, err := ProvideTelemetry(config)
 	if err != nil {
