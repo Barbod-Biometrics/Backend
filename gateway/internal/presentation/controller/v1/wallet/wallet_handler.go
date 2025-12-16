@@ -6,17 +6,20 @@ import (
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/wallet"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/middleware"
 	"github.com/gin-gonic/gin"
 )
 
 type WalletHandler struct {
 	walletUsecase usecase.WalletUsecase
+	logger        logger.Logger
 }
 
-func NewWalletHandler(u usecase.WalletUsecase) *WalletHandler {
+func NewWalletHandler(u usecase.WalletUsecase, logger logger.Logger) *WalletHandler {
 	return &WalletHandler{
 		walletUsecase: u,
+		logger:        logger,
 	}
 }
 

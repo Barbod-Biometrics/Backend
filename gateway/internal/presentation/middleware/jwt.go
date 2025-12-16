@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	exception "github.com/Barbod-Biometrics/Backend/gateway/internal/domain/exception"
 	domainJWT "github.com/Barbod-Biometrics/Backend/gateway/internal/domain/jwt"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -22,13 +23,27 @@ func JWTMiddleware(keyManager domainJWT.KeyManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing authorization header"})
+			err := exception.NewUnauthorizedError("missing authorization header", nil)
+			msg := err.Message
+			if tr := GetTranslator(c); tr != nil {
+				if tmsg, terr := tr.Translate("errors." + err.Type); terr == nil && tmsg != "" {
+					msg = tmsg
+				}
+			}
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": msg, "type": err.Type})
 			return
 		}
 
 		parts := strings.Fields(authHeader)
 		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid authorization header format"})
+			err := exception.NewUnauthorizedError("invalid authorization header format", nil)
+			msg := err.Message
+			if tr := GetTranslator(c); tr != nil {
+				if tmsg, terr := tr.Translate("errors." + err.Type); terr == nil && tmsg != "" {
+					msg = tmsg
+				}
+			}
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": msg, "type": err.Type})
 			return
 		}
 
@@ -41,20 +56,42 @@ func JWTMiddleware(keyManager domainJWT.KeyManager) gin.HandlerFunc {
 		}, jwt.WithValidMethods([]string{jwt.SigningMethodRS256.Alg()}))
 
 		if err != nil || !token.Valid {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
+			// If token parsing returned an error, wrap it as an auth error
+			authErr := exception.NewInvalidTokenError(err)
+			msg := authErr.Message
+			if tr := GetTranslator(c); tr != nil {
+				if tmsg, terr := tr.Translate("errors." + authErr.Type); terr == nil && tmsg != "" {
+					msg = tmsg
+				}
+			}
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": msg, "type": authErr.Type})
 			return
 		}
 
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token claims"})
+			authErr := exception.NewInvalidTokenError(fmt.Errorf("invalid token claims"))
+			msg := authErr.Message
+			if tr := GetTranslator(c); tr != nil {
+				if tmsg, terr := tr.Translate("errors." + authErr.Type); terr == nil && tmsg != "" {
+					msg = tmsg
+				}
+			}
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": msg, "type": authErr.Type})
 			return
 		}
 
 		// Extract user ID from "sub" claim
 		userID, err := extractUserID(claims["sub"])
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid user id in token"})
+			authErr := exception.NewInvalidTokenError(err)
+			msg := authErr.Message
+			if tr := GetTranslator(c); tr != nil {
+				if tmsg, terr := tr.Translate("errors." + authErr.Type); terr == nil && tmsg != "" {
+					msg = tmsg
+				}
+			}
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": msg, "type": authErr.Type})
 			return
 		}
 

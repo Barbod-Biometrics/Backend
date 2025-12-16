@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/profile"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 )
 
@@ -40,4 +41,5 @@ type TransactionRepository interface {
 	GetByID(ctx context.Context, transactionID uint64) (*entity.Transaction, error)
 	GetByProfileID(ctx context.Context, profileID uint64, pagination TransactionPagination) (*TransactionPaginatedResult, error)
 	GetWalletSummary(ctx context.Context, profileID uint64) (*WalletSummary, error)
+	GetUsageSummary(ctx context.Context, profileID uint64) (*profile.UsageSummaryResponse, error)
 }
