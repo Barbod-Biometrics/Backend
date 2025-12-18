@@ -48,7 +48,9 @@ func NewInternalError(code, message string, err error) *AppError {
 
 // Predefined common errors used across the application
 var (
-	ErrEmptyPhoto = NewBadRequestError("ERR_EMPTY_PHOTO", "photo cannot be empty", nil)
-	ErrEmptyVideo = NewBadRequestError("ERR_EMPTY_VIDEO", "video cannot be empty", nil)
-	ErrEmptyImage = NewBadRequestError("ERR_EMPTY_IMAGE", "image cannot be empty", nil)
+	ErrEmptyPhoto        = NewBadRequestError("ERR_EMPTY_PHOTO", "photo cannot be empty", nil)
+	ErrEmptyVideo        = NewBadRequestError("ERR_EMPTY_VIDEO", "video cannot be empty", nil)
+	ErrEmptyImage        = NewBadRequestError("ERR_EMPTY_IMAGE", "image cannot be empty", nil)
+	ErrInsufficientFunds = NewBadRequestError("ERR_INSUFFICIENT_FUNDS", "insufficient wallet balance", nil)
+	ErrServiceNotFound   = NewBadRequestError("ERR_SERVICE_NOT_FOUND", "service not found", nil)
 )

@@ -162,8 +162,16 @@ func ProvideFaceVerificationRepository(db *gorm.DB) repository.FaceVerificationR
 	return postgresRepo.NewFaceVerificationRepository(db)
 }
 
-func ProvideFaceVerificationService(client *face_verification.FaceVerificationClient, l logger.Logger, repo repository.FaceVerificationRepository) usecase.FaceVerificationUsecase {
-	return service.NewFaceVerificationService(client, l, repo)
+func ProvideFaceVerificationService(
+	client *face_verification.FaceVerificationClient,
+	l logger.Logger,
+	repo repository.FaceVerificationRepository,
+	serviceRepo repository.ServiceRepository,
+	profileRepo repository.ProfileRepository,
+	transactionRepo repository.TransactionRepository,
+	unitOfWork repository.UnitOfWork,
+) usecase.FaceVerificationUsecase {
+	return service.NewFaceVerificationService(client, l, repo, serviceRepo, profileRepo, transactionRepo, unitOfWork)
 }
 
 func ProvideFaceVerificationHandler(ms usecase.FaceVerificationUsecase, l logger.Logger) *faceVerificationController.FaceVerificationHandler {

@@ -157,14 +157,7 @@ func (fv *FaceVerificationHandler) VerifyFace(c *gin.Context) {
 			logger.Field{Key: "profile_id", Value: profileID},
 			logger.Field{Key: "error", Value: err},
 		)
-		msg := "Face verification failed"
-		if translator != nil {
-			if translated, err := translator.Translate("errors.verification_error"); err == nil {
-				msg = translated
-			}
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "verification_error", "message": msg})
-		return
+		panic(err)
 	}
 
 	statusCode := http.StatusOK
@@ -258,20 +251,14 @@ func (fv *FaceVerificationHandler) CropImage(c *gin.Context) {
 		return
 	}
 
-	result, err := fv.faceVerificationUsecase.CropImage(c.Request.Context(), imageBytes)
+	profID, _ := profileID.(uint64)
+	result, err := fv.faceVerificationUsecase.CropImage(c.Request.Context(), profID, imageBytes)
 	if err != nil {
 		fv.logger.Error("Image crop failed",
 			logger.Field{Key: "profile_id", Value: profileID},
 			logger.Field{Key: "error", Value: err},
 		)
-		msg := "Image crop failed"
-		if translator != nil {
-			if translated, err := translator.Translate("errors.crop_error"); err == nil {
-				msg = translated
-			}
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "crop_error", "message": msg})
-		return
+		panic(err)
 	}
 
 	if !result.Success {

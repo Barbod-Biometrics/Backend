@@ -62,6 +62,8 @@ var RepositorySet = wire.NewSet(
 	postgres.NewFaceVerificationRepository,
 	wire.Bind(new(repository.FaceVerificationRepository), new(*postgres.FaceVerificationRepository)),
 
+	postgres.NewServiceRepository,
+
 	redis.NewCacheRepository,
 	wire.Bind(new(repository.CacheRepository), new(*redis.CacheRepository)),
 )

@@ -9,7 +9,7 @@ import (
 type FaceVerificationUsecase interface {
 	VerifyFace(ctx context.Context, profileID uint64, photo []byte, video []byte) (*faceVerificationDto.FaceVerificationResponse, error)
 
-	CropImage(ctx context.Context, image []byte) (*faceVerificationDto.CropImageResponse, error)
+	CropImage(ctx context.Context, profileID uint64, image []byte) (*faceVerificationDto.CropImageResponse, error)
 
 	HealthCheck(ctx context.Context) (*faceVerificationDto.HealthCheckResponseDTO, error)
 }
