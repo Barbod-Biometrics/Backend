@@ -12,6 +12,7 @@ import (
 	apikey "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/apikey"
 	faceVerificationController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/face_verification"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/transaction"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/user"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/wallet"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/middleware"
@@ -27,6 +28,7 @@ type Route struct {
 	adminProfileController     *admin.AdminProfileHandler
 	faceVerificationController *faceVerificationController.FaceVerificationHandler
 	walletController           *wallet.WalletHandler
+	transactionController      *transaction.TransactionHandler
 	jwtKeyManager              domainJWT.KeyManager
 	serviceName                string
 	constants                  *bootstrap.Constants
@@ -41,6 +43,7 @@ func NewRouter(
 	adminProfileHandler *admin.AdminProfileHandler,
 	faceVerificationHandler *faceVerificationController.FaceVerificationHandler,
 	walletHandler *wallet.WalletHandler,
+	transactionHandler *transaction.TransactionHandler,
 	apiKeyUsecase usecase.APIKeyUsecase,
 	appLogger logger.Logger,
 	jwtKeyManager domainJWT.KeyManager,
@@ -53,6 +56,7 @@ func NewRouter(
 		apiKeyController:           apiKeyHandler,
 		adminProfileController:     adminProfileHandler,
 		walletController:           walletHandler,
+		transactionController:      transactionHandler,
 		faceVerificationController: faceVerificationHandler,
 		jwtKeyManager:              jwtKeyManager,
 		serviceName:                serviceName,
@@ -98,6 +102,14 @@ func (r *Route) RegisterRoutes() http.Handler {
 			profiles.GET("/:id/wallet/transactions", r.walletController.GetTransactions)
 			profiles.POST("/:id/wallet/deposit", r.walletController.Deposit)
 		}
+
+		billing := v1.Group("/billing")
+		billing.Use(middleware.JWTMiddleware(r.jwtKeyManager))
+		{
+			// GET /api/v1/billing/summary?profile_id=123
+			billing.GET("/summary", r.transactionController.GetUsageSummary)
+		}
+
 		api_key := v1.Group("/api-key")
 		{
 			api_key.POST("/:profile_id/regenerate", r.apiKeyController.RegenerateKey)
