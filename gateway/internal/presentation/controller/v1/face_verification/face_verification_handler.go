@@ -33,7 +33,7 @@ func NewFaceVerificationHandler(faceVerificationUsecase usecase.FaceVerification
 // @Produce json
 // @Param photo formData file true "Reference photo"
 // @Param video formData file true "Video file for verification"
-// @Success 200 {object} models.FaceVerificationResponse "Verification successful"
+// @Success 200 {object} face_verification.FaceVerificationResponse "Verification successful"
 // @Failure 400 {object} map[string]interface{} "Bad request"
 // @Failure 401 {object} map[string]interface{} "Unauthorized"
 // @Failure 500 {object} map[string]interface{} "Internal server error"
@@ -288,7 +288,7 @@ func (fv *FaceVerificationHandler) CropImage(c *gin.Context) {
 // @Tags Face-Verification
 // @Security ApiKeyAuth
 // @Produce json
-// @Success 200 {object} models.HealthCheckResponseDTO "Service is healthy"
+// @Success 200 {object} face_verification.HealthCheckResponseDTO "Service is healthy"
 // @Failure 500 {object} map[string]interface{} "Service error"
 // @Router /face-verification/health [get]
 func (fv *FaceVerificationHandler) HealthCheck(c *gin.Context) {
