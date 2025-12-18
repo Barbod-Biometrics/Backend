@@ -9,6 +9,7 @@ import (
 	docs "github.com/Barbod-Biometrics/Backend/gateway/docs"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
+	postgresRepo "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/repository/postgres"
 
 	appWire "github.com/Barbod-Biometrics/Backend/gateway/wire"
 	"github.com/gin-gonic/gin"
@@ -23,6 +24,11 @@ import (
 // @in header
 // @name Authorization
 // @description Type "Bearer {your JWT token}" to authorize requests (without quotes)
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name X-API-KEY
+// @description Provide the API key in the `X-API-KEY` header for requests to protected endpoints
+
 func main() {
 
 	gin.DisableConsoleColor()
@@ -51,6 +57,7 @@ func main() {
 		&entity.AuthorizedSignatory{},
 		&entity.APIKey{},
 		&entity.Transaction{},
+		&postgresRepo.FaceVerificationModel{},
 	)
 	if err != nil {
 		app.Logger.Fatal("Failed to migrate database", logger.Field{Key: "error", Value: err})

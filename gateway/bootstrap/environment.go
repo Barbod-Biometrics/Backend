@@ -19,6 +19,7 @@ type Env struct {
 	JWT          JWT
 	Admin        Admin
 	Telemetry    Telemetry
+	FaceVerification       FaceVerification
 }
 
 type Admin struct {
@@ -84,6 +85,10 @@ type Telemetry struct {
 	Environment    string
 }
 
+type FaceVerification struct {
+	FaceVerificationURL string
+}
+
 func NewEnvironment() *Env {
 	godotenv.Load(".env")
 	return &Env{
@@ -139,6 +144,9 @@ func NewEnvironment() *Env {
 			ServiceName:    getEnvString("OTEL_SERVICE_NAME", "barbod-gateway"),
 			ServiceVersion: getEnvString("OTEL_SERVICE_VERSION", "1.0.0"),
 			Environment:    getEnvString("OTEL_ENVIRONMENT", "development"),
+		},
+		FaceVerification: FaceVerification{
+			FaceVerificationURL: getEnvString("FACE_VERIFICATION_URL", "http://localhost:5000"),
 		},
 	}
 }

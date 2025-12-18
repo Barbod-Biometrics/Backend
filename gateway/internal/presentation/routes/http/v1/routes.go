@@ -4,10 +4,13 @@ import (
 	"net/http"
 
 	"github.com/Barbod-Biometrics/Backend/gateway/bootstrap"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
 	domainJWT "github.com/Barbod-Biometrics/Backend/gateway/internal/domain/jwt"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/localization"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/admin"
 	apikey "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/apikey"
+	faceVerificationController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/face_verification"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/user"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/wallet"
@@ -18,14 +21,17 @@ import (
 )
 
 type Route struct {
-	userController         *user.GeneralUserController
-	profileController      *profile.ProfileHandler
-	apiKeyController       *apikey.ApiKeyHandler
-	adminProfileController *admin.AdminProfileHandler
-	walletController       *wallet.WalletHandler
-	jwtKeyManager          domainJWT.KeyManager
-	serviceName            string
-	constants              *bootstrap.Constants
+	userController             *user.GeneralUserController
+	profileController          *profile.ProfileHandler
+	apiKeyController           *apikey.ApiKeyHandler
+	adminProfileController     *admin.AdminProfileHandler
+	faceVerificationController *faceVerificationController.FaceVerificationHandler
+	walletController           *wallet.WalletHandler
+	jwtKeyManager              domainJWT.KeyManager
+	serviceName                string
+	constants                  *bootstrap.Constants
+	apiKeyUsecase              usecase.APIKeyUsecase
+	log                        logger.Logger
 }
 
 func NewRouter(
@@ -33,20 +39,26 @@ func NewRouter(
 	profileHandler *profile.ProfileHandler,
 	apiKeyHandler *apikey.ApiKeyHandler,
 	adminProfileHandler *admin.AdminProfileHandler,
+	faceVerificationHandler *faceVerificationController.FaceVerificationHandler,
 	walletHandler *wallet.WalletHandler,
+	apiKeyUsecase usecase.APIKeyUsecase,
+	appLogger logger.Logger,
 	jwtKeyManager domainJWT.KeyManager,
 	serviceName string,
 	constants *bootstrap.Constants,
 ) *Route {
 	return &Route{
-		userController:         userController,
-		profileController:      profileHandler,
-		apiKeyController:       apiKeyHandler,
-		adminProfileController: adminProfileHandler,
-		walletController:       walletHandler,
-		jwtKeyManager:          jwtKeyManager,
-		serviceName:            serviceName,
-		constants:              constants,
+		userController:             userController,
+		profileController:          profileHandler,
+		apiKeyController:           apiKeyHandler,
+		adminProfileController:     adminProfileHandler,
+		walletController:           walletHandler,
+		faceVerificationController: faceVerificationHandler,
+		jwtKeyManager:              jwtKeyManager,
+		serviceName:                serviceName,
+		constants:                  constants,
+		apiKeyUsecase:              apiKeyUsecase,
+		log:                        appLogger,
 	}
 }
 
@@ -110,6 +122,14 @@ func (r *Route) RegisterRoutes() http.Handler {
 		{
 			user.GET("/info", r.userController.GetUserProfileHandler)
 			user.POST("/update-info", r.userController.UpdateProfileHandler)
+		}
+
+		faceVerification := v1.Group("/face-verification")
+		faceVerification.Use(middleware.APIKeyAuth(r.apiKeyUsecase, r.log))
+		{
+			faceVerification.POST("/verify", r.faceVerificationController.VerifyFace)
+			faceVerification.POST("/crop", r.faceVerificationController.CropImage)
+			faceVerification.GET("/health", r.faceVerificationController.HealthCheck)
 		}
 	}
 
