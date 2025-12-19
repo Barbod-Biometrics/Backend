@@ -37,7 +37,8 @@ func setupTestContextNoAuth() (*gin.Context, *httptest.ResponseRecorder) {
 
 func TestNewWalletHandler(t *testing.T) {
 	mockUC := mocks.NewMockWalletUsecase(t)
-	h := NewWalletHandler(mockUC)
+	mockLogger := mocks.NewMockAppLogger(t)
+	h := NewWalletHandler(mockUC, mockLogger)
 
 	assert.NotNil(t, h)
 	assert.Equal(t, mockUC, h.walletUsecase)
@@ -46,7 +47,8 @@ func TestNewWalletHandler(t *testing.T) {
 func TestWalletHandler_getUserID(t *testing.T) {
 	t.Run("returns userID when present in context", func(t *testing.T) {
 		mockUC := mocks.NewMockWalletUsecase(t)
-		h := NewWalletHandler(mockUC)
+		mockLogger := mocks.NewMockAppLogger(t)
+		h := NewWalletHandler(mockUC, mockLogger)
 		c, w := setupTestContext(uint64(123))
 		c.Request = httptest.NewRequest("GET", "/test", nil)
 
@@ -59,7 +61,8 @@ func TestWalletHandler_getUserID(t *testing.T) {
 
 	t.Run("returns 0 and aborts when userID not in context", func(t *testing.T) {
 		mockUC := mocks.NewMockWalletUsecase(t)
-		h := NewWalletHandler(mockUC)
+		mockLogger := mocks.NewMockAppLogger(t)
+		h := NewWalletHandler(mockUC, mockLogger)
 		c, w := setupTestContextNoAuth()
 		c.Request = httptest.NewRequest("GET", "/test", nil)
 
@@ -189,7 +192,8 @@ func TestWalletHandler_GetWalletSummary(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockUC := mocks.NewMockWalletUsecase(t)
-			h := NewWalletHandler(mockUC)
+			mockLogger := mocks.NewMockAppLogger(t)
+			h := NewWalletHandler(mockUC, mockLogger)
 
 			var c *gin.Context
 			var w *httptest.ResponseRecorder
@@ -450,7 +454,8 @@ func TestWalletHandler_GetTransactions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockUC := mocks.NewMockWalletUsecase(t)
-			h := NewWalletHandler(mockUC)
+			mockLogger := mocks.NewMockAppLogger(t)
+			h := NewWalletHandler(mockUC, mockLogger)
 
 			var c *gin.Context
 			var w *httptest.ResponseRecorder
@@ -656,7 +661,8 @@ func TestWalletHandler_Deposit(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockUC := mocks.NewMockWalletUsecase(t)
-			h := NewWalletHandler(mockUC)
+			mockLogger := mocks.NewMockAppLogger(t)
+			h := NewWalletHandler(mockUC, mockLogger)
 
 			var c *gin.Context
 			var w *httptest.ResponseRecorder

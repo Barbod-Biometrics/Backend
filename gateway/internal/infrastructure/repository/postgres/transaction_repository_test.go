@@ -9,6 +9,7 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/enum"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
 	repoPostgres "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/repository/postgres"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/test/mocks"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/test/testcontainer"
 	"github.com/stretchr/testify/assert"
 )
@@ -21,7 +22,8 @@ func TestTransactionRepository_Create(t *testing.T) {
 	}
 	defer pg.Terminate(ctx)
 
-	repo := repoPostgres.NewTransactionRepository(pg.DB)
+	mockLogger := mocks.NewMockAppLogger(t)
+	repo := repoPostgres.NewTransactionRepository(pg.DB, mockLogger)
 
 	tx := &entity.Transaction{
 		ProfileID:       100,
@@ -50,7 +52,8 @@ func TestTransactionRepository_GetByID(t *testing.T) {
 	}
 	defer pg.Terminate(ctx)
 
-	repo := repoPostgres.NewTransactionRepository(pg.DB)
+	mockLogger := mocks.NewMockAppLogger(t)
+	repo := repoPostgres.NewTransactionRepository(pg.DB, mockLogger)
 
 	// Seed
 	tx := entity.Transaction{
@@ -89,7 +92,8 @@ func TestTransactionRepository_GetByProfileID(t *testing.T) {
 	}
 	defer pg.Terminate(ctx)
 
-	repo := repoPostgres.NewTransactionRepository(pg.DB)
+	mockLogger := mocks.NewMockAppLogger(t)
+	repo := repoPostgres.NewTransactionRepository(pg.DB, mockLogger)
 	profileID := uint64(200)
 
 	// Seed multiple
@@ -136,7 +140,8 @@ func TestTransactionRepository_GetWalletSummary(t *testing.T) {
 	}
 	defer pg.Terminate(ctx)
 
-	repo := repoPostgres.NewTransactionRepository(pg.DB)
+	mockLogger := mocks.NewMockAppLogger(t)
+	repo := repoPostgres.NewTransactionRepository(pg.DB, mockLogger)
 	profileID := uint64(300)
 
 	// Seed

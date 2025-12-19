@@ -22,7 +22,8 @@ func TestGetWalletSummary_Success(t *testing.T) {
 	mockTxRepo := mocks.NewMockTransactionRepository(t)
 	mockUow := mocks.NewMockUnitOfWork(t)
 
-	svc := NewWalletService(mockProfile, mockTxRepo, mockUow)
+	mockLogger := mocks.NewMockAppLogger(t)
+	svc := NewWalletService(mockProfile, mockTxRepo, mockUow, mockLogger)
 
 	profile := &entity.Profile{ProfileID: 1, UserID: 42, Balance: 1000}
 	mockProfile.On("GetByID", mock.Anything, uint64(1)).Return(profile, nil)
@@ -51,7 +52,8 @@ func TestGetTransactions_Success(t *testing.T) {
 	mockTxRepo := mocks.NewMockTransactionRepository(t)
 	mockUow := mocks.NewMockUnitOfWork(t)
 
-	svc := NewWalletService(mockProfile, mockTxRepo, mockUow)
+	mockLogger := mocks.NewMockAppLogger(t)
+	svc := NewWalletService(mockProfile, mockTxRepo, mockUow, mockLogger)
 
 	profile := &entity.Profile{ProfileID: 1, UserID: 100, Balance: 200}
 	mockProfile.On("GetByID", mock.Anything, uint64(1)).Return(profile, nil)
@@ -89,7 +91,8 @@ func TestDeposit_Success(t *testing.T) {
 	mockTxRepo := mocks.NewMockTransactionRepository(t)
 	mockUow := mocks.NewMockUnitOfWork(t)
 
-	svc := NewWalletService(mockProfile, mockTxRepo, mockUow)
+	mockLogger := mocks.NewMockAppLogger(t)
+	svc := NewWalletService(mockProfile, mockTxRepo, mockUow, mockLogger)
 
 	profile := &entity.Profile{ProfileID: 100, UserID: 500, Balance: 1000}
 	mockProfile.On("GetByID", mock.Anything, uint64(100)).Return(profile, nil)
@@ -127,7 +130,8 @@ func TestDeposit_Failure_CreateOrUpdate(t *testing.T) {
 	mockTxRepo := mocks.NewMockTransactionRepository(t)
 	mockUow := mocks.NewMockUnitOfWork(t)
 
-	svc := NewWalletService(mockProfile, mockTxRepo, mockUow)
+	mockLogger := mocks.NewMockAppLogger(t)
+	svc := NewWalletService(mockProfile, mockTxRepo, mockUow, mockLogger)
 
 	profile := &entity.Profile{ProfileID: 200, UserID: 600, Balance: 100}
 	mockProfile.On("GetByID", mock.Anything, uint64(200)).Return(profile, nil)
