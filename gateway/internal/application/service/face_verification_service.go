@@ -99,7 +99,7 @@ func (s *FaceVerificationService) VerifyFace(ctx context.Context, profileID uint
 
 			transaction := &entity.Transaction{
 				ProfileID:       profileID,
-				TransactionType: enum.TransactionTypeFaceVerification,
+				TransactionType: enum.TransactionTypeWithdrawal,
 				Amount:          -int64(serviceCost),
 				Notes:           "Face verification service charge",
 				CreatedAt:       time.Now(),
@@ -251,7 +251,7 @@ func (s *FaceVerificationService) CropImage(ctx context.Context, profileID uint6
 
 			transaction := &entity.Transaction{
 				ProfileID:       profileID,
-				TransactionType: enum.TransactionTypeFaceVerification,
+				TransactionType: enum.TransactionTypeWithdrawal,
 				Amount:          -int64(serviceCost),
 				Notes:           "Image crop service charge",
 				CreatedAt:       time.Now(),
