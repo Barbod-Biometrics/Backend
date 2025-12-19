@@ -9,6 +9,7 @@ import (
 	docs "github.com/Barbod-Biometrics/Backend/gateway/docs"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
+	postgresRepo "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/repository/postgres"
 
 	appWire "github.com/Barbod-Biometrics/Backend/gateway/wire"
 	"github.com/gin-gonic/gin"
@@ -23,6 +24,11 @@ import (
 // @in header
 // @name Authorization
 // @description Type "Bearer {your JWT token}" to authorize requests (without quotes)
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name X-API-KEY
+// @description Provide the API key in the `X-API-KEY` header for requests to protected endpoints
+
 func main() {
 
 	gin.DisableConsoleColor()
@@ -51,13 +57,16 @@ func main() {
 		&entity.AuthorizedSignatory{},
 		&entity.APIKey{},
 		&entity.Transaction{},
+		&entity.Service{},
+		&postgresRepo.FaceVerificationModel{},
 	)
 	if err != nil {
 		app.Logger.Fatal("Failed to migrate database", logger.Field{Key: "error", Value: err})
 	}
 
-	// Seed Admin User
+	// Seed Data
 	seedAdminUser(app.DB, cfg.Env.Admin.PhoneNumber, app.Logger)
+	seedServices(app.DB, app.Logger)
 
 	// Server Start
 	handler := app.Route.RegisterRoutes()
@@ -73,6 +82,53 @@ func main() {
 		app.Logger.Error("Error starting server", logger.Field{Key: "error", Value: err})
 	}
 
+}
+
+func seedServices(db *gorm.DB, appLogger logger.Logger) {
+	ctx := context.Background()
+
+	services := []entity.Service{
+		{
+			ServiceName: "face_verification",
+			CurrentCost: 1000,
+			IsAvailable: true,
+		},
+		{
+			ServiceName: "image_crop",
+			CurrentCost: 100, 
+			IsAvailable: true,
+		},
+	}
+
+	for _, service := range services {
+		var existing entity.Service
+		err := db.WithContext(ctx).Where("service_name = ?", service.ServiceName).First(&existing).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				if err := db.WithContext(ctx).Create(&service).Error; err != nil {
+					appLogger.Error("Failed to create service",
+						logger.Field{Key: "service", Value: service.ServiceName},
+						logger.Field{Key: "error", Value: err},
+					)
+					continue
+				}
+				appLogger.Info("Service created",
+					logger.Field{Key: "service", Value: service.ServiceName},
+					logger.Field{Key: "cost", Value: service.CurrentCost},
+				)
+			} else {
+				appLogger.Error("Failed to check for existing service",
+					logger.Field{Key: "service", Value: service.ServiceName},
+					logger.Field{Key: "error", Value: err},
+				)
+			}
+		} else {
+			appLogger.Info("Service already exists",
+				logger.Field{Key: "service", Value: service.ServiceName},
+				logger.Field{Key: "cost", Value: existing.CurrentCost},
+			)
+		}
+	}
 }
 
 // seedAdminUser creates or updates the admin user based on ADMIN_PHONE_NUMBER env variable

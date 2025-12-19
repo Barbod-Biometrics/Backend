@@ -9,17 +9,18 @@ import (
 )
 
 type Env struct {
-	Server       Server
-	PrimaryRedis Redis
-	OTP          OTP
-	SMSGateway   SMSGateway
-	Minio        Minio
-	Postgres     Postgres
-	Logger       Logger
-	JWT          JWT
-	Admin        Admin
-	Telemetry    Telemetry
-	Gmail        Gmail
+	Server           Server
+	PrimaryRedis     Redis
+	OTP              OTP
+	SMSGateway       SMSGateway
+	Minio            Minio
+	Postgres         Postgres
+	Logger           Logger
+	JWT              JWT
+	Admin            Admin
+	Telemetry        Telemetry
+	Gmail            Gmail
+	FaceVerification FaceVerification
 }
 
 type Admin struct {
@@ -93,6 +94,10 @@ type Gmail struct {
 	TemplateDir      string
 }
 
+type FaceVerification struct {
+	FaceVerificationURL string
+}
+
 func NewEnvironment() *Env {
 	godotenv.Load(".env")
 	return &Env{
@@ -155,6 +160,9 @@ func NewEnvironment() *Env {
 			SmtpHost:         getEnvString("GMAIL_SMTP_HOST", "smtp.gmail.com"),
 			SmtpPort:         getEnvInt("GMAIL_SMTP_PORT", 587),
 			TemplateDir:      getEnvString("GMAIL_TEMPLATE_DIR", "templates/emails"),
+		},
+		FaceVerification: FaceVerification{
+			FaceVerificationURL: getEnvString("FACE_VERIFICATION_URL", "http://localhost:5000"),
 		},
 	}
 }
