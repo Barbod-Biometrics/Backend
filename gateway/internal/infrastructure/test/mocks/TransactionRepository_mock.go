@@ -7,6 +7,7 @@ package mocks
 import (
 	"context"
 
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/profile"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
 	mock "github.com/stretchr/testify/mock"
@@ -234,6 +235,74 @@ func (_c *MockTransactionRepository_GetByProfileID_Call) Return(transactionPagin
 }
 
 func (_c *MockTransactionRepository_GetByProfileID_Call) RunAndReturn(run func(ctx context.Context, profileID uint64, pagination repository.TransactionPagination) (*repository.TransactionPaginatedResult, error)) *MockTransactionRepository_GetByProfileID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetUsageSummary provides a mock function for the type MockTransactionRepository
+func (_mock *MockTransactionRepository) GetUsageSummary(ctx context.Context, profileID uint64) (*profile.UsageSummaryResponse, error) {
+	ret := _mock.Called(ctx, profileID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetUsageSummary")
+	}
+
+	var r0 *profile.UsageSummaryResponse
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint64) (*profile.UsageSummaryResponse, error)); ok {
+		return returnFunc(ctx, profileID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint64) *profile.UsageSummaryResponse); ok {
+		r0 = returnFunc(ctx, profileID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*profile.UsageSummaryResponse)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint64) error); ok {
+		r1 = returnFunc(ctx, profileID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockTransactionRepository_GetUsageSummary_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetUsageSummary'
+type MockTransactionRepository_GetUsageSummary_Call struct {
+	*mock.Call
+}
+
+// GetUsageSummary is a helper method to define mock.On call
+//   - ctx context.Context
+//   - profileID uint64
+func (_e *MockTransactionRepository_Expecter) GetUsageSummary(ctx interface{}, profileID interface{}) *MockTransactionRepository_GetUsageSummary_Call {
+	return &MockTransactionRepository_GetUsageSummary_Call{Call: _e.mock.On("GetUsageSummary", ctx, profileID)}
+}
+
+func (_c *MockTransactionRepository_GetUsageSummary_Call) Run(run func(ctx context.Context, profileID uint64)) *MockTransactionRepository_GetUsageSummary_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint64
+		if args[1] != nil {
+			arg1 = args[1].(uint64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockTransactionRepository_GetUsageSummary_Call) Return(usageSummaryResponse *profile.UsageSummaryResponse, err error) *MockTransactionRepository_GetUsageSummary_Call {
+	_c.Call.Return(usageSummaryResponse, err)
+	return _c
+}
+
+func (_c *MockTransactionRepository_GetUsageSummary_Call) RunAndReturn(run func(ctx context.Context, profileID uint64) (*profile.UsageSummaryResponse, error)) *MockTransactionRepository_GetUsageSummary_Call {
 	_c.Call.Return(run)
 	return _c
 }
