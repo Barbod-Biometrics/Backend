@@ -1,0 +1,18 @@
+all: false
+dir: "internal/infrastructure/test/mocks"
+filename: "{{.InterfaceName}}_mock.go"
+force-file-write: true
+formatter: goimports
+generate: true
+include-auto-generated: false
+log-level: info
+structname: "{{.Mock}}{{.InterfaceName}}"
+pkgname: "mocks"
+recursive: true
+require-template-schema-exists: true
+template: testify
+template-schema: "{{.Template}}.schema.json"
+packages:
+  github.com/Barbod-Biometrics/Backend/gateway:
+    config:
+      all: true

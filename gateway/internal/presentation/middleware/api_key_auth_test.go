@@ -14,13 +14,13 @@ import (
 )
 
 func TestAPIKeyAuth_Success(t *testing.T) {
-	mockService := new(mocks.MockAPIKeyService)
-	noOpLogger := new(mocks.NoOpLogger)
+	mockUsecase := new(mocks.MockAPIKeyUsecase)
+	mockLogger := new(mocks.MockAppLogger)
 
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
-	r.Use(middleware.APIKeyAuth(mockService, noOpLogger))
+	r.Use(middleware.APIKeyAuth(mockUsecase, mockLogger))
 
 	r.GET("/test", func(c *gin.Context) {
 		pid, _ := c.Get("profile_id")
@@ -28,7 +28,8 @@ func TestAPIKeyAuth_Success(t *testing.T) {
 	})
 
 	apiKey := "bb_live_validkey123"
-	mockService.On("Authenticate", mock.Anything, apiKey).Return(uint64(55), nil)
+	mockUsecase.On("Authenticate", mock.Anything, apiKey).Return(uint64(55), nil)
+	mockLogger.On("Debug", mock.Anything, mock.Anything).Return()
 
 	req, _ := http.NewRequest("GET", "/test", nil)
 	req.Header.Set("X-API-KEY", apiKey)
@@ -41,12 +42,14 @@ func TestAPIKeyAuth_Success(t *testing.T) {
 }
 
 func TestAPIKeyAuth_MissingKey(t *testing.T) {
-	mockService := new(mocks.MockAPIKeyService)
-	noOpLogger := new(mocks.NoOpLogger)
+	mockUsecase := new(mocks.MockAPIKeyUsecase)
+	mockLogger := new(mocks.MockAppLogger)
 
 	r := gin.New()
-	r.Use(middleware.APIKeyAuth(mockService, noOpLogger))
+	r.Use(middleware.APIKeyAuth(mockUsecase, mockLogger))
 	r.GET("/test", func(c *gin.Context) {})
+
+	mockLogger.On("Warn", mock.Anything, mock.Anything).Return()
 
 	req, _ := http.NewRequest("GET", "/test", nil)
 	w := httptest.NewRecorder()
@@ -57,15 +60,16 @@ func TestAPIKeyAuth_MissingKey(t *testing.T) {
 }
 
 func TestAPIKeyAuth_InvalidKey(t *testing.T) {
-	mockService := new(mocks.MockAPIKeyService)
-	noOpLogger := new(mocks.NoOpLogger)
+	mockUsecase := new(mocks.MockAPIKeyUsecase)
+	mockLogger := new(mocks.MockAppLogger)
 
 	r := gin.New()
-	r.Use(middleware.APIKeyAuth(mockService, noOpLogger))
+	r.Use(middleware.APIKeyAuth(mockUsecase, mockLogger))
 	r.GET("/test", func(c *gin.Context) {})
 
 	apiKey := "bb_live_badkey"
-	mockService.On("Authenticate", mock.Anything, apiKey).Return(uint64(0), errors.New("auth failed"))
+	mockUsecase.On("Authenticate", mock.Anything, apiKey).Return(uint64(0), errors.New("auth failed"))
+	mockLogger.On("Warn", mock.Anything, mock.Anything).Return()
 
 	req, _ := http.NewRequest("GET", "/test", nil)
 	req.Header.Set("X-API-KEY", apiKey)
