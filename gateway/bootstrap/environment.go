@@ -21,6 +21,7 @@ type Env struct {
 	Telemetry        Telemetry
 	Gmail            Gmail
 	FaceVerification FaceVerification
+	OCR              OCR
 }
 
 type Admin struct {
@@ -98,6 +99,10 @@ type FaceVerification struct {
 	FaceVerificationURL string
 }
 
+type OCR struct {
+	OCRURL string
+}
+
 func NewEnvironment() *Env {
 	godotenv.Load(".env")
 	return &Env{
@@ -163,6 +168,9 @@ func NewEnvironment() *Env {
 		},
 		FaceVerification: FaceVerification{
 			FaceVerificationURL: getEnvString("FACE_VERIFICATION_URL", "http://localhost:5000"),
+		},
+		OCR: OCR{
+			OCRURL: getEnvString("OCR_URL", "http://localhost:5001"),
 		},
 	}
 }

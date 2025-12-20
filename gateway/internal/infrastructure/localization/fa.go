@@ -14,6 +14,16 @@ var Persian = map[string]interface{}{
 		"otp":         "رمز یکبار مصرف",
 		"code":        "کد",
 	},
+
+	"ERR_EMPTY_IMAGE":        "تصویر نمی‌تواند خالی باشد",
+	"ERR_OCR_MARSHAL":        "آماده‌سازی درخواست OCR ناموفق بود.",
+	"ERR_OCR_CREATE_REQ":     "ایجاد درخواست HTTP برای OCR ناموفق بود.",
+	"ERR_OCR_SEND_REQ":       "ارسال درخواست OCR ناموفق بود.",
+	"ERR_OCR_READ_RESP":      "خواندن پاسخ OCR ناموفق بود.",
+	"ERR_OCR_PARSE_RESP":     "پردازش پاسخ OCR ناموفق بود.",
+	"ERR_OCR_NO_CHOICES":     "هیچ پاسخی از سرویس OCR دریافت نشد.",
+	"ERR_OCR_DECODE_CONTENT": "تبدیل محتوای OCR به فرمت مورد انتظار ناموفق بود.",
+	"ERR_OCR_SERVICE_ERROR":  "سرویس OCR با خطا پاسخ داد: {0}",
 	"errors": map[string]interface{}{
 		"invalid_request_body":    "بدنه درخواست نامعتبر است.",
 		"generic":                 "خطایی رخ داده است، لطفا دوباره تلاش کنید.",

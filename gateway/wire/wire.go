@@ -40,6 +40,7 @@ var InfrastructureSet = wire.NewSet(
 	ProvideLocalizationTranslator,
 	ProvideRecovery,
 	ProvideFaceVerificationClient,
+	ProvideOCRClient,
 
 	wire.Bind(new(domainJWT.KeyManager), new(*jwt.JWTKeyManager)),
 	wire.Bind(new(communication.SMSService), new(*sms.SMSService)),
@@ -62,6 +63,9 @@ var RepositorySet = wire.NewSet(
 	postgres.NewFaceVerificationRepository,
 	wire.Bind(new(repository.FaceVerificationRepository), new(*postgres.FaceVerificationRepository)),
 
+	postgres.NewOCRRepository,
+	wire.Bind(new(repository.OCRRepository), new(*postgres.OCRRepository)),
+
 	postgres.NewServiceRepository,
 
 	redis.NewCacheRepository,
@@ -81,6 +85,7 @@ var ServiceSet = wire.NewSet(
 	service.NewAPIKeyService,
 	service.NewTransactionService,
 	service.NewFaceVerificationService,
+	service.NewOCRService,
 
 	wire.Bind(new(usecase.UserUsecase), new(*service.UserService)),
 	wire.Bind(new(usecase.TokenUsecase), new(*service.JWTService)),
@@ -89,6 +94,7 @@ var ServiceSet = wire.NewSet(
 	wire.Bind(new(usecase.APIKeyUsecase), new(*service.APIKeyService)),
 	wire.Bind(new(usecase.TransactionUsecase), new(*service.TransactionService)),
 	wire.Bind(new(usecase.FaceVerificationUsecase), new(*service.FaceVerificationService)),
+	wire.Bind(new(usecase.OCRUsecase), new(*service.OCRService)),
 )
 
 // Controller Set
@@ -100,6 +106,7 @@ var ControllerSet = wire.NewSet(
 	ProvideWalletHandler,
 	ProvideTransactionHandler,
 	ProvideFaceVerificationHandler,
+	ProvideOCRHandler,
 )
 
 // Router Set
