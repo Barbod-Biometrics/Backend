@@ -1,9 +1,11 @@
 package face_verification
 
 import (
+	"context"
 	"io"
 	"net/http"
 
+	faceVerificationDto "github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/face_verification"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/middleware"
@@ -151,7 +153,22 @@ func (fv *FaceVerificationHandler) VerifyFace(c *gin.Context) {
 		pid = v
 	}
 
-	result, err := fv.faceVerificationUsecase.VerifyFace(c.Request.Context(), pid, photoBytes, videoBytes)
+	// Get client IP
+	clientIP := c.ClientIP()
+
+	// Call the service with IP for trial tracking
+	type FaceVerificationServiceWithIP interface {
+		VerifyFaceWithIP(ctx context.Context, profileID uint64, photo []byte, video []byte, clientIP string) (*faceVerificationDto.FaceVerificationResponse, error)
+	}
+
+	var result *faceVerificationDto.FaceVerificationResponse
+
+	if svc, ok := fv.faceVerificationUsecase.(FaceVerificationServiceWithIP); ok {
+		result, err = svc.VerifyFaceWithIP(c.Request.Context(), pid, photoBytes, videoBytes, clientIP)
+	} else {
+		result, err = fv.faceVerificationUsecase.VerifyFace(c.Request.Context(), pid, photoBytes, videoBytes)
+	}
+
 	if err != nil {
 		fv.logger.Error("Face verification failed",
 			logger.Field{Key: "profile_id", Value: profileID},
@@ -171,6 +188,153 @@ func (fv *FaceVerificationHandler) VerifyFace(c *gin.Context) {
 		fv.logger.Info("Face verification completed successfully",
 			logger.Field{Key: "profile_id", Value: profileID},
 		)
+	}
+
+	c.JSON(statusCode, result)
+}
+
+
+// DemoVerify godoc
+// @Summary Demo face verification (limited trials per IP)
+// @Description Public demo endpoint for face verification without API key. Limited to a small number of trials per IP address.
+// @Tags Demo,Face-Verification
+// @Accept multipart/form-data
+// @Produce json
+// @Param photo formData file true "Reference photo"
+// @Param video formData file true "Video file for verification"
+// @Success 200 {object} face_verification.FaceVerificationResponse "Verification successful"
+// @Failure 400 {object} map[string]interface{} "Bad request"
+// @Failure 429 {object} map[string]interface{} "Too many requests"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /demo/face-verification/verify [post]
+func (fv *FaceVerificationHandler) DemoVerify(c *gin.Context) {
+	translator := middleware.GetTranslator(c)
+
+	fv.logger.Info("Received face verification demo request",
+		logger.Field{Key: "ip", Value: c.ClientIP()},
+	)
+
+	photoFile, err := c.FormFile("photo")
+	if err != nil {
+		fv.logger.Warn("Failed to get photo file",
+			logger.Field{Key: "error", Value: err},
+		)
+		msg := "Please provide a 'photo' file"
+		if translator != nil {
+			if translated, err := translator.Translate("validation.missing_photo"); err == nil {
+				msg = translated
+			}
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing_photo", "message": msg})
+		return
+	}
+
+	videoFile, err := c.FormFile("video")
+	if err != nil {
+		fv.logger.Warn("Failed to get video file",
+			logger.Field{Key: "error", Value: err},
+		)
+		msg := "Please provide a 'video' file"
+		if translator != nil {
+			if translated, err := translator.Translate("validation.missing_video"); err == nil {
+				msg = translated
+			}
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing_video", "message": msg})
+		return
+	}
+
+	photoSrc, err := photoFile.Open()
+	if err != nil {
+		fv.logger.Error("Failed to open photo file",
+			logger.Field{Key: "error", Value: err},
+		)
+		msg := "Failed to process photo file"
+		if translator != nil {
+			if translated, err := translator.Translate("errors.file_error"); err == nil {
+				msg = translated
+			}
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "file_error", "message": msg})
+		return
+	}
+	defer photoSrc.Close()
+
+	photoBytes, err := io.ReadAll(photoSrc)
+	if err != nil {
+		fv.logger.Error("Failed to read photo bytes",
+			logger.Field{Key: "error", Value: err},
+		)
+		msg := "Failed to read photo file"
+		if translator != nil {
+			if translated, err := translator.Translate("errors.file_read_error"); err == nil {
+				msg = translated
+			}
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "file_error", "message": msg})
+		return
+	}
+
+	videoSrc, err := videoFile.Open()
+	if err != nil {
+		fv.logger.Error("Failed to open video file",
+			logger.Field{Key: "error", Value: err},
+		)
+		msg := "Failed to process video file"
+		if translator != nil {
+			if translated, err := translator.Translate("errors.file_error"); err == nil {
+				msg = translated
+			}
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "file_error", "message": msg})
+		return
+	}
+	defer videoSrc.Close()
+
+	videoBytes, err := io.ReadAll(videoSrc)
+	if err != nil {
+		fv.logger.Error("Failed to read video bytes",
+			logger.Field{Key: "error", Value: err},
+		)
+		msg := "Failed to read video file"
+		if translator != nil {
+			if translated, err := translator.Translate("errors.file_read_error"); err == nil {
+				msg = translated
+			}
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "file_error", "message": msg})
+		return
+	}
+
+	var pid uint64 = 0
+	clientIP := c.ClientIP()
+
+	type FaceVerificationServiceWithIP interface {
+		VerifyFaceWithIP(ctx context.Context, profileID uint64, photo []byte, video []byte, clientIP string) (*faceVerificationDto.FaceVerificationResponse, error)
+	}
+
+	var result *faceVerificationDto.FaceVerificationResponse
+	if svc, ok := fv.faceVerificationUsecase.(FaceVerificationServiceWithIP); ok {
+		result, err = svc.VerifyFaceWithIP(c.Request.Context(), pid, photoBytes, videoBytes, clientIP)
+	} else {
+		result, err = fv.faceVerificationUsecase.VerifyFace(c.Request.Context(), pid, photoBytes, videoBytes)
+	}
+
+	if err != nil {
+		fv.logger.Error("Face verification demo failed",
+			logger.Field{Key: "error", Value: err},
+			logger.Field{Key: "ip", Value: clientIP},
+		)
+		panic(err)
+	}
+
+	statusCode := http.StatusOK
+	if !result.Success {
+		fv.logger.Warn("Face verification demo returned failure",
+			logger.Field{Key: "reason", Value: result.Reason},
+			logger.Field{Key: "ip", Value: clientIP},
+		)
+		statusCode = http.StatusBadRequest
 	}
 
 	c.JSON(statusCode, result)

@@ -100,6 +100,10 @@ func ProvideRecovery(constants *bootstrap.Constants) *middleware.RecoveryMiddlew
 	return middleware.NewRecovery(constants)
 }
 
+func ProvideTrialService(redisClient *redis.RedisClient, l logger.Logger) *service.TrialService {
+	return service.NewTrialService(redisClient, l)
+}
+
 func ProvideUserController(authUsecase usecase.AuthUsecase, userUsecase usecase.UserUsecase) *user.GeneralUserController {
 	return user.NewUserController(authUsecase, userUsecase)
 }
@@ -174,8 +178,9 @@ func ProvideFaceVerificationService(
 	profileRepo repository.ProfileRepository,
 	transactionRepo repository.TransactionRepository,
 	unitOfWork repository.UnitOfWork,
+	trialService *service.TrialService,
 ) usecase.FaceVerificationUsecase {
-	return service.NewFaceVerificationService(client, l, repo, serviceRepo, profileRepo, transactionRepo, unitOfWork)
+	return service.NewFaceVerificationService(client, l, repo, serviceRepo, profileRepo, transactionRepo, unitOfWork, trialService)
 }
 
 func ProvideFaceVerificationHandler(ms usecase.FaceVerificationUsecase, l logger.Logger) *faceVerificationController.FaceVerificationHandler {
@@ -198,8 +203,9 @@ func ProvideOCRService(
 	profileRepo repository.ProfileRepository,
 	transactionRepo repository.TransactionRepository,
 	unitOfWork repository.UnitOfWork,
+	trialService *service.TrialService,
 ) usecase.OCRUsecase {
-	return service.NewOCRService(client, l, repo, serviceRepo, profileRepo, transactionRepo, unitOfWork)
+	return service.NewOCRService(client, l, repo, serviceRepo, profileRepo, transactionRepo, unitOfWork, trialService)
 }
 
 func ProvideOCRHandler(ocrUsecase usecase.OCRUsecase, l logger.Logger) *ocrController.OCRHandler {

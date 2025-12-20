@@ -53,6 +53,7 @@ var English = map[string]interface{}{
 		"faceVerificationSuccess": "Face verification completed successfully",
 		"faceVerificationFailure": "Face verification failed",
 	},
+	"ERR_TRIAL_EXCEEDED":     "Demo trial limit exceeded. Please register to continue using this service.",
 	"ERR_EMPTY_IMAGE":        "image cannot be empty",
 	"ERR_OCR_MARSHAL":        "Failed to prepare OCR request.",
 	"ERR_OCR_CREATE_REQ":     "Failed to create OCR HTTP request.",
