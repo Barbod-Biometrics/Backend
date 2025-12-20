@@ -59,6 +59,7 @@ func main() {
 		&entity.Transaction{},
 		&entity.Service{},
 		&postgresRepo.FaceVerificationModel{},
+		&postgresRepo.OCRModel{},
 	)
 	if err != nil {
 		app.Logger.Fatal("Failed to migrate database", logger.Field{Key: "error", Value: err})
@@ -95,7 +96,12 @@ func seedServices(db *gorm.DB, appLogger logger.Logger) {
 		},
 		{
 			ServiceName: "image_crop",
-			CurrentCost: 100, 
+			CurrentCost: 100,
+			IsAvailable: true,
+		},
+		{
+			ServiceName: "ocr",
+			CurrentCost: 500,
 			IsAvailable: true,
 		},
 	}

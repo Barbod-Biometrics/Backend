@@ -16,11 +16,13 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/jwt"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/localization"
 	Logger "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/logger"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/ocr"
 	postgresRepo "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/repository/postgres"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/telemetry"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/admin"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/apikey"
 	faceVerificationController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/face_verification"
+	ocrController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/ocr"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/transaction"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/user"
@@ -136,6 +138,7 @@ func ProvideRouter(
 	appLogger logger.Logger,
 	jwtKeyManager domainJWT.KeyManager,
 	faceVerificationHandler *faceVerificationController.FaceVerificationHandler,
+	ocrHandler *ocrController.OCRHandler,
 	cfg *bootstrap.Config,
 ) *v1.Route {
 	return v1.NewRouter(
@@ -144,6 +147,7 @@ func ProvideRouter(
 		apiKeyController,
 		adminProfileHandler,
 		faceVerificationHandler,
+		ocrHandler,
 		walletHandler,
 		transactionHandler,
 		apiKeyUsecase,
@@ -176,6 +180,30 @@ func ProvideFaceVerificationService(
 
 func ProvideFaceVerificationHandler(ms usecase.FaceVerificationUsecase, l logger.Logger) *faceVerificationController.FaceVerificationHandler {
 	return faceVerificationController.NewFaceVerificationHandler(ms, l)
+}
+
+func ProvideOCRClient(cfg *bootstrap.Config, l logger.Logger) *ocr.OCRClient {
+	return ocr.NewOCRClient(cfg.Env.OCR.OCRURL, l)
+}
+
+func ProvideOCRRepository(db *gorm.DB) repository.OCRRepository {
+	return postgresRepo.NewOCRRepository(db)
+}
+
+func ProvideOCRService(
+	client *ocr.OCRClient,
+	l logger.Logger,
+	repo repository.OCRRepository,
+	serviceRepo repository.ServiceRepository,
+	profileRepo repository.ProfileRepository,
+	transactionRepo repository.TransactionRepository,
+	unitOfWork repository.UnitOfWork,
+) usecase.OCRUsecase {
+	return service.NewOCRService(client, l, repo, serviceRepo, profileRepo, transactionRepo, unitOfWork)
+}
+
+func ProvideOCRHandler(ocrUsecase usecase.OCRUsecase, l logger.Logger) *ocrController.OCRHandler {
+	return ocrController.NewOCRHandler(ocrUsecase, l)
 }
 
 type Application struct {
