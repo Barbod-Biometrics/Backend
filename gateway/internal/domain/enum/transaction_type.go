@@ -3,8 +3,8 @@ package enum
 type TransactionType string
 
 const (
-	TransactionTypeDeposit    TransactionType = "deposit"
-	TransactionTypeWithdrawal TransactionType = "withdrawal"
+	TransactionTypeDeposit          TransactionType = "deposit"
+	TransactionTypeWithdrawal       TransactionType = "withdrawal"
 )
 
 func (t TransactionType) IsValid() bool {
