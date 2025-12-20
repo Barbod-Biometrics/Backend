@@ -11,6 +11,7 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/admin"
 	apikey "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/apikey"
 	faceVerificationController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/face_verification"
+	ocrController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/ocr"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/transaction"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/user"
@@ -27,6 +28,7 @@ type Route struct {
 	apiKeyController           *apikey.ApiKeyHandler
 	adminProfileController     *admin.AdminProfileHandler
 	faceVerificationController *faceVerificationController.FaceVerificationHandler
+	ocrController              *ocrController.OCRHandler
 	walletController           *wallet.WalletHandler
 	transactionController      *transaction.TransactionHandler
 	jwtKeyManager              domainJWT.KeyManager
@@ -42,6 +44,7 @@ func NewRouter(
 	apiKeyHandler *apikey.ApiKeyHandler,
 	adminProfileHandler *admin.AdminProfileHandler,
 	faceVerificationHandler *faceVerificationController.FaceVerificationHandler,
+	ocrHandler *ocrController.OCRHandler,
 	walletHandler *wallet.WalletHandler,
 	transactionHandler *transaction.TransactionHandler,
 	apiKeyUsecase usecase.APIKeyUsecase,
@@ -58,6 +61,7 @@ func NewRouter(
 		walletController:           walletHandler,
 		transactionController:      transactionHandler,
 		faceVerificationController: faceVerificationHandler,
+		ocrController:              ocrHandler,
 		jwtKeyManager:              jwtKeyManager,
 		serviceName:                serviceName,
 		constants:                  constants,
@@ -142,6 +146,13 @@ func (r *Route) RegisterRoutes() http.Handler {
 			faceVerification.POST("/verify", r.faceVerificationController.VerifyFace)
 			faceVerification.POST("/crop", r.faceVerificationController.CropImage)
 			faceVerification.GET("/health", r.faceVerificationController.HealthCheck)
+		}
+
+		ocr := v1.Group("/ocr")
+		ocr.Use(middleware.APIKeyAuth(r.apiKeyUsecase, r.log))
+		{
+			ocr.POST("/extract", r.ocrController.ExtractText)
+			ocr.GET("/health", r.ocrController.HealthCheck)
 		}
 	}
 
