@@ -49,6 +49,9 @@ func (recovery RecoveryMiddleware) handleRecoveredError(ctx *gin.Context, err er
 	case *exception.AuthError:
 		handleAuthError(ctx, e)
 		return
+	case *exception.AppError:
+		handleAppError(ctx, e)
+		return
 	case exception.NotFoundError:
 		handleNotFoundError(ctx, e)
 		return
@@ -64,9 +67,30 @@ func (recovery RecoveryMiddleware) handleRecoveredError(ctx *gin.Context, err er
 		} else {
 			msg = "internal server error"
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"code": "ERR_INTERNAL", "message": msg})
 	}
 
+}
+
+func handleAppError(ctx *gin.Context, appErr *exception.AppError) {
+	trans := GetTranslator(ctx)
+	var message string
+	if trans != nil {
+		if t, err := trans.Translate(appErr.Code); err == nil && t != appErr.Code {
+			message = t
+		} else {
+			message = appErr.Message
+		}
+	} else {
+		message = appErr.Message
+	}
+
+	status := appErr.HTTPStatus
+	if status == 0 {
+		status = 500
+	}
+
+	ctx.JSON(status, gin.H{"code": appErr.Code, "message": message})
 }
 
 func handleValidationError(ctx *gin.Context, validationErrors exception.ValidationErrors) {
@@ -82,7 +106,7 @@ func handleValidationError(ctx *gin.Context, validationErrors exception.Validati
 		errorMessages[validationError.Field][validationError.Tag] = message
 	}
 
-	ctx.JSON(422, gin.H{"errors": errorMessages})
+	ctx.JSON(422, gin.H{"code": "ERR_VALIDATION", "errors": errorMessages})
 }
 
 func handleBindingError(ctx *gin.Context, bindingErr exception.BindingError) {
@@ -95,7 +119,7 @@ func handleBindingError(ctx *gin.Context, bindingErr exception.BindingError) {
 		message, _ = trans.Translate("errors.fileRequired")
 	}
 
-	ctx.JSON(400, gin.H{"error": message})
+	ctx.JSON(400, gin.H{"code": "ERR_BINDING", "message": message})
 }
 
 func handleAuthError(ctx *gin.Context, authErr *exception.AuthError) {
@@ -113,14 +137,26 @@ func handleAuthError(ctx *gin.Context, authErr *exception.AuthError) {
 		message, _ = trans.Translate("errors.unauthorized")
 	}
 
-	ctx.JSON(401, gin.H{"error": message})
+	code := "ERR_UNAUTHORIZED"
+	switch authErr.Type {
+	case exception.ErrorTypeInvalidCredentials:
+		code = "ERR_INVALID_CREDENTIALS"
+	case exception.ErrorTypeExpiredToken:
+		code = "ERR_EXPIRED_TOKEN"
+	case exception.ErrorTypeInvalidToken:
+		code = "ERR_INVALID_TOKEN"
+	case exception.ErrorTypeUnauthorized:
+		code = "ERR_UNAUTHORIZED"
+	}
+
+	ctx.JSON(401, gin.H{"code": code, "message": message})
 }
 
 func handleNotFoundError(ctx *gin.Context, notFoundErr exception.NotFoundError) {
 	trans := GetTranslator(ctx)
 	itemName, _ := trans.Translate(notFoundErr.Item)
 	message, _ := trans.Translate("errors.notFound", itemName)
-	ctx.JSON(404, gin.H{"error": message})
+	ctx.JSON(404, gin.H{"code": "ERR_NOT_FOUND", "message": message})
 }
 
 func handleForbiddenError(ctx *gin.Context, forbiddenErr exception.ForbiddenError) {
@@ -131,5 +167,11 @@ func handleForbiddenError(ctx *gin.Context, forbiddenErr exception.ForbiddenErro
 	case exception.ForbiddenTypeBannedUser:
 		message, _ = trans.Translate("errors.bannedUser")
 	}
-	ctx.JSON(403, gin.H{"error": message})
+
+	code := "ERR_FORBIDDEN"
+	switch forbiddenErr.Type {
+	case exception.ForbiddenTypeBannedUser:
+		code = "ERR_BANNED_USER"
+	}
+	ctx.JSON(403, gin.H{"code": code, "message": message})
 }

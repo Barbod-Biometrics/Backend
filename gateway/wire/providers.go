@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/Barbod-Biometrics/Backend/gateway/bootstrap"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/service"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/enum"
 	domainJWT "github.com/Barbod-Biometrics/Backend/gateway/internal/domain/jwt"
@@ -11,12 +12,15 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/communication/sms"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/database/redis"
+	face_verification "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/face_verificaiton"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/jwt"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/localization"
 	Logger "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/logger"
+	postgresRepo "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/repository/postgres"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/telemetry"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/admin"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/apikey"
+	faceVerificationController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/face_verification"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/transaction"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/user"
@@ -128,7 +132,10 @@ func ProvideRouter(
 	adminProfileHandler *admin.AdminProfileHandler,
 	walletHandler *wallet.WalletHandler,
 	transactionHandler *transaction.TransactionHandler,
+	apiKeyUsecase usecase.APIKeyUsecase,
+	appLogger logger.Logger,
 	jwtKeyManager domainJWT.KeyManager,
+	faceVerificationHandler *faceVerificationController.FaceVerificationHandler,
 	cfg *bootstrap.Config,
 ) *v1.Route {
 	return v1.NewRouter(
@@ -136,12 +143,39 @@ func ProvideRouter(
 		profileHandler,
 		apiKeyController,
 		adminProfileHandler,
+		faceVerificationHandler,
 		walletHandler,
 		transactionHandler,
+		apiKeyUsecase,
+		appLogger,
 		jwtKeyManager,
 		cfg.Env.Telemetry.ServiceName,
 		cfg.Constants,
 	)
+}
+
+func ProvideFaceVerificationClient(cfg *bootstrap.Config, l logger.Logger) *face_verification.FaceVerificationClient {
+	return face_verification.NewFaceVerificationClient(cfg.Env.FaceVerification.FaceVerificationURL, l)
+}
+
+func ProvideFaceVerificationRepository(db *gorm.DB) repository.FaceVerificationRepository {
+	return postgresRepo.NewFaceVerificationRepository(db)
+}
+
+func ProvideFaceVerificationService(
+	client *face_verification.FaceVerificationClient,
+	l logger.Logger,
+	repo repository.FaceVerificationRepository,
+	serviceRepo repository.ServiceRepository,
+	profileRepo repository.ProfileRepository,
+	transactionRepo repository.TransactionRepository,
+	unitOfWork repository.UnitOfWork,
+) usecase.FaceVerificationUsecase {
+	return service.NewFaceVerificationService(client, l, repo, serviceRepo, profileRepo, transactionRepo, unitOfWork)
+}
+
+func ProvideFaceVerificationHandler(ms usecase.FaceVerificationUsecase, l logger.Logger) *faceVerificationController.FaceVerificationHandler {
+	return faceVerificationController.NewFaceVerificationHandler(ms, l)
 }
 
 type Application struct {

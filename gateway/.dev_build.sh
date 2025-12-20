@@ -10,14 +10,6 @@ else
   echo "swag not found: skipping swagger generation"
 fi
 
-if command -v wire >/dev/null 2>&1; then
-  echo "wire found: generating dependency injection code..."
-  # Generate dependency injection code
-  wire ./wire
-else
-  echo "wire not found: skipping dependency injection code generation"
-fi
-
 echo "building binary..."
 go build -ldflags='-w -s' -o ./tmp/main ./cmd/app
 
