@@ -83,11 +83,11 @@ func ProvideSMSService(cfg *bootstrap.Config) *sms.SMSService {
 }
 
 func ProvideTranslator() *localization.TranslationService {
-    return localization.GetService()
+	return localization.GetService()
 }
 
 func ProvideLocalizationTranslator(trans *localization.TranslationService) *middleware.LocalizationMiddleware {
-    return middleware.NewLocalization(trans)
+	return middleware.NewLocalization(trans)
 }
 
 func ProvideRecovery(constants *bootstrap.Constants) *middleware.RecoveryMiddleware {
@@ -118,7 +118,7 @@ func ProvideWalletHandler(walletUsecase usecase.WalletUsecase, l logger.Logger) 
 }
 
 func ProvideTransactionHandler(transactionUsecase usecase.TransactionUsecase, profileRepository repository.ProfileRepository, l logger.Logger) *transaction.TransactionHandler {
-	return transaction.NewTransactionHandler(transactionUsecase, profileRepository, logger.Logger(l))
+	return transaction.NewTransactionHandler(transactionUsecase, logger.Logger(l))
 }
 
 func ProvideRouter(
