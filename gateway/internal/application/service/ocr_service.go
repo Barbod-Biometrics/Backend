@@ -23,6 +23,7 @@ type OCRService struct {
 	profileRepo     repository.ProfileRepository
 	transactionRepo repository.TransactionRepository
 	unitOfWork      repository.UnitOfWork
+	trialService    *TrialService
 }
 
 func NewOCRService(
@@ -33,6 +34,7 @@ func NewOCRService(
 	profileRepo repository.ProfileRepository,
 	transactionRepo repository.TransactionRepository,
 	unitOfWork repository.UnitOfWork,
+	trialService *TrialService,
 ) *OCRService {
 	return &OCRService{
 		client:          cli,
@@ -42,17 +44,38 @@ func NewOCRService(
 		profileRepo:     profileRepo,
 		transactionRepo: transactionRepo,
 		unitOfWork:      unitOfWork,
+		trialService:    trialService,
 	}
 }
 
 var _ usecase.OCRUsecase = (*OCRService)(nil)
 
 func (s *OCRService) ExtractText(ctx context.Context, profileID uint64, image []byte) (*ocrDto.OCRResponse, error) {
+	return s.ExtractTextWithIP(ctx, profileID, image, "")
+}
+
+func (s *OCRService) ExtractTextWithIP(ctx context.Context, profileID uint64, image []byte, clientIP string) (*ocrDto.OCRResponse, error) {
 	s.logger.Info("Starting OCR text extraction process")
 
 	if len(image) == 0 {
 		s.logger.Warn("Image is empty")
 		return nil, exception.ErrEmptyImage
+	}
+
+	// Check trial attempts for non-authenticated users
+	if profileID == 0 && clientIP != "" && s.trialService != nil {
+		remainingAttempts, err := s.trialService.CheckAndDecrementTrial(ctx, clientIP, "ocr")
+		if err != nil {
+			s.logger.Warn("Trial limit check failed",
+				logger.Field{Key: "ip", Value: clientIP},
+				logger.Field{Key: "error", Value: err},
+			)
+			return nil, err
+		}
+		s.logger.Info("Trial attempt recorded",
+			logger.Field{Key: "ip", Value: clientIP},
+			logger.Field{Key: "remaining_attempts", Value: remainingAttempts},
+		)
 	}
 
 	// Get service cost
@@ -141,7 +164,6 @@ func (s *OCRService) ExtractText(ctx context.Context, profileID uint64, image []
 		var rec entity.OCRRecord
 		rec.Success = result.Success
 		rec.Message = result.Message
-
 
 		if result != nil && result.Stats != nil {
 			rec.Stats = result.Stats

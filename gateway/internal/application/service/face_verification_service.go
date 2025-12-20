@@ -24,6 +24,7 @@ type FaceVerificationService struct {
 	profileRepo     repository.ProfileRepository
 	transactionRepo repository.TransactionRepository
 	unitOfWork      repository.UnitOfWork
+	trialService    *TrialService
 }
 
 func NewFaceVerificationService(
@@ -34,6 +35,7 @@ func NewFaceVerificationService(
 	profileRepo repository.ProfileRepository,
 	transactionRepo repository.TransactionRepository,
 	unitOfWork repository.UnitOfWork,
+	trialService *TrialService,
 ) *FaceVerificationService {
 	return &FaceVerificationService{
 		client:          cli,
@@ -43,12 +45,17 @@ func NewFaceVerificationService(
 		profileRepo:     profileRepo,
 		transactionRepo: transactionRepo,
 		unitOfWork:      unitOfWork,
+		trialService:    trialService,
 	}
 }
 
 var _ usecase.FaceVerificationUsecase = (*FaceVerificationService)(nil)
 
 func (s *FaceVerificationService) VerifyFace(ctx context.Context, profileID uint64, photo []byte, video []byte) (*faceVerificationDto.FaceVerificationResponse, error) {
+	return s.VerifyFaceWithIP(ctx, profileID, photo, video, "")
+}
+
+func (s *FaceVerificationService) VerifyFaceWithIP(ctx context.Context, profileID uint64, photo []byte, video []byte, clientIP string) (*faceVerificationDto.FaceVerificationResponse, error) {
 	s.logger.Info("Starting face verification process")
 
 	if len(photo) == 0 {
@@ -59,6 +66,22 @@ func (s *FaceVerificationService) VerifyFace(ctx context.Context, profileID uint
 	if len(video) == 0 {
 		s.logger.Warn("Video is empty")
 		return nil, exception.ErrEmptyVideo
+	}
+
+	// Check trial attempts for non-authenticated users
+	if profileID == 0 && clientIP != "" && s.trialService != nil {
+		remainingAttempts, err := s.trialService.CheckAndDecrementTrial(ctx, clientIP, "face_verification")
+		if err != nil {
+			s.logger.Warn("Trial limit check failed",
+				logger.Field{Key: "ip", Value: clientIP},
+				logger.Field{Key: "error", Value: err},
+			)
+			return nil, err
+		}
+		s.logger.Info("Trial attempt recorded",
+			logger.Field{Key: "ip", Value: clientIP},
+			logger.Field{Key: "remaining_attempts", Value: remainingAttempts},
+		)
 	}
 
 	service, err := s.serviceRepo.GetByName(ctx, "face_verification")
