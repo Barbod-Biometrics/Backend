@@ -61,7 +61,7 @@ func InitializeApplication() (*Application, error) {
 	walletUsecase := service.NewWalletService(profileRepository, transactionRepository, unitOfWork, logger)
 	walletHandler := ProvideWalletHandler(walletUsecase, logger)
 	transactionService := service.NewTransactionService(transactionRepository, logger)
-	transactionHandler := ProvideTransactionHandler(transactionService, logger)
+	transactionHandler := ProvideTransactionHandler(transactionService, profileRepository, logger)
 	faceVerificationClient := ProvideFaceVerificationClient(config, logger)
 	faceVerificationRepository := postgres.NewFaceVerificationRepository(db)
 	serviceRepository := postgres.NewServiceRepository(db)
