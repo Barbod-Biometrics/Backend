@@ -14,6 +14,7 @@ type TransactionHandler struct {
 	logger             logger.Logger
 }
 
+// Create a new transaction handler
 func NewTransactionHandler(transactionUsecase usecase.TransactionUsecase, logger logger.Logger) *TransactionHandler {
 	return &TransactionHandler{
 		transactionUsecase: transactionUsecase,
