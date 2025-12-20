@@ -118,7 +118,7 @@ func ProvideWalletHandler(walletUsecase usecase.WalletUsecase, l logger.Logger) 
 }
 
 func ProvideTransactionHandler(transactionUsecase usecase.TransactionUsecase, profileRepository repository.ProfileRepository, l logger.Logger) *transaction.TransactionHandler {
-	return transaction.NewTransactionHandler(transactionUsecase, logger.Logger(l))
+	return transaction.NewTransactionHandler(transactionUsecase, profileRepository, logger.Logger(l))
 }
 
 func ProvideRouter(
