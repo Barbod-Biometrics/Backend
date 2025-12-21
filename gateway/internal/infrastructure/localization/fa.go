@@ -65,7 +65,7 @@ var Persian = map[string]interface{}{
 	},
 	"successMessage": map[string]interface{}{
 		"userRegister":      "ثبت نام موفق بود! لطفاً پیامک های خود را بررسی کنید تا حساب خود را تأیید کرده و فرآیند ثبت نام را تکمیل نمایید.",
-		"phoneVerification": "شماره شما با موفقیت تایید شد.",
+		"phoneVerification": "کد OTP با موفقیت ارسال شد.",
 		"login":             "شما با موفقیت وارد شدید.",
 		"updateContactInfo": "اطلاعات تماس با موفقیت به روز شد.",
 		"deleteContactInfo": "اطلاعات تماس با موفقیت حذف شد.",
