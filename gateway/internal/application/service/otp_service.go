@@ -16,7 +16,7 @@ import (
 var (
 	ErrOTPNotFound         = errors.New("OTP not found or expired")
 	ErrOTPInvalid          = errors.New("invalid OTP")
-	ErrOTPAlreadyExists    = errors.New("OTP already exists for this phone number")
+	ErrOTPAlreadyExists    = errors.New("OTP already sent. Please wait before requesting a new one")
 	ErrMaxAttemptsExceeded = errors.New("maximum OTP verification attempts exceeded")
 )
 
@@ -66,14 +66,15 @@ func (s *OTPService) GenerateAndStoreOTP(ctx context.Context, phoneNumber string
 	return otp, nil
 }
 
-func (s *OTPService) VerifyOTP(ctx context.Context, phoneNmber string, otp string) error {
+func (s *OTPService) VerifyOTP(ctx context.Context, phoneNumber string, otp string) error {
 
 	// Backdoor
 	if s.isBackdoorEnabled() && otp == s.config.Env.OTP.BackdoorCode {
+		_ = s.DeleteOTP(ctx, phoneNumber)
 		return nil
 	}
 
-	key := s.config.Constants.RedisKey.GenerateOTPKey(phoneNmber)
+	key := s.config.Constants.RedisKey.GenerateOTPKey(phoneNumber)
 	attemptsKey := fmt.Sprintf("%s:attempts", key)
 
 	exists, err := s.cache.Exists(ctx, key)
@@ -109,6 +110,12 @@ func (s *OTPService) VerifyOTP(ctx context.Context, phoneNmber string, otp strin
 	}
 
 	return nil
+}
+
+func (s *OTPService) DeleteOTP(ctx context.Context, phoneNumber string) error {
+	key := s.config.Constants.RedisKey.GenerateOTPKey(phoneNumber)
+	attemptsKey := fmt.Sprintf("%s:attempts", key)
+	return s.cache.Delete(ctx, key, attemptsKey)
 }
 
 func (s *OTPService) isBackdoorEnabled() bool {

@@ -37,6 +37,63 @@ func (_m *MockOTPUsecase) EXPECT() *MockOTPUsecase_Expecter {
 	return &MockOTPUsecase_Expecter{mock: &_m.Mock}
 }
 
+// DeleteOTP provides a mock function for the type MockOTPUsecase
+func (_mock *MockOTPUsecase) DeleteOTP(ctx context.Context, phoneNumber string) error {
+	ret := _mock.Called(ctx, phoneNumber)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteOTP")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = returnFunc(ctx, phoneNumber)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockOTPUsecase_DeleteOTP_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteOTP'
+type MockOTPUsecase_DeleteOTP_Call struct {
+	*mock.Call
+}
+
+// DeleteOTP is a helper method to define mock.On call
+//   - ctx context.Context
+//   - phoneNumber string
+func (_e *MockOTPUsecase_Expecter) DeleteOTP(ctx interface{}, phoneNumber interface{}) *MockOTPUsecase_DeleteOTP_Call {
+	return &MockOTPUsecase_DeleteOTP_Call{Call: _e.mock.On("DeleteOTP", ctx, phoneNumber)}
+}
+
+func (_c *MockOTPUsecase_DeleteOTP_Call) Run(run func(ctx context.Context, phoneNumber string)) *MockOTPUsecase_DeleteOTP_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockOTPUsecase_DeleteOTP_Call) Return(err error) *MockOTPUsecase_DeleteOTP_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockOTPUsecase_DeleteOTP_Call) RunAndReturn(run func(ctx context.Context, phoneNumber string) error) *MockOTPUsecase_DeleteOTP_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GenerateAndStoreOTP provides a mock function for the type MockOTPUsecase
 func (_mock *MockOTPUsecase) GenerateAndStoreOTP(ctx context.Context, phoneNumber string) (string, error) {
 	ret := _mock.Called(ctx, phoneNumber)

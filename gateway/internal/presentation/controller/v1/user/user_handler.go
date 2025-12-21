@@ -1,6 +1,7 @@
 package user
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/auth"
@@ -136,6 +137,13 @@ func (h *GeneralUserController) RequestOTPHandler(c *gin.Context) {
 
 	// call usecase
 	if err := h.authUsecase.RequestOTP(c.Request.Context(), req); err != nil {
+		if errors.Is(err, service.ErrOTPAlreadyExists) {
+			c.JSON(http.StatusTooManyRequests, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+
 		msg := err.Error()
 		if tr := middleware.GetTranslator(c); tr != nil {
 			if tmsg, terr := tr.Translate("errors.generic"); terr == nil && tmsg != "" {

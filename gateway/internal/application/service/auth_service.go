@@ -34,15 +34,12 @@ func (uc *AuthService) RequestOTP(ctx context.Context, req auth.RequestOTPReques
 
 	plainOTP, err := uc.otpService.GenerateAndStoreOTP(ctx, req.PhoneNumber)
 	if err != nil {
-		if errors.Is(err, ErrOTPAlreadyExists) {
-			return errors.New("OTP already sent. Please wait before requesting a new one")
-		}
-		return fmt.Errorf("failed to generate otp: %w", err)
+		return err
 	}
 
 	message := fmt.Sprintf("Your Barbod Biomentrics code is: %s", plainOTP)
 	if err := uc.SMSService.Send(ctx, req.PhoneNumber, message); err != nil {
-		// if OTP fails we have to delete it from the cache later (due to shortage of time it has not been implemented)
+		_ = uc.otpService.DeleteOTP(ctx, req.PhoneNumber)
 		return fmt.Errorf("failed to send sms: %w", err)
 	}
 

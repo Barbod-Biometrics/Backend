@@ -64,7 +64,7 @@ var English = map[string]interface{}{
 	"ERR_OCR_SERVICE_ERROR":  "OCR service returned an error: {0}",
 	"successMessage": map[string]interface{}{
 		"userRegister":               "Registration Successful! Please check your messages to verify your account and complete the registration process.",
-		"phoneVerification":          "Your phone has been successfully verified.",
+		"phoneVerification":          "OTP sent successfully.",
 		"login":                      "Logged in successfully.",
 		"corporationRegister":        "Your Registration request has been sent successfully. Please wait for the admin to approve your request.",
 		"getInstallationRequests":    "Installation requests fetched successfully.",

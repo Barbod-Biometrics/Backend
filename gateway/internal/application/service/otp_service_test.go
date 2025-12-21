@@ -150,7 +150,7 @@ func TestVerifyOTP_Backdoor(t *testing.T) {
 	svc := NewOTPService(mockCache, cfg)
 
 	phone := "09112223333"
-	// No expectation on cache should be needed; backdoor should bypass
+	mockCache.On("Delete", mock.Anything, []string{cfg.Constants.RedisKey.GenerateOTPKey(phone), cfg.Constants.RedisKey.GenerateOTPKey(phone) + ":attempts"}).Return(nil)
 	err := svc.VerifyOTP(ctx, phone, "777777")
 	assert.NoError(t, err)
 }

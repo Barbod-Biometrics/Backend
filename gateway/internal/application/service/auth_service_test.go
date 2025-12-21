@@ -67,7 +67,7 @@ func TestRequestOTP_GenError(t *testing.T) {
 
 	err := svc.RequestOTP(ctx, auth.RequestOTPRequest{PhoneNumber: phone})
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to generate otp")
+	assert.Contains(t, err.Error(), "redis err")
 
 	mockOtp.AssertExpectations(t)
 }
@@ -85,6 +85,7 @@ func TestRequestOTP_SMSFailure(t *testing.T) {
 	mockOtp.On("GenerateAndStoreOTP", mock.Anything, phone).Return(otp, nil)
 	expectedMessage := fmt.Sprintf("Your Barbod Biomentrics code is: %s", otp)
 	mockSMS.On("Send", mock.Anything, phone, expectedMessage).Return(errors.New("sms down"))
+	mockOtp.On("DeleteOTP", mock.Anything, phone).Return(nil)
 
 	err := svc.RequestOTP(ctx, auth.RequestOTPRequest{PhoneNumber: phone})
 	assert.Error(t, err)
