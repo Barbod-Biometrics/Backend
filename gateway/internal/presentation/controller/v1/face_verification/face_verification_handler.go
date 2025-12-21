@@ -193,11 +193,10 @@ func (fv *FaceVerificationHandler) VerifyFace(c *gin.Context) {
 	c.JSON(statusCode, result)
 }
 
-
 // DemoVerify godoc
 // @Summary Demo face verification (limited trials per IP)
 // @Description Public demo endpoint for face verification without API key. Limited to a small number of trials per IP address.
-// @Tags Demo,Face-Verification
+// @Tags Demo
 // @Accept multipart/form-data
 // @Produce json
 // @Param photo formData file true "Reference photo"

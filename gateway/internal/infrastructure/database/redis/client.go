@@ -75,3 +75,7 @@ func (r *RedisClient) Expire(ctx context.Context, key string, expiration time.Du
 func (r *RedisClient) GetTTL(ctx context.Context, key string) (time.Duration, error) {
 	return r.client.TTL(ctx, key).Result()
 }
+
+func (r *RedisClient) EvalScript(ctx context.Context, script string, keys []string, args ...interface{}) (interface{}, error) {
+	return r.client.Eval(ctx, script, keys, args...).Result()
+}

@@ -144,7 +144,7 @@ func (h *OCRHandler) ExtractText(c *gin.Context) {
 // DemoExtract godoc
 // @Summary Demo OCR extraction (limited trials per IP)
 // @Description Public demo endpoint for OCR without API key. Limited to a small number of trials per IP address.
-// @Tags Demo,OCR
+// @Tags Demo
 // @Accept multipart/form-data
 // @Produce json
 // @Param image formData file true "Image file for text extraction"
@@ -240,8 +240,6 @@ func (h *OCRHandler) DemoExtract(c *gin.Context) {
 
 	c.JSON(statusCode, result)
 }
-
-
 
 // HealthCheck godoc
 // @Router /ocr/health [get]
