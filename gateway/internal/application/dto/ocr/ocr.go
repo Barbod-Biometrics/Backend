@@ -1,8 +1,7 @@
 package ocr
 
-
 type OCRRequest struct {
-	Image string `json:"image" binding:"required"` 
+	Image string `json:"image" binding:"required"`
 }
 
 type OCRResponse struct {
@@ -16,11 +15,12 @@ type OCRResponse struct {
 	FatherName     string `json:"نام_پدر,omitempty"`
 	BirthDate      string `json:"تاریخ_تولد,omitempty"`
 	ExpirationDate string `json:"پایان_اعتبار,omitempty"`
+
+	RemainingAttempts int `json:"remaining_attempts,omitempty"`
+	RechargeInSeconds int `json:"recharge_in_seconds,omitempty"`
 }
 
 type HealthCheckResponseDTO struct {
 	Status               string  `json:"status"`
 	ProcessingTimeSecond float64 `json:"processing_time_seconds,omitempty"`
 }
-
-

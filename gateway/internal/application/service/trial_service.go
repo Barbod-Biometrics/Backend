@@ -59,7 +59,7 @@ func NewTrialService(redisClient *redis.RedisClient, logger logger.Logger) *Tria
 	}
 }
 
-func (s *TrialService) CheckAndDecrementTrial(ctx context.Context, ip string, serviceType string) (int, error) {
+func (s *TrialService) CheckAndDecrementTrial(ctx context.Context, ip string, serviceType string) (int, time.Duration, error) {
 	key := fmt.Sprintf("trial:%s:%s", serviceType, ip)
 
 	// atomic check-and-decrement operation
@@ -70,12 +70,17 @@ func (s *TrialService) CheckAndDecrementTrial(ctx context.Context, ip string, se
 			logger.Field{Key: "ip", Value: ip},
 			logger.Field{Key: "service", Value: serviceType},
 		)
-		return 0, fmt.Errorf("failed to check trial status: %w", err)
+		return 0, 0, exception.NewInternalError("ERR_TRIAL_REDIS", "failed to check trial status", err)
 	}
 
 	resultSlice, ok := result.([]interface{})
 	if !ok || len(resultSlice) < 2 {
-		return 0, fmt.Errorf("invalid script result format")
+		s.logger.Error("Invalid script result format",
+			logger.Field{Key: "ip", Value: ip},
+			logger.Field{Key: "service", Value: serviceType},
+			logger.Field{Key: "raw_result", Value: result},
+		)
+		return 0, 0, exception.NewInternalError("ERR_TRIAL_SCRIPT", "invalid script result format", nil)
 	}
 
 	toInt := func(v interface{}) (int64, error) {
@@ -97,13 +102,26 @@ func (s *TrialService) CheckAndDecrementTrial(ctx context.Context, ip string, se
 
 	status, err := toInt(resultSlice[0])
 	if err != nil {
-		return 0, fmt.Errorf("invalid status from script: %w", err)
+		s.logger.Error("Invalid status from Lua script",
+			logger.Field{Key: "error", Value: err},
+			logger.Field{Key: "ip", Value: ip},
+			logger.Field{Key: "service", Value: serviceType},
+		)
+		return 0, 0, exception.NewInternalError("ERR_TRIAL_SCRIPT", "invalid script status", err)
 	}
 
 	attempts, err := toInt(resultSlice[1])
 	if err != nil {
-		return 0, fmt.Errorf("invalid attempts from script: %w", err)
+		s.logger.Error("Invalid attempts from Lua script",
+			logger.Field{Key: "error", Value: err},
+			logger.Field{Key: "ip", Value: ip},
+			logger.Field{Key: "service", Value: serviceType},
+		)
+		return 0, 0, exception.NewInternalError("ERR_TRIAL_SCRIPT", "invalid script attempts", err)
 	}
+
+	// get TTL for key (may be -1/ -2 meaning no expire / key missing)
+	ttl, ttlErr := s.redisClient.GetTTL(ctx, key)
 
 	if status == -1 {
 		s.logger.Warn("Trial limit exceeded",
@@ -111,7 +129,11 @@ func (s *TrialService) CheckAndDecrementTrial(ctx context.Context, ip string, se
 			logger.Field{Key: "service", Value: serviceType},
 			logger.Field{Key: "attempts", Value: attempts},
 		)
-		return 0, exception.ErrTrialExceeded
+		// Return remaining attempts (may be <= 0) and TTL alongside the error so callers/middleware can surface it.
+		if ttlErr != nil {
+			return int(attempts), 0, exception.ErrTrialExceeded
+		}
+		return int(attempts), ttl, exception.ErrTrialExceeded
 	}
 
 	s.logger.Info("Trial attempt used",
@@ -120,7 +142,9 @@ func (s *TrialService) CheckAndDecrementTrial(ctx context.Context, ip string, se
 		logger.Field{Key: "remaining_attempts", Value: attempts},
 	)
 
-	return int(attempts), nil
+	// on success also return TTL if available
+	ttl, _ = s.redisClient.GetTTL(ctx, key)
+	return int(attempts), ttl, nil
 }
 
 func (s *TrialService) GetRemainingAttempts(ctx context.Context, ip string, serviceType string) (int, error) {

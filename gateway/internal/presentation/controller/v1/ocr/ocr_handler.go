@@ -1,12 +1,13 @@
 package ocr
 
 import (
-	"context"
+	"errors"
 	"io"
 	"net/http"
 
 	ocrDto "github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/ocr"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/exception"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/middleware"
 	"github.com/gin-gonic/gin"
@@ -104,20 +105,15 @@ func (h *OCRHandler) ExtractText(c *gin.Context) {
 	// Get client IP
 	clientIP := c.ClientIP()
 
-	// Call the service with IP for trial tracking
-	type OCRServiceWithIP interface {
-		ExtractTextWithIP(ctx context.Context, profileID uint64, image []byte, clientIP string) (*ocrDto.OCRResponse, error)
-	}
-
 	var result *ocrDto.OCRResponse
-
-	if svc, ok := h.ocrUsecase.(OCRServiceWithIP); ok {
-		result, err = svc.ExtractTextWithIP(c.Request.Context(), pid, imageBytes, clientIP)
-	} else {
-		result, err = h.ocrUsecase.ExtractText(c.Request.Context(), pid, imageBytes)
-	}
+	result, err = h.ocrUsecase.ExtractTextWithIP(c.Request.Context(), pid, imageBytes, clientIP)
 
 	if err != nil {
+		if errors.Is(err, exception.ErrTrialExceeded) && result != nil {
+			c.JSON(http.StatusTooManyRequests, result)
+			return
+		}
+
 		h.logger.Error("OCR extraction failed",
 			logger.Field{Key: "profile_id", Value: profileID},
 			logger.Field{Key: "error", Value: err},
@@ -210,18 +206,15 @@ func (h *OCRHandler) DemoExtract(c *gin.Context) {
 	var pid uint64 = 0
 	clientIP := c.ClientIP()
 
-	type OCRServiceWithIP interface {
-		ExtractTextWithIP(ctx context.Context, profileID uint64, image []byte, clientIP string) (*ocrDto.OCRResponse, error)
-	}
-
 	var result *ocrDto.OCRResponse
-	if svc, ok := h.ocrUsecase.(OCRServiceWithIP); ok {
-		result, err = svc.ExtractTextWithIP(c.Request.Context(), pid, imageBytes, clientIP)
-	} else {
-		result, err = h.ocrUsecase.ExtractText(c.Request.Context(), pid, imageBytes)
-	}
+	result, err = h.ocrUsecase.ExtractTextWithIP(c.Request.Context(), pid, imageBytes, clientIP)
 
 	if err != nil {
+		if errors.Is(err, exception.ErrTrialExceeded) && result != nil {
+			c.JSON(http.StatusTooManyRequests, result)
+			return
+		}
+
 		h.logger.Error("OCR demo extraction failed",
 			logger.Field{Key: "error", Value: err},
 			logger.Field{Key: "ip", Value: clientIP},

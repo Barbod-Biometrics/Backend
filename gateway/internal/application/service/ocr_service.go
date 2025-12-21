@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"time"
 
 	ocrDto "github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/ocr"
@@ -64,8 +64,25 @@ func (s *OCRService) ExtractTextWithIP(ctx context.Context, profileID uint64, im
 
 	// Check trial attempts for non-authenticated users
 	if profileID == 0 && clientIP != "" && s.trialService != nil {
-		remainingAttempts, err := s.trialService.CheckAndDecrementTrial(ctx, clientIP, "ocr")
+		remainingAttempts, ttl, err := s.trialService.CheckAndDecrementTrial(ctx, clientIP, "ocr")
 		if err != nil {
+			if errors.Is(err, exception.ErrTrialExceeded) {
+				resp := &ocrDto.OCRResponse{
+					Success:           false,
+					Message:           "Trial limit exceeded",
+					RemainingAttempts: remainingAttempts,
+				}
+				if ttl > 0 {
+					resp.RechargeInSeconds = int(ttl.Seconds())
+				}
+				s.logger.Warn("Trial limit exceeded",
+					logger.Field{Key: "ip", Value: clientIP},
+					logger.Field{Key: "remaining_attempts", Value: remainingAttempts},
+					logger.Field{Key: "recharge_in_seconds", Value: resp.RechargeInSeconds},
+				)
+				return resp, exception.ErrTrialExceeded
+			}
+
 			s.logger.Warn("Trial limit check failed",
 				logger.Field{Key: "ip", Value: clientIP},
 				logger.Field{Key: "error", Value: err},
@@ -89,7 +106,7 @@ func (s *OCRService) ExtractTextWithIP(ctx context.Context, profileID uint64, im
 
 	if !service.IsAvailable {
 		s.logger.Warn("OCR service is not available")
-		return nil, fmt.Errorf("OCR service is currently unavailable")
+		return nil, exception.NewInternalError("ERR_SERVICE_UNAVAILABLE", "OCR service is currently unavailable", nil)
 	}
 
 	serviceCost := uint64(service.CurrentCost)
@@ -99,7 +116,7 @@ func (s *OCRService) ExtractTextWithIP(ctx context.Context, profileID uint64, im
 		err = s.unitOfWork.Do(ctx, func(txCtx context.Context) error {
 			profile, err := s.profileRepo.GetByID(txCtx, profileID)
 			if err != nil {
-				return fmt.Errorf("failed to get profile: %w", err)
+				return exception.NewInternalError("ERR_PROFILE_FETCH", "failed to get profile", err)
 			}
 
 			if profile.Balance < serviceCost {
@@ -113,7 +130,7 @@ func (s *OCRService) ExtractTextWithIP(ctx context.Context, profileID uint64, im
 
 			profile.Balance -= serviceCost
 			if err := s.profileRepo.Update(txCtx, profile); err != nil {
-				return fmt.Errorf("failed to update profile balance: %w", err)
+				return exception.NewInternalError("ERR_PROFILE_UPDATE", "failed to update profile balance", err)
 			}
 
 			transaction := &entity.Transaction{
@@ -125,7 +142,7 @@ func (s *OCRService) ExtractTextWithIP(ctx context.Context, profileID uint64, im
 			}
 
 			if err := s.transactionRepo.Create(txCtx, transaction); err != nil {
-				return fmt.Errorf("failed to create transaction: %w", err)
+				return exception.NewInternalError("ERR_CREATE_TRANSACTION", "failed to create transaction", err)
 			}
 
 			s.logger.Info("Wallet deducted for OCR",
@@ -148,7 +165,7 @@ func (s *OCRService) ExtractTextWithIP(ctx context.Context, profileID uint64, im
 		s.logger.Error("OCR extraction failed",
 			logger.Field{Key: "error", Value: err},
 		)
-		return nil, fmt.Errorf("OCR extraction failed: %w", err)
+		return nil, exception.NewInternalError("ERR_OCR_EXTRACTION", "OCR extraction failed", err)
 	}
 
 	if !result.Success {
@@ -192,7 +209,7 @@ func (s *OCRService) HealthCheck(ctx context.Context) (*ocrDto.HealthCheckRespon
 		s.logger.Error("Health check failed",
 			logger.Field{Key: "error", Value: err},
 		)
-		return nil, fmt.Errorf("health check failed: %w", err)
+		return nil, exception.NewInternalError("ERR_OCR_HEALTH_CHECK", "health check failed", err)
 	}
 
 	s.logger.Info("Health check status",

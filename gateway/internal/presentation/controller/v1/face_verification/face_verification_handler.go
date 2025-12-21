@@ -1,12 +1,13 @@
 package face_verification
 
 import (
-	"context"
+	"errors"
 	"io"
 	"net/http"
 
 	faceVerificationDto "github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/face_verification"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/exception"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/middleware"
 	"github.com/gin-gonic/gin"
@@ -156,20 +157,15 @@ func (fv *FaceVerificationHandler) VerifyFace(c *gin.Context) {
 	// Get client IP
 	clientIP := c.ClientIP()
 
-	// Call the service with IP for trial tracking
-	type FaceVerificationServiceWithIP interface {
-		VerifyFaceWithIP(ctx context.Context, profileID uint64, photo []byte, video []byte, clientIP string) (*faceVerificationDto.FaceVerificationResponse, error)
-	}
-
 	var result *faceVerificationDto.FaceVerificationResponse
-
-	if svc, ok := fv.faceVerificationUsecase.(FaceVerificationServiceWithIP); ok {
-		result, err = svc.VerifyFaceWithIP(c.Request.Context(), pid, photoBytes, videoBytes, clientIP)
-	} else {
-		result, err = fv.faceVerificationUsecase.VerifyFace(c.Request.Context(), pid, photoBytes, videoBytes)
-	}
+	result, err = fv.faceVerificationUsecase.VerifyFaceWithIP(c.Request.Context(), pid, photoBytes, videoBytes, clientIP)
 
 	if err != nil {
+		if errors.Is(err, exception.ErrTrialExceeded) && result != nil {
+			c.JSON(http.StatusTooManyRequests, result)
+			return
+		}
+
 		fv.logger.Error("Face verification failed",
 			logger.Field{Key: "profile_id", Value: profileID},
 			logger.Field{Key: "error", Value: err},
@@ -308,18 +304,15 @@ func (fv *FaceVerificationHandler) DemoVerify(c *gin.Context) {
 	var pid uint64 = 0
 	clientIP := c.ClientIP()
 
-	type FaceVerificationServiceWithIP interface {
-		VerifyFaceWithIP(ctx context.Context, profileID uint64, photo []byte, video []byte, clientIP string) (*faceVerificationDto.FaceVerificationResponse, error)
-	}
-
 	var result *faceVerificationDto.FaceVerificationResponse
-	if svc, ok := fv.faceVerificationUsecase.(FaceVerificationServiceWithIP); ok {
-		result, err = svc.VerifyFaceWithIP(c.Request.Context(), pid, photoBytes, videoBytes, clientIP)
-	} else {
-		result, err = fv.faceVerificationUsecase.VerifyFace(c.Request.Context(), pid, photoBytes, videoBytes)
-	}
+	result, err = fv.faceVerificationUsecase.VerifyFaceWithIP(c.Request.Context(), pid, photoBytes, videoBytes, clientIP)
 
 	if err != nil {
+		if errors.Is(err, exception.ErrTrialExceeded) && result != nil {
+			c.JSON(http.StatusTooManyRequests, result)
+			return
+		}
+
 		fv.logger.Error("Face verification demo failed",
 			logger.Field{Key: "error", Value: err},
 			logger.Field{Key: "ip", Value: clientIP},

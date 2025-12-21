@@ -90,6 +90,11 @@ func handleAppError(ctx *gin.Context, appErr *exception.AppError) {
 		status = 500
 	}
 
+	if appErr.Code == "ERR_TRIAL_EXCEEDED" {
+		ctx.JSON(status, gin.H{"code": appErr.Code, "message": message, "recharge_in_seconds": 86400})
+		return
+	}
+
 	ctx.JSON(status, gin.H{"code": appErr.Code, "message": message})
 }
 

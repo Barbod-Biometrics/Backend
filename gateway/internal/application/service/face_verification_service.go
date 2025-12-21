@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -70,8 +71,26 @@ func (s *FaceVerificationService) VerifyFaceWithIP(ctx context.Context, profileI
 
 	// Check trial attempts for non-authenticated users
 	if profileID == 0 && clientIP != "" && s.trialService != nil {
-		remainingAttempts, err := s.trialService.CheckAndDecrementTrial(ctx, clientIP, "face_verification")
+		remainingAttempts, ttl, err := s.trialService.CheckAndDecrementTrial(ctx, clientIP, "face_verification")
 		if err != nil {
+			if errors.Is(err, exception.ErrTrialExceeded) {
+				resp := &faceVerificationDto.FaceVerificationResponse{
+					Success:           false,
+					Reason:            "trial_exceeded",
+					Message:           "Trial limit exceeded",
+					RemainingAttempts: remainingAttempts,
+				}
+				if ttl > 0 {
+					resp.RechargeInSeconds = int(ttl.Seconds())
+				}
+				s.logger.Warn("Trial limit exceeded",
+					logger.Field{Key: "ip", Value: clientIP},
+					logger.Field{Key: "remaining_attempts", Value: remainingAttempts},
+					logger.Field{Key: "recharge_in_seconds", Value: resp.RechargeInSeconds},
+				)
+				return resp, exception.ErrTrialExceeded
+			}
+
 			s.logger.Warn("Trial limit check failed",
 				logger.Field{Key: "ip", Value: clientIP},
 				logger.Field{Key: "error", Value: err},
@@ -94,7 +113,7 @@ func (s *FaceVerificationService) VerifyFaceWithIP(ctx context.Context, profileI
 
 	if !service.IsAvailable {
 		s.logger.Warn("Face verification service is not available")
-		return nil, fmt.Errorf("face verification service is currently unavailable")
+		return nil, exception.NewInternalError("ERR_SERVICE_UNAVAILABLE", "face verification service is currently unavailable", nil)
 	}
 
 	serviceCost := uint64(service.CurrentCost)
@@ -103,7 +122,7 @@ func (s *FaceVerificationService) VerifyFaceWithIP(ctx context.Context, profileI
 		err = s.unitOfWork.Do(ctx, func(txCtx context.Context) error {
 			profile, err := s.profileRepo.GetByID(txCtx, profileID)
 			if err != nil {
-				return fmt.Errorf("failed to get profile: %w", err)
+				return exception.NewInternalError("ERR_PROFILE_FETCH", "failed to get profile", err)
 			}
 
 			if profile.Balance < serviceCost {
@@ -117,7 +136,7 @@ func (s *FaceVerificationService) VerifyFaceWithIP(ctx context.Context, profileI
 
 			profile.Balance -= serviceCost
 			if err := s.profileRepo.Update(txCtx, profile); err != nil {
-				return fmt.Errorf("failed to update profile balance: %w", err)
+				return exception.NewInternalError("ERR_PROFILE_UPDATE", "failed to update profile balance", err)
 			}
 
 			transaction := &entity.Transaction{
@@ -129,7 +148,7 @@ func (s *FaceVerificationService) VerifyFaceWithIP(ctx context.Context, profileI
 			}
 
 			if err := s.transactionRepo.Create(txCtx, transaction); err != nil {
-				return fmt.Errorf("failed to create transaction: %w", err)
+				return exception.NewInternalError("ERR_CREATE_TRANSACTION", "failed to create transaction", err)
 			}
 
 			s.logger.Info("Wallet deducted for face verification",
@@ -245,7 +264,7 @@ func (s *FaceVerificationService) CropImage(ctx context.Context, profileID uint6
 
 	if !service.IsAvailable {
 		s.logger.Warn("Image crop service is not available")
-		return nil, fmt.Errorf("image crop service is currently unavailable")
+		return nil, exception.NewInternalError("ERR_SERVICE_UNAVAILABLE", "image crop service is currently unavailable", nil)
 	}
 
 	serviceCost := uint64(service.CurrentCost)
@@ -255,7 +274,7 @@ func (s *FaceVerificationService) CropImage(ctx context.Context, profileID uint6
 		err = s.unitOfWork.Do(ctx, func(txCtx context.Context) error {
 			profile, err := s.profileRepo.GetByID(txCtx, profileID)
 			if err != nil {
-				return fmt.Errorf("failed to get profile: %w", err)
+				return exception.NewInternalError("ERR_PROFILE_FETCH", "failed to get profile", err)
 			}
 
 			if profile.Balance < serviceCost {
@@ -269,7 +288,7 @@ func (s *FaceVerificationService) CropImage(ctx context.Context, profileID uint6
 
 			profile.Balance -= serviceCost
 			if err := s.profileRepo.Update(txCtx, profile); err != nil {
-				return fmt.Errorf("failed to update profile balance: %w", err)
+				return exception.NewInternalError("ERR_PROFILE_UPDATE", "failed to update profile balance", err)
 			}
 
 			transaction := &entity.Transaction{
@@ -281,7 +300,7 @@ func (s *FaceVerificationService) CropImage(ctx context.Context, profileID uint6
 			}
 
 			if err := s.transactionRepo.Create(txCtx, transaction); err != nil {
-				return fmt.Errorf("failed to create transaction: %w", err)
+				return exception.NewInternalError("ERR_CREATE_TRANSACTION", "failed to create transaction", err)
 			}
 
 			s.logger.Info("Wallet deducted for image crop",
@@ -303,7 +322,7 @@ func (s *FaceVerificationService) CropImage(ctx context.Context, profileID uint6
 		s.logger.Error("Image crop failed",
 			logger.Field{Key: "error", Value: err},
 		)
-		return nil, fmt.Errorf("image crop failed: %w", err)
+		return nil, exception.NewInternalError("ERR_IMAGE_CROP", "image crop failed", err)
 	}
 
 	if !result.Success {
@@ -325,7 +344,7 @@ func (s *FaceVerificationService) HealthCheck(ctx context.Context) (*faceVerific
 		s.logger.Error("Health check failed",
 			logger.Field{Key: "error", Value: err},
 		)
-		return nil, fmt.Errorf("health check failed: %w", err)
+		return nil, exception.NewInternalError("ERR_FACE_HEALTH_CHECK", "health check failed", err)
 	}
 
 	s.logger.Info("Health check status",
