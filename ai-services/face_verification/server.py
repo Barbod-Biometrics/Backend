@@ -75,34 +75,80 @@ def initialize_models():
     global INSIGHTFACE_APP, LIVENESS_MODEL, MODELS_INITIALIZED
     import logging
     logger = logging.getLogger(__name__)
+    # runtime check helpers
+    import ctypes
+    from ctypes.util import find_library
+
+    def _has_tensorrt_lib():
+        candidates = [
+            'libnvinfer.so.10',
+            'libnvinfer.so',
+            find_library('nvinfer')
+        ]
+        for c in candidates:
+            if not c:
+                continue
+            try:
+                ctypes.CDLL(c)
+                return True
+            except Exception:
+                continue
+        return False
 
     use_gpu = config.USE_GPU
     try:
         import onnxruntime
         available_providers = onnxruntime.get_available_providers()
-        if use_gpu and ('CUDAExecutionProvider' not in available_providers and 'TensorrtExecutionProvider' not in available_providers):
-            logger.info("⚠️  GPU requested but CUDA not available, falling back to CPU")
-            use_gpu = False
-        else:
-            logger.info(f"Model init - Available providers: {available_providers}")
+        logger.info(f"📋 ONNX Runtime available providers: {available_providers}")
+
+        if use_gpu:
+            has_cuda = 'CUDAExecutionProvider' in available_providers
+            has_tensorrt_ep = 'TensorrtExecutionProvider' in available_providers
+            has_tensorrt_libs = _has_tensorrt_lib()
+
+            if not has_cuda and not has_tensorrt_ep:
+                logger.warning("⚠️  GPU requested but no GPU providers available in ONNX Runtime, falling back to CPU")
+                use_gpu = False
+            elif config.USE_TENSORRT and has_tensorrt_ep and not has_tensorrt_libs:
+                logger.warning("⚠️  TensorrtExecutionProvider present but TensorRT system libraries not found (libnvinfer). Disabling TensorRT provider to avoid EP load errors.")
+                # We'll avoid adding Tensorrt EP below
+                has_tensorrt_ep = False
+            else:
+                logger.info(f"✅ GPU providers available - CUDA: {has_cuda}, TensorRT EP: {has_tensorrt_ep}, TensorRT libs: {has_tensorrt_libs}")
     except Exception as e:
-        logger.info(f"⚠️  Could not check GPU availability: {e}; falling back to CPU")
+        logger.warning(f"⚠️  Could not check GPU availability: {e}; falling back to CPU")
         use_gpu = False
 
-    providers = [
-        ('TensorrtExecutionProvider', {
-            'device_id': config.GPU_ID,
-            'trt_fp16_enable': config.USE_FP16,
-            'trt_max_workspace_size': config.MAX_WORKSPACE_SIZE,
-        }),
-        ('CUDAExecutionProvider', {
-            'device_id': config.GPU_ID,
-            'gpu_mem_limit': getattr(config, 'CUDA_GPU_MEM_LIMIT', 16 * 1024 * 1024 * 1024),
-            'arena_extend_strategy': getattr(config, 'CUDA_ARENA_EXTEND_STRATEGY', 'kSameAsRequested')
-        })
-    ] if use_gpu else ['CPUExecutionProvider']
+    providers = []
+    if use_gpu:
+        try:
+            import onnxruntime
+            available_providers = onnxruntime.get_available_providers()
+        except Exception:
+            available_providers = []
+
+        if 'CUDAExecutionProvider' in available_providers:
+            providers.append(('CUDAExecutionProvider', {
+                'device_id': config.GPU_ID,
+                'gpu_mem_limit': getattr(config, 'CUDA_GPU_MEM_LIMIT', 16 * 1024 * 1024 * 1024),
+                'arena_extend_strategy': getattr(config, 'CUDA_ARENA_EXTEND_STRATEGY', 'kSameAsRequested')
+            }))
+
+        if config.USE_TENSORRT and 'TensorrtExecutionProvider' in available_providers and _has_tensorrt_lib():
+            providers.append(('TensorrtExecutionProvider', {
+                'device_id': config.GPU_ID,
+                'trt_fp16_enable': config.USE_FP16,
+                'trt_max_workspace_size': config.MAX_WORKSPACE_SIZE,
+            }))
+
+        if not providers:
+            providers = ['CPUExecutionProvider']
+            use_gpu = False
+    else:
+        providers = ['CPUExecutionProvider']
 
     try:
+        logger.info(f"Using ONNX providers: {providers}")
         INSIGHTFACE_APP = FaceAnalysis(providers=providers)
         INSIGHTFACE_APP.prepare(ctx_id=config.GPU_ID if use_gpu else -1, det_size=config.INSIGHTFACE_DET_SIZE)
         try:
@@ -605,22 +651,8 @@ def verify():
             logger.exception(f"Verifier initialization error: {e}")
             return format_error_response('initialization_error', 'Failed to initialize verifier', 500)
         
-        # Process video
         result = verifier.process_video(video_path)
         logger.info(f"Verification result: {result['reason']}")
-        
-        if result.get('messages'):
-            multiple_face_frames = [msg for msg in result['messages'] if msg.get('error') == 'multiple_faces_detected']
-            if multiple_face_frames:
-                logger.warning(f"Multiple faces detected in {len(multiple_face_frames)} frames")
-                return jsonify({
-                    'success': False,
-                    'reason': 'multiple_faces_in_video',
-                    'message': f'Multiple faces detected in {len(multiple_face_frames)} frame(s). Video must contain only one face.',
-                    'stats': result.get('stats'),
-                    'results': result.get('results'),
-                    'messages': result.get('messages')
-                }), 400
         
         http_code = 200 if result['success'] else 400
         return jsonify(result), http_code
