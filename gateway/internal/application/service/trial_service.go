@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	maxTrialAttempts = 2
+	maxTrialAttempts = 50 // for development/testing
 	trialExpiration  = 24 * time.Hour
 )
 
