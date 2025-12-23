@@ -76,4 +76,5 @@ var Persian = map[string]interface{}{
 		"completeRegister":  "اطلاعات تکمیلی ثبت نام با موفقیت انجام شد.",
 		"updateProfile":     "پروفایل شما با موفقیت به روزرسانی شد.",
 	},
+	"ERR_TRIAL_EXCEEDED": "تعداد آزمایش‌های دمو تمام شده است. برای ادامه لطفاً ثبت‌نام کنید.",
 }

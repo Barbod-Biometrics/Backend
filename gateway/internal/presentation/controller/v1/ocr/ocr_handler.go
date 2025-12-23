@@ -1,22 +1,25 @@
 package ocr
 
 import (
-    "io"
-    "net/http"
+	"errors"
+	"io"
+	"net/http"
 
-    "github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
-    "github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
-    "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/middleware"
-    "github.com/gin-gonic/gin"
+	ocrDto "github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/ocr"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/exception"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/middleware"
+	"github.com/gin-gonic/gin"
 )
 
 type OCRHandler struct {
-    ocrUsecase usecase.OCRUsecase
-    logger     logger.Logger
+	ocrUsecase usecase.OCRUsecase
+	logger     logger.Logger
 }
 
 func NewOCRHandler(ocrUsecase usecase.OCRUsecase, logger logger.Logger) *OCRHandler {
-    return &OCRHandler{ocrUsecase: ocrUsecase, logger: logger}
+	return &OCRHandler{ocrUsecase: ocrUsecase, logger: logger}
 }
 
 // ExtractText godoc
@@ -33,95 +36,202 @@ func NewOCRHandler(ocrUsecase usecase.OCRUsecase, logger logger.Logger) *OCRHand
 // @Failure 401 {object} map[string]interface{} "Unauthorized"
 // @Failure 500 {object} map[string]interface{} "Internal server error"
 func (h *OCRHandler) ExtractText(c *gin.Context) {
-    translator := middleware.GetTranslator(c)
-    profileID, exists := c.Get("profile_id")
-    if !exists {
-        h.logger.Warn("Unauthorized OCR request",
-            logger.Field{Key: "ip", Value: c.ClientIP()},
-        )
-        c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-        return
-    }
+	translator := middleware.GetTranslator(c)
+	profileID, exists := c.Get("profile_id")
+	if !exists {
+		h.logger.Warn("Unauthorized OCR request",
+			logger.Field{Key: "ip", Value: c.ClientIP()},
+		)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
 
-    h.logger.Info("Received OCR extract text request",
-        logger.Field{Key: "ip", Value: c.ClientIP()},
-        logger.Field{Key: "profile_id", Value: profileID},
-    )
+	h.logger.Info("Received OCR extract text request",
+		logger.Field{Key: "ip", Value: c.ClientIP()},
+		logger.Field{Key: "profile_id", Value: profileID},
+	)
 
-    imageFile, err := c.FormFile("image")
-    if err != nil {
-        h.logger.Warn("Failed to get image file",
-            logger.Field{Key: "error", Value: err},
-        )
-        msg := "Please provide an 'image' file"
-        if translator != nil {
-            if translated, err := translator.Translate("validation.missing_image"); err == nil {
-                msg = translated
-            }
-        }
-        c.JSON(http.StatusBadRequest, gin.H{"error": "missing_image", "message": msg})
-        return
-    }
+	imageFile, err := c.FormFile("image")
+	if err != nil {
+		h.logger.Warn("Failed to get image file",
+			logger.Field{Key: "error", Value: err},
+		)
+		msg := "Please provide an 'image' file"
+		if translator != nil {
+			if translated, err := translator.Translate("validation.missing_image"); err == nil {
+				msg = translated
+			}
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing_image", "message": msg})
+		return
+	}
 
-    imageSrc, err := imageFile.Open()
-    if err != nil {
-        h.logger.Error("Failed to open image file",
-            logger.Field{Key: "error", Value: err},
-        )
-        msg := "Failed to process image file"
-        if translator != nil {
-            if translated, err := translator.Translate("errors.file_error"); err == nil {
-                msg = translated
-            }
-        }
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "file_error", "message": msg})
-        return
-    }
-    defer imageSrc.Close()
+	imageSrc, err := imageFile.Open()
+	if err != nil {
+		h.logger.Error("Failed to open image file",
+			logger.Field{Key: "error", Value: err},
+		)
+		msg := "Failed to process image file"
+		if translator != nil {
+			if translated, err := translator.Translate("errors.file_error"); err == nil {
+				msg = translated
+			}
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "file_error", "message": msg})
+		return
+	}
+	defer imageSrc.Close()
 
-    imageBytes, err := io.ReadAll(imageSrc)
-    if err != nil {
-        h.logger.Error("Failed to read image bytes",
-            logger.Field{Key: "error", Value: err},
-        )
-        msg := "Failed to read image file"
-        if translator != nil {
-            if translated, err := translator.Translate("errors.file_read_error"); err == nil {
-                msg = translated
-            }
-        }
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "file_error", "message": msg})
-        return
-    }
+	imageBytes, err := io.ReadAll(imageSrc)
+	if err != nil {
+		h.logger.Error("Failed to read image bytes",
+			logger.Field{Key: "error", Value: err},
+		)
+		msg := "Failed to read image file"
+		if translator != nil {
+			if translated, err := translator.Translate("errors.file_read_error"); err == nil {
+				msg = translated
+			}
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "file_error", "message": msg})
+		return
+	}
 
-    var pid uint64
-    if v, ok := profileID.(uint64); ok {
-        pid = v
-    }
+	var pid uint64
+	if v, ok := profileID.(uint64); ok {
+		pid = v
+	}
 
-    result, err := h.ocrUsecase.ExtractText(c.Request.Context(), pid, imageBytes)
-    if err != nil {
-        h.logger.Error("OCR extraction failed",
-            logger.Field{Key: "profile_id", Value: profileID},
-            logger.Field{Key: "error", Value: err},
-        )
-        panic(err)
-    }
+	// Get client IP
+	clientIP := c.ClientIP()
 
-    statusCode := http.StatusOK
-    if !result.Success {
-        h.logger.Warn("OCR extraction returned failure",
-            logger.Field{Key: "profile_id", Value: profileID},
-            logger.Field{Key: "message", Value: result.Message},
-        )
-        statusCode = http.StatusBadRequest
-    } else {
-        h.logger.Info("OCR extraction completed successfully",
-            logger.Field{Key: "profile_id", Value: profileID},
-        )
-    }
+	var result *ocrDto.OCRResponse
+	result, err = h.ocrUsecase.ExtractTextWithIP(c.Request.Context(), pid, imageBytes, clientIP)
 
-    c.JSON(statusCode, result)
+	if err != nil {
+		if errors.Is(err, exception.ErrTrialExceeded) && result != nil {
+			c.JSON(http.StatusTooManyRequests, result)
+			return
+		}
+
+		h.logger.Error("OCR extraction failed",
+			logger.Field{Key: "profile_id", Value: profileID},
+			logger.Field{Key: "error", Value: err},
+		)
+		panic(err)
+	}
+
+	statusCode := http.StatusOK
+	if !result.Success {
+		h.logger.Warn("OCR extraction returned failure",
+			logger.Field{Key: "profile_id", Value: profileID},
+			logger.Field{Key: "message", Value: result.Message},
+		)
+		statusCode = http.StatusBadRequest
+	} else {
+		h.logger.Info("OCR extraction completed successfully",
+			logger.Field{Key: "profile_id", Value: profileID},
+		)
+	}
+
+	c.JSON(statusCode, result)
+}
+
+// DemoExtract godoc
+// @Summary Demo OCR extraction (limited trials per IP)
+// @Description Public demo endpoint for OCR without API key. Limited to a small number of trials per IP address.
+// @Tags Demo
+// @Accept multipart/form-data
+// @Produce json
+// @Param image formData file true "Image file for text extraction"
+// @Success 200 {object} ocr.OCRResponse "Extraction successful"
+// @Failure 400 {object} map[string]interface{} "Bad request"
+// @Failure 429 {object} map[string]interface{} "Too many requests"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /demo/ocr/extract [post]
+func (h *OCRHandler) DemoExtract(c *gin.Context) {
+	translator := middleware.GetTranslator(c)
+
+	h.logger.Info("Received OCR demo extract request",
+		logger.Field{Key: "ip", Value: c.ClientIP()},
+	)
+
+	imageFile, err := c.FormFile("image")
+	if err != nil {
+		h.logger.Warn("Failed to get image file",
+			logger.Field{Key: "error", Value: err},
+		)
+		msg := "Please provide an 'image' file"
+		if translator != nil {
+			if translated, err := translator.Translate("validation.missing_image"); err == nil {
+				msg = translated
+			}
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing_image", "message": msg})
+		return
+	}
+
+	imageSrc, err := imageFile.Open()
+	if err != nil {
+		h.logger.Error("Failed to open image file",
+			logger.Field{Key: "error", Value: err},
+		)
+		msg := "Failed to process image file"
+		if translator != nil {
+			if translated, err := translator.Translate("errors.file_error"); err == nil {
+				msg = translated
+			}
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "file_error", "message": msg})
+		return
+	}
+	defer imageSrc.Close()
+
+	imageBytes, err := io.ReadAll(imageSrc)
+	if err != nil {
+		h.logger.Error("Failed to read image bytes",
+			logger.Field{Key: "error", Value: err},
+		)
+		msg := "Failed to read image file"
+		if translator != nil {
+			if translated, err := translator.Translate("errors.file_read_error"); err == nil {
+				msg = translated
+			}
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "file_error", "message": msg})
+		return
+	}
+
+	// Call service with IP for trial tracking (profileID = 0)
+	var pid uint64 = 0
+	clientIP := c.ClientIP()
+
+	var result *ocrDto.OCRResponse
+	result, err = h.ocrUsecase.ExtractTextWithIP(c.Request.Context(), pid, imageBytes, clientIP)
+
+	if err != nil {
+		if errors.Is(err, exception.ErrTrialExceeded) && result != nil {
+			c.JSON(http.StatusTooManyRequests, result)
+			return
+		}
+
+		h.logger.Error("OCR demo extraction failed",
+			logger.Field{Key: "error", Value: err},
+			logger.Field{Key: "ip", Value: clientIP},
+		)
+		panic(err)
+	}
+
+	statusCode := http.StatusOK
+	if !result.Success {
+		h.logger.Warn("OCR demo extraction returned failure",
+			logger.Field{Key: "message", Value: result.Message},
+			logger.Field{Key: "ip", Value: clientIP},
+		)
+		statusCode = http.StatusBadRequest
+	}
+
+	c.JSON(statusCode, result)
 }
 
 // HealthCheck godoc
@@ -133,18 +243,18 @@ func (h *OCRHandler) ExtractText(c *gin.Context) {
 // @Success 200 {object} ocr.HealthCheckResponseDTO "Service is healthy"
 // @Failure 500 {object} map[string]interface{} "Service is unhealthy"
 func (h *OCRHandler) HealthCheck(c *gin.Context) {
-    h.logger.Info("Received OCR health check request",
-        logger.Field{Key: "ip", Value: c.ClientIP()},
-    )
+	h.logger.Info("Received OCR health check request",
+		logger.Field{Key: "ip", Value: c.ClientIP()},
+	)
 
-    result, err := h.ocrUsecase.HealthCheck(c.Request.Context())
-    if err != nil {
-        h.logger.Error("OCR health check failed",
-            logger.Field{Key: "error", Value: err},
-        )
-        c.JSON(http.StatusInternalServerError, gin.H{"message": "OCR service is not responding", "status": "unhealthy"})
-        return
-    }
+	result, err := h.ocrUsecase.HealthCheck(c.Request.Context())
+	if err != nil {
+		h.logger.Error("OCR health check failed",
+			logger.Field{Key: "error", Value: err},
+		)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "OCR service is not responding", "status": "unhealthy"})
+		return
+	}
 
-    c.JSON(http.StatusOK, result)
+	c.JSON(http.StatusOK, result)
 }

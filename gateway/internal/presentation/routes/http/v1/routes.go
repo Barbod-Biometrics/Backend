@@ -154,6 +154,13 @@ func (r *Route) RegisterRoutes() http.Handler {
 			ocr.POST("/extract", r.ocrController.ExtractText)
 			ocr.GET("/health", r.ocrController.HealthCheck)
 		}
+
+		demo := v1.Group("/demo")
+		{
+			demo.POST("/face-verification/verify", r.faceVerificationController.DemoVerify)
+			demo.POST("/ocr/extract", r.ocrController.DemoExtract)
+		}
+
 	}
 
 	return router

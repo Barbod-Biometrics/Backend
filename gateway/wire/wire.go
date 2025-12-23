@@ -84,6 +84,7 @@ var ServiceSet = wire.NewSet(
 	service.NewAuthService,
 	service.NewAPIKeyService,
 	service.NewTransactionService,
+	service.NewTrialService,
 	service.NewFaceVerificationService,
 	service.NewOCRService,
 

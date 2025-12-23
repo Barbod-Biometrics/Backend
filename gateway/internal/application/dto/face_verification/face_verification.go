@@ -12,6 +12,9 @@ type FaceVerificationResponse struct {
 	Stats    interface{} `json:"stats,omitempty"`
 	Results  interface{} `json:"results,omitempty"`
 	Messages interface{} `json:"messages,omitempty"`
+
+	RemainingAttempts int `json:"remaining_attempts,omitempty"`
+	RechargeInSeconds int `json:"recharge_in_seconds,omitempty"`
 }
 
 type CropImageRequest struct {

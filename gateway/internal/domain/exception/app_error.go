@@ -53,4 +53,5 @@ var (
 	ErrEmptyImage        = NewBadRequestError("ERR_EMPTY_IMAGE", "image cannot be empty", nil)
 	ErrInsufficientFunds = NewBadRequestError("ERR_INSUFFICIENT_FUNDS", "insufficient wallet balance", nil)
 	ErrServiceNotFound   = NewBadRequestError("ERR_SERVICE_NOT_FOUND", "service not found", nil)
+	ErrTrialExceeded     = NewAppError("ERR_TRIAL_EXCEEDED", "trial limit exceeded", 429, nil)
 )
