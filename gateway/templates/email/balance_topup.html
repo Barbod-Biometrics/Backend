@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .container { padding: 20px; }
+        .header { background-color: #f8f9fa; padding: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Balance Top-up Successful</h1>
+        </div>
+        <p>Hello <strong>{{.Name}}</strong>,</p>
+        <p>Your balance for profile <strong>{{.ProfileName}}</strong> has been successfully topped up.</p>
+        <p><strong>Amount:</strong> {{.Amount}}</p>
+        <p><strong>New Balance:</strong> {{.NewBalance}}</p>
+        <p>Thanks,<br>The Barbod Team</p>
+    </div>
+</body>
+</html>

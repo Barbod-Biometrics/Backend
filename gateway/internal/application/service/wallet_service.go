@@ -7,6 +7,7 @@ import (
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/wallet"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/communication"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/enum"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
@@ -15,20 +16,26 @@ import (
 
 type WalletService struct {
 	profileRepo     repository.ProfileRepository
+	userRepo        repository.UserRepository
 	transactionRepo repository.TransactionRepository
+	emailService    communication.EmailService
 	unitOfWork      repository.UnitOfWork
 	logger          logger.Logger
 }
 
 func NewWalletService(
 	profileRepo repository.ProfileRepository,
+	userRepo repository.UserRepository,
 	transactionRepo repository.TransactionRepository,
+	emailService communication.EmailService,
 	unitOfWork repository.UnitOfWork,
 	logger logger.Logger,
 ) usecase.WalletUsecase {
 	return &WalletService{
 		profileRepo:     profileRepo,
+		userRepo:        userRepo,
 		transactionRepo: transactionRepo,
+		emailService:    emailService,
 		unitOfWork:      unitOfWork,
 		logger:          logger,
 	}
@@ -138,6 +145,35 @@ func (s *WalletService) Deposit(ctx context.Context, userID uint64, profileID ui
 	if err != nil {
 		return nil, err
 	}
+
+	// Send email notification
+	go func() {
+		user, err := s.userRepo.GetByID(context.Background(), userID)
+		if err != nil || user == nil || user.Email == nil || *user.Email == "" {
+			return
+		}
+
+		profile, err := s.profileRepo.GetByID(context.Background(), profileID)
+		if err != nil || profile == nil {
+			return
+		}
+
+		name := ""
+		if profile.ProfileType == entity.ProfileTypePersonal && profile.PersonDetails != nil {
+			name = profile.PersonDetails.FirstName + " " + profile.PersonDetails.LastName
+		} else if profile.ProfileType == entity.ProfileTypeBusiness && profile.BusinessDetails != nil {
+			name = profile.BusinessDetails.RepFirstName + " " + profile.BusinessDetails.RepLastName
+		}
+
+		data := map[string]interface{}{
+			"Name":        name,
+			"ProfileName": profile.ProfileName,
+			"Amount":      req.Amount,
+			"NewBalance":  newBalance,
+		}
+
+		_ = s.emailService.SendWithTemplate(context.Background(), *user.Email, "Balance Top-up Successful", "balance_topup.html", data)
+	}()
 
 	return &wallet.DepositResponse{
 		Success: true,
