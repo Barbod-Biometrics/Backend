@@ -17,7 +17,9 @@ import (
 func TestListProfiles_Success(t *testing.T) {
 	tctx := context.Background()
 	mockRepo := mocks.NewMockProfileRepository(t)
-	svc := NewAdminProfileService(mockRepo)
+	mockUserRepo := mocks.NewMockUserRepository(t)
+	mockEmail := mocks.NewMockEmailService(t)
+	svc := NewAdminProfileService(mockRepo, mockUserRepo, mockEmail)
 
 	now := time.Now()
 	personal := &entity.Profile{
@@ -94,7 +96,9 @@ func TestListProfiles_Success(t *testing.T) {
 func TestGetProfileDetail_PersonalAndBusiness(t *testing.T) {
 	tctx := context.Background()
 	mockRepo := mocks.NewMockProfileRepository(t)
-	svc := NewAdminProfileService(mockRepo)
+	mockUserRepo := mocks.NewMockUserRepository(t)
+	mockEmail := mocks.NewMockEmailService(t)
+	svc := NewAdminProfileService(mockRepo, mockUserRepo, mockEmail)
 
 	now := time.Now()
 	// Personal profile case
@@ -167,12 +171,21 @@ func TestGetProfileDetail_PersonalAndBusiness(t *testing.T) {
 func TestApproveRejectProfileFlows(t *testing.T) {
 	tctx := context.Background()
 	mockRepo := mocks.NewMockProfileRepository(t)
-	svc := NewAdminProfileService(mockRepo)
+	mockUserRepo := mocks.NewMockUserRepository(t)
+	mockEmail := mocks.NewMockEmailService(t)
+	svc := NewAdminProfileService(mockRepo, mockUserRepo, mockEmail)
+
+	email := "user@example.com"
+	user := &entity.User{UserID: 100, Email: &email}
 
 	// Approve success
-	p := &entity.Profile{ProfileID: 10, VerificationStatus: entity.StatusPending}
+	p := &entity.Profile{ProfileID: 10, UserID: 100, VerificationStatus: entity.StatusPending, ProfileType: entity.ProfileTypePersonal, ProfileName: "Test"}
 	mockRepo.On("GetByID", mock.Anything, uint64(10)).Return(p, nil)
 	mockRepo.On("Update", mock.Anything, mock.MatchedBy(func(p *entity.Profile) bool { return p.VerificationStatus == entity.StatusVerified })).Return(nil)
+
+	mockUserRepo.On("GetByID", mock.Anything, uint64(100)).Return(user, nil).Maybe()
+	mockEmail.On("SendWithTemplate", mock.Anything, email, "Profile Accepted", "profile_accepted.html", mock.Anything).Return(nil).Maybe()
+
 	err := svc.ApproveProfile(tctx, 10, admin.ApproveProfileRequest{})
 	assert.NoError(t, err)
 
@@ -184,9 +197,13 @@ func TestApproveRejectProfileFlows(t *testing.T) {
 	assert.True(t, errors.Is(err, errors.New("only pending profiles can be approved")) || err.Error() == "only pending profiles can be approved")
 
 	// Reject success
-	p3 := &entity.Profile{ProfileID: 20, VerificationStatus: entity.StatusPending}
+	p3 := &entity.Profile{ProfileID: 20, UserID: 100, VerificationStatus: entity.StatusPending, ProfileType: entity.ProfileTypePersonal, ProfileName: "Test"}
 	mockRepo.On("GetByID", mock.Anything, uint64(20)).Return(p3, nil)
 	mockRepo.On("Update", mock.Anything, mock.MatchedBy(func(p *entity.Profile) bool { return p.VerificationStatus == entity.StatusRejected })).Return(nil)
+
+	mockUserRepo.On("GetByID", mock.Anything, uint64(100)).Return(user, nil).Maybe()
+	mockEmail.On("SendWithTemplate", mock.Anything, email, "Profile Rejected", "profile_rejected.html", mock.Anything).Return(nil).Maybe()
+
 	err = svc.RejectProfile(tctx, 20, admin.RejectProfileRequest{Reason: "Not valid"})
 	assert.NoError(t, err)
 
@@ -196,6 +213,9 @@ func TestApproveRejectProfileFlows(t *testing.T) {
 	err = svc.RejectProfile(tctx, 21, admin.RejectProfileRequest{Reason: "Nope"})
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, errors.New("only pending profiles can be rejected")) || err.Error() == "only pending profiles can be rejected")
+
+	// Wait a bit for goroutines
+	time.Sleep(50 * time.Millisecond)
 
 	mockRepo.AssertExpectations(t)
 }
