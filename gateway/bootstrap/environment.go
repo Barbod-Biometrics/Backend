@@ -164,7 +164,7 @@ func NewEnvironment() *Env {
 			SenderEmail:      os.Getenv("SENDER_GMAIL"),
 			SmtpHost:         getEnvString("GMAIL_SMTP_HOST", "smtp.gmail.com"),
 			SmtpPort:         getEnvInt("GMAIL_SMTP_PORT", 587),
-			TemplateDir:      getEnvString("GMAIL_TEMPLATE_DIR", "templates/emails"),
+			TemplateDir:      getEnvString("GMAIL_TEMPLATE_DIR", "templates/email"),
 		},
 		FaceVerification: FaceVerification{
 			FaceVerificationURL: getEnvString("FACE_VERIFICATION_URL", "http://localhost:5000"),
