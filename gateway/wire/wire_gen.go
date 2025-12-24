@@ -59,7 +59,7 @@ func InitializeApplication() (*Application, error) {
 	adminProfileHandler := ProvideAdminProfileHandler(adminProfileUsecase)
 	transactionRepository := postgres.NewTransactionRepository(db, logger)
 	unitOfWork := postgres.NewGormUnitOfWork(db)
-	walletUsecase := service.NewWalletService(profileRepository, transactionRepository, unitOfWork, logger)
+	walletUsecase := service.NewWalletService(profileRepository, userRepository, transactionRepository, emailService, unitOfWork, logger)
 	walletHandler := ProvideWalletHandler(walletUsecase, logger)
 	transactionService := service.NewTransactionService(transactionRepository, logger)
 	transactionHandler := ProvideTransactionHandler(transactionService, profileRepository, logger)
