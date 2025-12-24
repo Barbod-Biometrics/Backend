@@ -38,7 +38,7 @@ WORKDIR /app
 
 COPY --from=builder /app/main .
 
-COPY templates ./templates
+COPY gateway/templates ./templates
 
 RUN mkdir -p /app/logs && chown -R appuser:appgroup /app/logs /app/templates
 
