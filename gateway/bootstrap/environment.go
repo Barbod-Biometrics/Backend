@@ -22,6 +22,11 @@ type Env struct {
 	Gmail            Gmail
 	FaceVerification FaceVerification
 	OCR              OCR
+	Wallet           Wallet
+}
+
+type Wallet struct {
+	LowBalanceThreshold uint64
 }
 
 type Admin struct {
@@ -171,6 +176,9 @@ func NewEnvironment() *Env {
 		},
 		OCR: OCR{
 			OCRURL: getEnvString("OCR_URL", "http://localhost:5001"),
+		},
+		Wallet: Wallet{
+			LowBalanceThreshold: uint64(getEnvInt("WALLET_LOW_BALANCE_THRESHOLD", 1000)),
 		},
 	}
 }
