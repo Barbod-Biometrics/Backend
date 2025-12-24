@@ -19,11 +19,13 @@ import (
 func TestGetWalletSummary_Success(t *testing.T) {
 	ctx := context.Background()
 	mockProfile := mocks.NewMockProfileRepository(t)
+	mockUserRepo := mocks.NewMockUserRepository(t)
 	mockTxRepo := mocks.NewMockTransactionRepository(t)
+	mockEmail := mocks.NewMockEmailService(t)
 	mockUow := mocks.NewMockUnitOfWork(t)
 
 	mockLogger := mocks.NewMockAppLogger(t)
-	svc := NewWalletService(mockProfile, mockTxRepo, mockUow, mockLogger)
+	svc := NewWalletService(mockProfile, mockUserRepo, mockTxRepo, mockEmail, mockUow, mockLogger)
 
 	profile := &entity.Profile{ProfileID: 1, UserID: 42, Balance: 1000}
 	mockProfile.On("GetByID", mock.Anything, uint64(1)).Return(profile, nil)
@@ -49,11 +51,13 @@ func TestGetWalletSummary_Success(t *testing.T) {
 func TestGetTransactions_Success(t *testing.T) {
 	ctx := context.Background()
 	mockProfile := mocks.NewMockProfileRepository(t)
+	mockUserRepo := mocks.NewMockUserRepository(t)
 	mockTxRepo := mocks.NewMockTransactionRepository(t)
+	mockEmail := mocks.NewMockEmailService(t)
 	mockUow := mocks.NewMockUnitOfWork(t)
 
 	mockLogger := mocks.NewMockAppLogger(t)
-	svc := NewWalletService(mockProfile, mockTxRepo, mockUow, mockLogger)
+	svc := NewWalletService(mockProfile, mockUserRepo, mockTxRepo, mockEmail, mockUow, mockLogger)
 
 	profile := &entity.Profile{ProfileID: 1, UserID: 100, Balance: 200}
 	mockProfile.On("GetByID", mock.Anything, uint64(1)).Return(profile, nil)
@@ -88,11 +92,13 @@ func TestGetTransactions_Success(t *testing.T) {
 func TestDeposit_Success(t *testing.T) {
 	ctx := context.Background()
 	mockProfile := mocks.NewMockProfileRepository(t)
+	mockUserRepo := mocks.NewMockUserRepository(t)
 	mockTxRepo := mocks.NewMockTransactionRepository(t)
+	mockEmail := mocks.NewMockEmailService(t)
 	mockUow := mocks.NewMockUnitOfWork(t)
 
 	mockLogger := mocks.NewMockAppLogger(t)
-	svc := NewWalletService(mockProfile, mockTxRepo, mockUow, mockLogger)
+	svc := NewWalletService(mockProfile, mockUserRepo, mockTxRepo, mockEmail, mockUow, mockLogger)
 
 	profile := &entity.Profile{ProfileID: 100, UserID: 500, Balance: 1000}
 	mockProfile.On("GetByID", mock.Anything, uint64(100)).Return(profile, nil)
@@ -111,6 +117,12 @@ func TestDeposit_Success(t *testing.T) {
 	// Expect profile update (balance increased)
 	mockProfile.On("Update", mock.Anything, mock.MatchedBy(func(p *entity.Profile) bool { return p.Balance == 1500 })).Return(nil)
 
+	email := "user@example.com"
+	user := &entity.User{UserID: 500, Email: &email}
+	mockUserRepo.On("GetByID", mock.Anything, uint64(500)).Return(user, nil).Maybe()
+	mockProfile.On("GetByID", mock.Anything, uint64(100)).Return(profile, nil).Maybe()
+	mockEmail.On("SendWithTemplate", mock.Anything, email, "Balance Top-up Successful", "balance_topup.html", mock.Anything).Return(nil).Maybe()
+
 	req := wallet.DepositRequest{Amount: 500, Description: "deposit"}
 	resp, err := svc.Deposit(ctx, 500, 100, req)
 	assert.NoError(t, err)
@@ -118,6 +130,9 @@ func TestDeposit_Success(t *testing.T) {
 	assert.Equal(t, "999", resp.Data.TransactionID)
 	assert.Equal(t, uint64(1500), resp.Data.NewBalance)
 	assert.Equal(t, "Deposit successful", resp.Data.Message)
+
+	// Wait a bit for goroutine
+	time.Sleep(50 * time.Millisecond)
 
 	mockProfile.AssertExpectations(t)
 	mockTxRepo.AssertExpectations(t)
@@ -127,11 +142,13 @@ func TestDeposit_Success(t *testing.T) {
 func TestDeposit_Failure_CreateOrUpdate(t *testing.T) {
 	ctx := context.Background()
 	mockProfile := mocks.NewMockProfileRepository(t)
+	mockUserRepo := mocks.NewMockUserRepository(t)
 	mockTxRepo := mocks.NewMockTransactionRepository(t)
+	mockEmail := mocks.NewMockEmailService(t)
 	mockUow := mocks.NewMockUnitOfWork(t)
 
 	mockLogger := mocks.NewMockAppLogger(t)
-	svc := NewWalletService(mockProfile, mockTxRepo, mockUow, mockLogger)
+	svc := NewWalletService(mockProfile, mockUserRepo, mockTxRepo, mockEmail, mockUow, mockLogger)
 
 	profile := &entity.Profile{ProfileID: 200, UserID: 600, Balance: 100}
 	mockProfile.On("GetByID", mock.Anything, uint64(200)).Return(profile, nil)
