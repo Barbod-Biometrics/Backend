@@ -8,17 +8,26 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/admin"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/profile"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/communication"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
 )
 
 type AdminProfileService struct {
-	profileRepo repository.ProfileRepository
+	profileRepo  repository.ProfileRepository
+	userRepo     repository.UserRepository
+	emailService communication.EmailService
 }
 
-func NewAdminProfileService(profileRepo repository.ProfileRepository) usecase.AdminProfileUsecase {
+func NewAdminProfileService(
+	profileRepo repository.ProfileRepository,
+	userRepo repository.UserRepository,
+	emailService communication.EmailService,
+) usecase.AdminProfileUsecase {
 	return &AdminProfileService{
-		profileRepo: profileRepo,
+		profileRepo:  profileRepo,
+		userRepo:     userRepo,
+		emailService: emailService,
 	}
 }
 
@@ -226,6 +235,28 @@ func (s *AdminProfileService) ApproveProfile(ctx context.Context, profileID uint
 		return fmt.Errorf("failed to approve profile: %w", err)
 	}
 
+	// Send email notification
+	go func() {
+		user, err := s.userRepo.GetByID(context.Background(), p.UserID)
+		if err != nil || user == nil || user.Email == nil || *user.Email == "" {
+			return
+		}
+
+		name := ""
+		if p.ProfileType == entity.ProfileTypePersonal && p.PersonDetails != nil {
+			name = p.PersonDetails.FirstName + " " + p.PersonDetails.LastName
+		} else if p.ProfileType == entity.ProfileTypeBusiness && p.BusinessDetails != nil {
+			name = p.BusinessDetails.RepFirstName + " " + p.BusinessDetails.RepLastName
+		}
+
+		data := map[string]interface{}{
+			"Name":        name,
+			"ProfileName": p.ProfileName,
+		}
+
+		_ = s.emailService.SendWithTemplate(context.Background(), *user.Email, "Profile Accepted", "profile_accepted.html", data)
+	}()
+
 	return nil
 }
 
@@ -246,6 +277,29 @@ func (s *AdminProfileService) RejectProfile(ctx context.Context, profileID uint6
 	if err := s.profileRepo.Update(ctx, p); err != nil {
 		return fmt.Errorf("failed to reject profile: %w", err)
 	}
+
+	// Send email notification
+	go func() {
+		user, err := s.userRepo.GetByID(context.Background(), p.UserID)
+		if err != nil || user == nil || user.Email == nil || *user.Email == "" {
+			return
+		}
+
+		name := ""
+		if p.ProfileType == entity.ProfileTypePersonal && p.PersonDetails != nil {
+			name = p.PersonDetails.FirstName + " " + p.PersonDetails.LastName
+		} else if p.ProfileType == entity.ProfileTypeBusiness && p.BusinessDetails != nil {
+			name = p.BusinessDetails.RepFirstName + " " + p.BusinessDetails.RepLastName
+		}
+
+		data := map[string]interface{}{
+			"Name":        name,
+			"ProfileName": p.ProfileName,
+			"Reason":      req.Reason,
+		}
+
+		_ = s.emailService.SendWithTemplate(context.Background(), *user.Email, "Profile Rejected", "profile_rejected.html", data)
+	}()
 
 	return nil
 }

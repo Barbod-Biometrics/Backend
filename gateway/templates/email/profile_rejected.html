@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .container { padding: 20px; }
+        .header { background-color: #f8f9fa; padding: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Profile Rejected</h1>
+        </div>
+        <p>Hello <strong>{{.Name}}</strong>,</p>
+        <p>We regret to inform you that your profile <strong>{{.ProfileName}}</strong> has been rejected.</p>
+        {{if .Reason}}
+        <p>Reason: {{.Reason}}</p>
+        {{end}}
+        <p>Please review your information and try again.</p>
+        <p>Thanks,<br>The Barbod Team</p>
+    </div>
+</body>
+</html>
