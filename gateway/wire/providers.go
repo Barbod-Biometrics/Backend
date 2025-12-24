@@ -182,11 +182,14 @@ func ProvideFaceVerificationService(
 	repo repository.FaceVerificationRepository,
 	serviceRepo repository.ServiceRepository,
 	profileRepo repository.ProfileRepository,
+	userRepo repository.UserRepository,
 	transactionRepo repository.TransactionRepository,
+	emailService communication.EmailService,
 	unitOfWork repository.UnitOfWork,
 	trialService *service.TrialService,
+	cfg *bootstrap.Config,
 ) usecase.FaceVerificationUsecase {
-	return service.NewFaceVerificationService(client, l, repo, serviceRepo, profileRepo, transactionRepo, unitOfWork, trialService)
+	return service.NewFaceVerificationService(client, l, repo, serviceRepo, profileRepo, userRepo, transactionRepo, emailService, unitOfWork, trialService, cfg)
 }
 
 func ProvideFaceVerificationHandler(ms usecase.FaceVerificationUsecase, l logger.Logger) *faceVerificationController.FaceVerificationHandler {
@@ -207,11 +210,14 @@ func ProvideOCRService(
 	repo repository.OCRRepository,
 	serviceRepo repository.ServiceRepository,
 	profileRepo repository.ProfileRepository,
+	userRepo repository.UserRepository,
 	transactionRepo repository.TransactionRepository,
+	emailService communication.EmailService,
 	unitOfWork repository.UnitOfWork,
 	trialService *service.TrialService,
+	cfg *bootstrap.Config,
 ) usecase.OCRUsecase {
-	return service.NewOCRService(client, l, repo, serviceRepo, profileRepo, transactionRepo, unitOfWork, trialService)
+	return service.NewOCRService(client, l, repo, serviceRepo, profileRepo, userRepo, transactionRepo, emailService, unitOfWork, trialService, cfg)
 }
 
 func ProvideOCRHandler(ocrUsecase usecase.OCRUsecase, l logger.Logger) *ocrController.OCRHandler {
