@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .container { padding: 20px; }
+        .header { background-color: #f8f9fa; padding: 10px; }
+        .warning { color: #856404; background-color: #fff3cd; border: 1px solid #ffeeba; padding: 10px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Low Balance Warning</h1>
+        </div>
+        <p>Hello <strong>{{.Name}}</strong>,</p>
+        <div class="warning">
+            <p>Your balance for profile <strong>{{.ProfileName}}</strong> is running low.</p>
+            <p><strong>Current Balance:</strong> {{.Balance}}</p>
+        </div>
+        <p>Please top up your balance to ensure uninterrupted service.</p>
+        <p>Thanks,<br>The Barbod Team</p>
+    </div>
+</body>
+</html>
