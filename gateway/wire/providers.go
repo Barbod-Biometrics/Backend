@@ -6,10 +6,12 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/bootstrap"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/service"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/communication"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/enum"
 	domainJWT "github.com/Barbod-Biometrics/Backend/gateway/internal/domain/jwt"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/communication/email"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/communication/sms"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/database/redis"
 	face_verification "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/face_verificaiton"
@@ -86,6 +88,10 @@ func ProvideJWTKeyManager() *jwt.JWTKeyManager {
 
 func ProvideSMSService(cfg *bootstrap.Config) *sms.SMSService {
 	return sms.NewSMSService(cfg.Env.SMSGateway.APIKey, cfg.Env.OTP.BackdoorCode)
+}
+
+func ProvideEmailService(cfg *bootstrap.Config, appLogger logger.Logger) communication.EmailService {
+	return email.NewGmailService(cfg.Env.Gmail, appLogger)
 }
 
 func ProvideTranslator() *localization.TranslationService {

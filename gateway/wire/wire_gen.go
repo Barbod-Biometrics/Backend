@@ -54,7 +54,8 @@ func InitializeApplication() (*Application, error) {
 	logger := ProvideGenericLogger(appLogger)
 	apiKeyService := service.NewAPIKeyService(apiKeyRepository, logger)
 	apiKeyHandler := ProvideAPIKeyController(apiKeyService, logger)
-	adminProfileUsecase := service.NewAdminProfileService(profileRepository)
+	emailService := ProvideEmailService(config, logger)
+	adminProfileUsecase := service.NewAdminProfileService(profileRepository, userRepository, emailService)
 	adminProfileHandler := ProvideAdminProfileHandler(adminProfileUsecase)
 	transactionRepository := postgres.NewTransactionRepository(db, logger)
 	unitOfWork := postgres.NewGormUnitOfWork(db)
@@ -103,6 +104,7 @@ var InfrastructureSet = wire.NewSet(
 	ProvideTelemetry,
 	ProvideJWTKeyManager,
 	ProvideSMSService,
+	ProvideEmailService,
 	ProvideTranslator,
 	ProvideLocalizationTranslator,
 	ProvideRecovery,
