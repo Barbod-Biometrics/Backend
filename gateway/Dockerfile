@@ -38,7 +38,9 @@ WORKDIR /app
 
 COPY --from=builder /app/main .
 
-RUN mkdir -p /app/logs && chown -R appuser:appgroup /app/logs
+COPY templates ./templates
+
+RUN mkdir -p /app/logs && chown -R appuser:appgroup /app/logs /app/templates
 
 USER appuser
 
