@@ -58,6 +58,7 @@ func SetupPostgres(ctx context.Context) (*PostgresContainer, error) {
 		&entity.APIKey{},
 		&entity.User{},
 		&entity.Transaction{},
+		&entity.WorkflowConfig{},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to migrate: %w", err)

@@ -13,9 +13,11 @@ import (
 	faceVerificationController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/face_verification"
 	ocrController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/ocr"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/session"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/transaction"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/user"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/wallet"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/workflow_config"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/middleware"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -27,6 +29,8 @@ type Route struct {
 	profileController          *profile.ProfileHandler
 	apiKeyController           *apikey.ApiKeyHandler
 	adminProfileController     *admin.AdminProfileHandler
+	sessionController          *session.SessionHandler
+	workflowConfigController   *workflow_config.WorkflowConfigHandler
 	faceVerificationController *faceVerificationController.FaceVerificationHandler
 	ocrController              *ocrController.OCRHandler
 	walletController           *wallet.WalletHandler
@@ -43,6 +47,8 @@ func NewRouter(
 	profileHandler *profile.ProfileHandler,
 	apiKeyHandler *apikey.ApiKeyHandler,
 	adminProfileHandler *admin.AdminProfileHandler,
+	sessionHandler *session.SessionHandler,
+	workflowConfigHandler *workflow_config.WorkflowConfigHandler,
 	faceVerificationHandler *faceVerificationController.FaceVerificationHandler,
 	ocrHandler *ocrController.OCRHandler,
 	walletHandler *wallet.WalletHandler,
@@ -58,6 +64,8 @@ func NewRouter(
 		profileController:          profileHandler,
 		apiKeyController:           apiKeyHandler,
 		adminProfileController:     adminProfileHandler,
+		sessionController:          sessionHandler,
+		workflowConfigController:   workflowConfigHandler,
 		walletController:           walletHandler,
 		transactionController:      transactionHandler,
 		faceVerificationController: faceVerificationHandler,
@@ -146,6 +154,25 @@ func (r *Route) RegisterRoutes() http.Handler {
 			faceVerification.POST("/verify", r.faceVerificationController.VerifyFace)
 			faceVerification.POST("/crop", r.faceVerificationController.CropImage)
 			faceVerification.GET("/health", r.faceVerificationController.HealthCheck)
+		}
+
+		workflow := v1.Group("/workflow")
+		workflow.Use(middleware.APIKeyAuth(r.apiKeyUsecase, r.log))
+		{
+			workflow.POST("/", r.sessionController.Start)
+			workflow.POST("/:id/upload", r.sessionController.Upload)
+			workflow.GET("/:id", r.sessionController.Get)
+			workflow.POST("/:id/cancel", r.sessionController.Cancel)
+		}
+
+		workflowConfig := v1.Group("/workflow/config")
+		workflowConfig.Use(middleware.JWTMiddleware(r.jwtKeyManager))
+		{
+			workflowConfig.POST("/", r.workflowConfigController.SaveConfig)
+			workflowConfig.GET("/", r.workflowConfigController.ListConfigs)
+			workflowConfig.GET("/:id", r.workflowConfigController.GetConfig)
+			workflowConfig.PUT("/:id", r.workflowConfigController.UpdateConfig)
+			workflowConfig.DELETE("/:id", r.workflowConfigController.DeleteConfig)
 		}
 
 		ocr := v1.Group("/ocr")
