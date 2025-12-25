@@ -156,5 +156,14 @@ var English = map[string]interface{}{
 		"deletePanel":                "Panel has been deleted successfully",
 		"editStaff":                  "Staff credential has been updated successfully.",
 		"addStaff":                   "New staff has been added successfully.",
+		"workflowInitialized": "Workflow initialized successfully",
+	},
+	"workflow": map[string]interface{}{
+		"status": map[string]interface{}{
+			"initialized": "initialized",
+		},
+		"next_step": map[string]interface{}{
+			"upload_image_ocr": "upload image for OCR",
+		},
 	},
 }

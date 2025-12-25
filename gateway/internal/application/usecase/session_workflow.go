@@ -3,13 +3,13 @@ package usecase
 import (
 	"context"
 
-	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/session"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 )
 
 type SessionUsecase interface {
 	StartAndRun(ctx context.Context, profileID uint64, workflowConfigID uint64, clientIP string) (string, error)
 
-	ProcessOCR(ctx context.Context, sess *session.Session, imageBytes []byte) (interface{}, error)
+	ProcessOCR(ctx context.Context, sess *entity.Session, imageBytes []byte) (interface{}, error)
 
-	ProcessFaceVerification(ctx context.Context, sess *session.Session, baseImageBytes []byte, videoBytes []byte) (interface{}, error)
+	ProcessFaceVerification(ctx context.Context, sess *entity.Session, baseImageBytes []byte, videoBytes []byte) (interface{}, error)
 }

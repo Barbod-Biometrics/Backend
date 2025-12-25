@@ -84,6 +84,15 @@ var Persian = map[string]interface{}{
 		"refreshToken":      "نشست شما با موفقیت تمدید شد.",
 		"completeRegister":  "اطلاعات تکمیلی ثبت نام با موفقیت انجام شد.",
 		"updateProfile":     "پروفایل شما با موفقیت به روزرسانی شد.",
+		"workflowInitialized": "فرآیند با موفقیت آغاز شد",
+	},
+	"workflow": map[string]interface{}{
+		"status": map[string]interface{}{
+			"initialized": "فرآیند آغاز شد",
+		},
+		"next_step": map[string]interface{}{
+			"upload_image_ocr": "ارسال تصویر برای OCR",
+		},
 	},
 	"ERR_TRIAL_EXCEEDED": "تعداد آزمایش‌های دمو تمام شده است. برای ادامه لطفاً ثبت‌نام کنید.",
 }
