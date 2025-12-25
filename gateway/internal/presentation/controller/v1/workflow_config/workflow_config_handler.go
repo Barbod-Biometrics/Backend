@@ -160,15 +160,16 @@ func (h *WorkflowConfigHandler) UpdateConfig(c *gin.Context) {
 
 	cfg, err := h.uc.Update(c.Request.Context(), pid, id, req)
 	if err != nil {
+		if nf, ok := err.(exception.NotFoundError); ok {
+			panic(nf)
+		}
 		if forbErr, ok := err.(exception.ForbiddenError); ok {
 			panic(forbErr)
 		}
 		if appErr, ok := err.(*exception.AppError); ok {
-			c.JSON(appErr.HTTPStatus, gin.H{"error": appErr.Code, "message": appErr.Message})
-			return
+			panic(appErr)
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed_to_update"})
-		return
+		panic(exception.ErrFailedToUpdate)
 	}
 
 	c.JSON(http.StatusOK, dto.ConfigResponse{
@@ -202,15 +203,16 @@ func (h *WorkflowConfigHandler) DeleteConfig(c *gin.Context) {
 	}
 
 	if err := h.uc.Delete(c.Request.Context(), pid, id); err != nil {
+		if nf, ok := err.(exception.NotFoundError); ok {
+			panic(nf)
+		}
 		if forbErr, ok := err.(exception.ForbiddenError); ok {
 			panic(forbErr)
 		}
 		if appErr, ok := err.(*exception.AppError); ok {
-			c.JSON(appErr.HTTPStatus, gin.H{"error": appErr.Code, "message": appErr.Message})
-			return
+			panic(appErr)
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed_to_delete"})
-		return
+		panic(exception.ErrFailedToDelete)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "config deleted successfully"})

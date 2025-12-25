@@ -2,12 +2,14 @@ package service
 
 import (
 	"context"
+	"errors"
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/workflow_config"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/exception"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
+	"gorm.io/gorm"
 )
 
 type WorkflowConfigService interface {
@@ -46,12 +48,22 @@ func (s *workflowConfigService) ListByProfile(ctx context.Context, profileID uin
 }
 
 func (s *workflowConfigService) GetByID(ctx context.Context, id uint64) (*entity.WorkflowConfig, error) {
-	return s.repo.GetByID(ctx, id)
+	cfg, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, exception.NewNotFoundError("workflow_config")
+		}
+		return nil, err
+	}
+	return cfg, nil
 }
 
 func (s *workflowConfigService) Update(ctx context.Context, profileID, id uint64, req workflow_config.UpdateConfigRequest) (*entity.WorkflowConfig, error) {
 	cfg, err := s.repo.GetByID(ctx, id)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, exception.NewNotFoundError("workflow_config")
+		}
 		return nil, err
 	}
 	if cfg.ProfileID != profileID {
@@ -72,6 +84,9 @@ func (s *workflowConfigService) Update(ctx context.Context, profileID, id uint64
 func (s *workflowConfigService) Delete(ctx context.Context, profileID, id uint64) error {
 	cfg, err := s.repo.GetByID(ctx, id)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return exception.NewNotFoundError("workflow_config")
+		}
 		return err
 	}
 	if cfg.ProfileID != profileID {
