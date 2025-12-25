@@ -2,7 +2,6 @@ package localization
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/localization"
@@ -74,14 +73,15 @@ type translatorInstance struct {
 }
 
 func (ti *translatorInstance) Translate(key string, params ...string) (string, error) {
-	translation, err := ti.translator.T(key)
+	// Pass params into the underlying universal-translator to allow it to
+	// perform safe parameter substitution. Calling T without params when the
+	// translation contains indexed placeholders (e.g. {0}) can cause the
+	// translator internals to index into an empty args slice and panic.
+	//
+	// We still return the key and error if the translator reports an error.
+	translation, err := ti.translator.T(key, params...)
 	if err != nil {
 		return key, err
-	}
-
-	for i, param := range params {
-		placeholder := fmt.Sprintf("{%d}", i)
-		translation = strings.ReplaceAll(translation, placeholder, param)
 	}
 
 	return translation, nil

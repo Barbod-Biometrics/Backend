@@ -159,8 +159,8 @@ func handleAuthError(ctx *gin.Context, authErr *exception.AuthError) {
 
 func handleNotFoundError(ctx *gin.Context, notFoundErr exception.NotFoundError) {
 	trans := GetTranslator(ctx)
-	itemName, _ := trans.Translate(notFoundErr.Item)
-	message, _ := trans.Translate("errors.notFound", itemName)
+	transItem := notFoundErr.Item
+	message, _ := trans.Translate("errors.notFound", transItem)
 	ctx.JSON(404, gin.H{"code": "ERR_NOT_FOUND", "message": message})
 }
 
@@ -168,15 +168,22 @@ func handleForbiddenError(ctx *gin.Context, forbiddenErr exception.ForbiddenErro
 	trans := GetTranslator(ctx)
 	resourceName, _ := trans.Translate(forbiddenErr.Resource)
 	message, _ := trans.Translate("errors.forbiddenError", resourceName)
+	code := "ERR_FORBIDDEN"
+
 	switch forbiddenErr.Type {
 	case exception.ForbiddenTypeBannedUser:
 		message, _ = trans.Translate("errors.bannedUser")
+		code = "ERR_BANNED_USER"
+	case exception.ForbiddenTypeUnapprovedCorporation:
+		message, _ = trans.Translate("errors.unapprovedCorporation")
+		code = "ERR_UNAPPROVED_CORPORATION"
+	case exception.ForbiddenTypeNoPropertyAccess:
+		// include the resource name in the message
+		message, _ = trans.Translate("errors.noPropertyAccess", resourceName)
+		code = "ERR_NO_PROPERTY_ACCESS"
+	default:
+		// keep default message and code
 	}
 
-	code := "ERR_FORBIDDEN"
-	switch forbiddenErr.Type {
-	case exception.ForbiddenTypeBannedUser:
-		code = "ERR_BANNED_USER"
-	}
 	ctx.JSON(403, gin.H{"code": code, "message": message})
 }
