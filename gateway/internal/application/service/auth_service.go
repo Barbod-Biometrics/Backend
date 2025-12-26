@@ -37,8 +37,7 @@ func (uc *AuthService) RequestOTP(ctx context.Context, req auth.RequestOTPReques
 		return err
 	}
 
-	message := fmt.Sprintf("Your Barbod Biomentrics code is: %s", plainOTP)
-	if err := uc.SMSService.Send(ctx, req.PhoneNumber, message); err != nil {
+	if err := uc.SMSService.Send(ctx, req.PhoneNumber, plainOTP); err != nil {
 		_ = uc.otpService.DeleteOTP(ctx, req.PhoneNumber)
 		return fmt.Errorf("failed to send sms: %w", err)
 	}

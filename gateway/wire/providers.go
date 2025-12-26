@@ -85,7 +85,7 @@ func ProvideJWTKeyManager() *jwt.JWTKeyManager {
 }
 
 func ProvideSMSService(cfg *bootstrap.Config) *sms.SMSService {
-	return sms.NewSMSService(cfg.Env.SMSGateway.APIKey, cfg.Env.OTP.BackdoorCode)
+	return sms.NewSMSService(cfg.Env.SMSGateway.APIKey, cfg.Env.SMSGateway.BaseURL, cfg.Env.OTP.BackdoorCode)
 }
 
 func ProvideTranslator() *localization.TranslationService {
