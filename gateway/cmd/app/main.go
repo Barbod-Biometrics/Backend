@@ -60,6 +60,7 @@ func main() {
 		&entity.Service{},
 		&postgresRepo.FaceVerificationModel{},
 		&postgresRepo.OCRModel{},
+		&entity.ContactSalesRequest{},
 	)
 	if err != nil {
 		app.Logger.Fatal("Failed to migrate database", logger.Field{Key: "error", Value: err})
