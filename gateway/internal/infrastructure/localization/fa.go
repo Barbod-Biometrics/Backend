@@ -62,6 +62,11 @@ var Persian = map[string]interface{}{
 		"faceImageEmpty":          "تصویر نمی‌تواند خالی باشد",
 		"faceVerificationSuccess": "تأیید چهره با موفقیت انجام شد",
 		"faceVerificationFailure": "تأیید چهره ناموفق بود",
+		"contactSalesSubmissionFailed": "ثبت درخواست تماس با فروش با خطا مواجه شد.",
+		"contactSalesListFailed":       "دریافت لیست درخواست‌های تماس با فروش با خطا مواجه شد.",
+		"contactSalesMarkReadFailed":   "علامت‌گذاری درخواست به عنوان خوانده شده با خطا مواجه شد.",
+		"contactSalesDeleteFailed":     "حذف درخواست تماس با فروش با خطا مواجه شد.",
+		"invalidId":                    "شناسه نامعتبر است.",
 	},
 	"successMessage": map[string]interface{}{
 		"userRegister":      "ثبت نام موفق بود! لطفاً پیامک های خود را بررسی کنید تا حساب خود را تأیید کرده و فرآیند ثبت نام را تکمیل نمایید.",
@@ -75,6 +80,9 @@ var Persian = map[string]interface{}{
 		"refreshToken":      "نشست شما با موفقیت تمدید شد.",
 		"completeRegister":  "اطلاعات تکمیلی ثبت نام با موفقیت انجام شد.",
 		"updateProfile":     "پروفایل شما با موفقیت به روزرسانی شد.",
+		"contactSalesSubmitted":      "درخواست تماس با فروش با موفقیت ثبت شد.",
+		"contactSalesMarkedRead":     "درخواست تماس با فروش به عنوان خوانده شده علامت‌گذاری شد.",
+		"contactSalesDeleted":        "درخواست تماس با فروش با موفقیت حذف شد.",
 	},
 	"ERR_TRIAL_EXCEEDED": "تعداد آزمایش‌های دمو تمام شده است. برای ادامه لطفاً ثبت‌نام کنید.",
 }
