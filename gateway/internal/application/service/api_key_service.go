@@ -17,22 +17,31 @@ import (
 )
 
 type APIKeyService struct {
-	apiKeyRepo repository.APIKeyRepository
-	logger     logger.Logger
+	apiKeyRepo  repository.APIKeyRepository
+	profileRepo repository.ProfileRepository
+	logger      logger.Logger
 }
 
 var _ usecase.APIKeyUsecase = (*APIKeyService)(nil)
 
-func NewAPIKeyService(apiKeyRepo repository.APIKeyRepository, logger logger.Logger) *APIKeyService {
+func NewAPIKeyService(apiKeyRepo repository.APIKeyRepository, profileRepo repository.ProfileRepository, logger logger.Logger) *APIKeyService {
 	return &APIKeyService{
-		apiKeyRepo: apiKeyRepo,
-		logger:     logger,
+		apiKeyRepo:  apiKeyRepo,
+		profileRepo: profileRepo,
+		logger:      logger,
 	}
 }
 
 func (s *APIKeyService) GenerateKey(ctx context.Context, profileID uint64) (string, error) {
 
 	s.logger.Info("starting api key generation", logger.Field{Key: "profile_id", Value: profileID})
+
+	// safety check: ensure profile exists
+	_, err := s.profileRepo.GetByID(ctx, profileID)
+	if err != nil {
+		s.logger.Warn("api key generation failed: profile not found", logger.Field{Key: "profile_id", Value: profileID})
+		return "", errors.New("profile not found")
+	}
 
 	// safety check: ensure no active key exists for this profile_id
 	existingKey, err := s.apiKeyRepo.GetActiveByProfileID(ctx, profileID)
