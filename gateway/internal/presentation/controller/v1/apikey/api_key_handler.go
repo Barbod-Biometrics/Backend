@@ -1,6 +1,7 @@
 package apikey
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -32,6 +33,7 @@ func NewApiKeyHandler(apiKeyUsecase usecase.APIKeyUsecase, logger logger.Logger)
 // @Param profile_id path int true "Profile ID"
 // @Success 200 {object} business.NewAPIKeyResponse
 // @Failure 400 {object} map[string]string
+// @Failure 409 {object} map[string]string "Key Already Exists (Use Regenerate)"
 // @Failure 500 {object} map[string]string
 // @Router /api-key/{profile_id}/generate [POST]
 func (h *ApiKeyHandler) GenerateKey(c *gin.Context) {
@@ -51,6 +53,14 @@ func (h *ApiKeyHandler) GenerateKey(c *gin.Context) {
 
 	rawKey, err := h.apiKeyUsecase.GenerateKey(c.Request.Context(), req.ProfileID)
 	if err != nil {
+		if errors.Is(err, errors.New("active key exists for this profile id")) {
+			h.logger.Warn("generate request blocked: active key exists", logger.Field{Key: "profile_id", Value: req.ProfileID})
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   "Active API key already exists for this profile ID",
+				"message": "Use /regenerate to replace your key.",
+			})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

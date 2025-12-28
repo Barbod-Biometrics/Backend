@@ -34,6 +34,17 @@ func (s *APIKeyService) GenerateKey(ctx context.Context, profileID uint64) (stri
 
 	s.logger.Info("starting api key generation", logger.Field{Key: "profile_id", Value: profileID})
 
+	// safety check: ensure no active key exists for this profile_id
+	existingKey, err := s.apiKeyRepo.GetActiveByProfileID(ctx, profileID)
+	if err == nil && existingKey != nil {
+		s.logger.Warn("generation blocked: active key exists", logger.Field{Key: "profile_id", Value: profileID})
+		return "", errors.New("active key exists for this profile id")
+	}
+
+	if err != nil {
+		return "", errors.New("record not found in checking active key for the profile id")
+	}
+
 	bytes := make([]byte, 32)
 	if _, err := rand.Read(bytes); err != nil {
 		s.logger.Error("failed to generate random bytes", logger.Field{Key: "error", Value: err})
