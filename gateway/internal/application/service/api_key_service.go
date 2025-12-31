@@ -89,6 +89,15 @@ func (s *APIKeyService) GenerateKey(ctx context.Context, profileID uint64) (stri
 		return "", err
 	}
 
+	err = s.profileRepo.UpdateHasAPIKey(ctx, profileID, true)
+	if err != nil {
+		// NOTE: in a normal world we have to rollback the API key creation here.
+
+		s.logger.Error("failed to update profile has_apikey flag",
+			logger.Field{Key: "profile_id", Value: profileID},
+			logger.Field{Key: "error", Value: err})
+	}
+
 	s.logger.Info("api key generated successfully", logger.Field{Key: "profile_id", Value: profileID})
 
 	return fullRawKey, nil
