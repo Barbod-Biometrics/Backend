@@ -25,3 +25,20 @@ type HealthCheckResponseDTO struct {
 	Models  interface{} `json:"models,omitempty"`
 	Config  interface{} `json:"config,omitempty"`
 }
+
+type FaceReportItem struct {
+	ID       uint64  `json:"id"`
+	Date     string  `json:"date"`
+	Status   string  `json:"status"`
+	Duration float64 `json:"duration"`
+	Message  string  `json:"message"`
+	Reason   string  `json:"reason"`
+	Rate     float32 `json:"rate"`
+}
+
+type FaceReportResponse struct {
+	Items      []FaceReportItem `json:"items"`
+	TotalCount int64            `json:"total_count"`
+	Page       int              `json:"page"`
+	TotalPages int              `json:"total_pages"`
+}

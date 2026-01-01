@@ -12,3 +12,16 @@ type CropImageRequest struct {
 type HealthCheckRequest struct {
 	// no fields
 }
+
+type GetFaceReportRequest struct {
+	ProfileID uint64 `form:"profile_id" binding:"required"`
+
+	// filters
+	Status   string `form:"status"`
+	FromDate string `form:"from_date"` // miladi or shamsi? which one?
+	ToDate   string `form:"to_date"`
+
+	// sorting
+	SortBy    string `form:"sort_by"`
+	SortOrder string `form:"sort_order"`
+}
