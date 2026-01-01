@@ -9,7 +9,6 @@ import (
 	docs "github.com/Barbod-Biometrics/Backend/gateway/docs"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
-	postgresRepo "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/repository/postgres"
 
 	appWire "github.com/Barbod-Biometrics/Backend/gateway/wire"
 	"github.com/gin-gonic/gin"
@@ -58,8 +57,8 @@ func main() {
 		&entity.APIKey{},
 		&entity.Transaction{},
 		&entity.Service{},
-		&postgresRepo.FaceVerificationModel{},
-		&postgresRepo.OCRModel{},
+		&entity.FaceVerificationModel{},
+		&entity.OCRModel{},
 	)
 	if err != nil {
 		app.Logger.Fatal("Failed to migrate database", logger.Field{Key: "error", Value: err})

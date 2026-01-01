@@ -10,22 +10,6 @@ import (
 	"gorm.io/gorm"
 )
 
-type FaceVerificationModel struct {
-	ID                    uint64         `gorm:"primaryKey;autoIncrement" json:"id"`
-	ProfileID             uint64         `gorm:"not null;index" json:"profile_id"`
-	Success               bool           `gorm:"not null;index" json:"success"`
-	Reason                string         `gorm:"type:text" json:"reason"`
-	Message               string         `gorm:"type:text" json:"message"`
-	HighestSimilarity     float64        `gorm:"type:double precision;index" json:"highest_similarity"`
-	ProcessingTimeSeconds float64        `gorm:"type:double precision" json:"processing_time_seconds"`
-	Stats                 datatypes.JSON `gorm:"type:jsonb" json:"stats"`
-	CreatedAt             time.Time      `gorm:"not null;default:now()" json:"created_at"`
-}
-
-func (FaceVerificationModel) TableName() string {
-	return "face_verifications"
-}
-
 type FaceVerificationRepository struct {
 	db *gorm.DB
 }
@@ -57,7 +41,7 @@ func (r *FaceVerificationRepository) SaveResult(ctx context.Context, profileID u
 		statsBytes = datatypes.JSON([]byte("null"))
 	}
 
-	model := &FaceVerificationModel{
+	model := &entity.FaceVerificationModel{
 		ProfileID:             profileID,
 		Success:               result != nil && result.Success,
 		Reason:                "",
@@ -81,7 +65,7 @@ func (r *FaceVerificationRepository) SaveResult(ctx context.Context, profileID u
 func (r *FaceVerificationRepository) GetResultsByProfileID(ctx context.Context, profileID uint64) ([]*entity.FaceVerificationRecord, error) {
 	db := r.getDB(ctx)
 
-	var rows []FaceVerificationModel
+	var rows []*entity.FaceVerificationModel
 	if err := db.WithContext(ctx).
 		Where("profile_id = ?", profileID).
 		Order("created_at DESC").

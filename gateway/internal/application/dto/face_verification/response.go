@@ -1,10 +1,5 @@
 package face_verification
 
-type FaceVerificationRequest struct {
-	Photo []byte `json:"photo" form:"photo"`
-	Video []byte `json:"video" form:"video"`
-}
-
 type FaceVerificationResponse struct {
 	Success  bool        `json:"success"`
 	Reason   string      `json:"reason"`
@@ -17,19 +12,11 @@ type FaceVerificationResponse struct {
 	RechargeInSeconds int `json:"recharge_in_seconds,omitempty"`
 }
 
-type CropImageRequest struct {
-	Image []byte `json:"image" form:"image"`
-}
-
 type CropImageResponse struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`
 	Error   string `json:"error,omitempty"`
 	Image   []byte `json:"image,omitempty"`
-}
-
-type HealthCheckRequest struct {
-	// no fields
 }
 
 type HealthCheckResponseDTO struct {

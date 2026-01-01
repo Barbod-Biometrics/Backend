@@ -10,19 +10,6 @@ import (
 	"gorm.io/gorm"
 )
 
-type OCRModel struct {
-	ID        uint64         `gorm:"primaryKey;autoIncrement" json:"id"`
-	ProfileID uint64         `gorm:"not null;index" json:"profile_id"`
-	Success   bool           `gorm:"not null;index" json:"success"`
-	Message   string         `gorm:"type:text" json:"message"`
-	Stats     datatypes.JSON `gorm:"type:jsonb" json:"stats"`
-	CreatedAt time.Time      `gorm:"not null;default:now()" json:"created_at"`
-}
-
-func (OCRModel) TableName() string {
-	return "ocr_results"
-}
-
 type OCRRepository struct {
 	db *gorm.DB
 }
@@ -54,12 +41,12 @@ func (r *OCRRepository) SaveResult(ctx context.Context, profileID uint64, result
 		statsBytes = datatypes.JSON([]byte("null"))
 	}
 
-	model := &OCRModel{
+	model := &entity.OCRModel{
 		ProfileID: profileID,
 		Success:   result != nil && result.Success,
 		Message:   "",
-		Stats:                 statsBytes,
-		CreatedAt:             time.Now(),
+		Stats:     statsBytes,
+		CreatedAt: time.Now(),
 	}
 
 	if result != nil {
@@ -72,7 +59,7 @@ func (r *OCRRepository) SaveResult(ctx context.Context, profileID uint64, result
 func (r *OCRRepository) GetResultsByProfileID(ctx context.Context, profileID uint64) ([]*entity.OCRRecord, error) {
 	db := r.getDB(ctx)
 
-	var rows []OCRModel
+	var rows []*entity.OCRModel
 	if err := db.WithContext(ctx).
 		Where("profile_id = ?", profileID).
 		Order("created_at DESC").
