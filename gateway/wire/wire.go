@@ -68,6 +68,9 @@ var RepositorySet = wire.NewSet(
 
 	postgres.NewServiceRepository,
 
+	postgres.NewTicketRepository,
+	wire.Bind(new(repository.TicketRepository), new(*postgres.TicketRepository)),
+
 	redis.NewCacheRepository,
 	wire.Bind(new(repository.CacheRepository), new(*redis.CacheRepository)),
 )
@@ -87,6 +90,7 @@ var ServiceSet = wire.NewSet(
 	service.NewTrialService,
 	service.NewFaceVerificationService,
 	service.NewOCRService,
+	service.NewTicketService,
 
 	wire.Bind(new(usecase.UserUsecase), new(*service.UserService)),
 	wire.Bind(new(usecase.TokenUsecase), new(*service.JWTService)),
@@ -96,6 +100,7 @@ var ServiceSet = wire.NewSet(
 	wire.Bind(new(usecase.TransactionUsecase), new(*service.TransactionService)),
 	wire.Bind(new(usecase.FaceVerificationUsecase), new(*service.FaceVerificationService)),
 	wire.Bind(new(usecase.OCRUsecase), new(*service.OCRService)),
+	wire.Bind(new(usecase.TicketUsecase), new(*service.TicketService)),
 )
 
 // Controller Set
@@ -108,6 +113,7 @@ var ControllerSet = wire.NewSet(
 	ProvideTransactionHandler,
 	ProvideFaceVerificationHandler,
 	ProvideOCRHandler,
+	ProvideTicketHandler,
 )
 
 // Router Set
