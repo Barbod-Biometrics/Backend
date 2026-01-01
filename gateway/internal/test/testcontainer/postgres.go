@@ -49,19 +49,49 @@ func SetupPostgres(ctx context.Context) (*PostgresContainer, error) {
 		return nil, err
 	}
 
-	// AutoMigrate entities
-	// We include entities that appeared in the tests
-	err = db.AutoMigrate(
-		&entity.Profile{},
-		&entity.ProfilePersonDetails{},
-		&entity.ProfileBusinessDetails{},
-		&entity.APIKey{},
-		&entity.User{},
-		&entity.Transaction{},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to migrate: %w", err)
+	// We migrate tables one by one. If one fails, we know exactly which one.
+
+	// 1. User (Independent - Must be first)
+	if err := db.AutoMigrate(&entity.User{}); err != nil {
+		return nil, fmt.Errorf("failed to migrate User: %w", err)
 	}
+
+	// 2. Profile (Depends on User)
+	if err := db.AutoMigrate(&entity.Profile{}); err != nil {
+		return nil, fmt.Errorf("failed to migrate Profile: %w", err)
+	}
+
+	// 3. Profile Details (Depend on Profile)
+	if err := db.AutoMigrate(&entity.ProfilePersonDetails{}); err != nil {
+		return nil, fmt.Errorf("failed to migrate PersonDetails: %w", err)
+	}
+	if err := db.AutoMigrate(&entity.ProfileBusinessDetails{}); err != nil {
+		return nil, fmt.Errorf("failed to migrate BusinessDetails: %w", err)
+	}
+
+	// 4. API Key (Depends on Profile)
+	// Now that 'profiles' table definitely exists, this will succeed.
+	if err := db.AutoMigrate(&entity.APIKey{}); err != nil {
+		return nil, fmt.Errorf("failed to migrate APIKey: %w", err)
+	}
+
+	// 5. Others
+	if err := db.AutoMigrate(&entity.Transaction{}); err != nil {
+		return nil, fmt.Errorf("failed to migrate Transaction: %w", err)
+	}
+
+	// AutoMigrate entities
+	// err = db.AutoMigrate(
+	// 	&entity.User{},                   // 1. User (Independent)
+	// 	&entity.Profile{},                // 2. Profile (Depends on User)
+	// 	&entity.ProfilePersonDetails{},   // 3. Details (Depends on Profile)
+	// 	&entity.ProfileBusinessDetails{}, // 4. Details (Depends on Profile)
+	// 	&entity.APIKey{},                 // 5. APIKey (Depends on Profile)
+	// 	&entity.Transaction{},            // 6. Others...
+	// )
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to migrate: %w", err)
+	// }
 
 	return &PostgresContainer{
 		Container: pgContainer,
