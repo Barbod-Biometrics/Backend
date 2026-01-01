@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
@@ -94,4 +95,65 @@ func (r *FaceVerificationRepository) GetResultsByProfileID(ctx context.Context, 
 	}
 
 	return results, nil
+}
+
+func (r *FaceVerificationRepository) GetReports(ctx context.Context, filter repository.FaceReportFilter) ([]*entity.FaceVerificationModel, int64, error) {
+	db := r.getDB(ctx)
+
+	var jobs []*entity.FaceVerificationModel
+	var totalCount int64
+
+	query := db.WithContext(ctx).Model(&entity.FaceVerificationModel{})
+
+	// filter on profile id(madatory)
+	query = query.Where("profile_id = ?", filter.PofileID)
+
+	// status filter
+	if filter.Status != nil {
+		if *filter.Status == "success" {
+			query = query.Where("success = ?", true)
+		} else if *filter.Status == "failed" {
+			query = query.Where("success = ?", false)
+		}
+	}
+
+	// date filter
+	if filter.FromDate != nil {
+		query = query.Where("created_at >= ?", *filter.FromDate)
+	}
+	if filter.ToDate != nil {
+		query = query.Where("created_at <= ?", *filter.ToDate)
+	}
+
+	// for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// sorting
+	sortString := "created_at DESC" // default: newwest first
+
+	if filter.SortBy != "date" {
+		if filter.SortOrder == "asc" {
+			sortString = "created_at ASC"
+		} else {
+			sortString = "created_at DESC"
+		}
+	} else if filter.SortBy == "rate" {
+		if filter.SortOrder == "asc" {
+			sortString = "highest_similarity ASC"
+		} else {
+			sortString = "highest_similarity DESC"
+		}
+	}
+
+	// pagination
+	offset := (filter.Page - 1) * filter.Limit
+	err := query.Order(sortString).
+		Limit(filter.Limit).
+		Offset(offset).
+		Find(&jobs).Error
+
+	return jobs, totalCount, err
+
 }
