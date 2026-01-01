@@ -88,19 +88,6 @@ func SetupPostgres(ctx context.Context) (*PostgresContainer, error) {
 		return nil, fmt.Errorf("failed to migrate Transaction: %w", err)
 	}
 
-	// AutoMigrate entities
-	// err = db.AutoMigrate(
-	// 	&entity.User{},                   // 1. User (Independent)
-	// 	&entity.Profile{},                // 2. Profile (Depends on User)
-	// 	&entity.ProfilePersonDetails{},   // 3. Details (Depends on Profile)
-	// 	&entity.ProfileBusinessDetails{}, // 4. Details (Depends on Profile)
-	// 	&entity.APIKey{},                 // 5. APIKey (Depends on Profile)
-	// 	&entity.Transaction{},            // 6. Others...
-	// )
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to migrate: %w", err)
-	// }
-
 	return &PostgresContainer{
 		Container: pgContainer,
 		DB:        db,

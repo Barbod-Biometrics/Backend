@@ -47,7 +47,7 @@ func (h *ApiKeyHandler) GenerateKey(c *gin.Context) {
 		return
 	}
 
-	req := business.GenerateAPIKeyResquest{
+	req := business.GenerateAPIKeyRequest{
 		ProfileID: ProfileID,
 	}
 
@@ -61,7 +61,7 @@ func (h *ApiKeyHandler) GenerateKey(c *gin.Context) {
 			})
 			return
 		}
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -99,7 +99,7 @@ func (h *ApiKeyHandler) RegenerateKey(c *gin.Context) {
 		return
 	}
 
-	req := business.GenerateAPIKeyResquest{
+	req := business.GenerateAPIKeyRequest{
 		ProfileID: ProfileID,
 	}
 

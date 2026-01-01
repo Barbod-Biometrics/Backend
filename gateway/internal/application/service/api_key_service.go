@@ -59,7 +59,7 @@ func (s *APIKeyService) GenerateKey(ctx context.Context, profileID uint64) (stri
 	existingKey, err := s.apiKeyRepo.GetActiveByProfileID(ctx, profileID)
 	if err != nil {
 		if !errors.Is(err, ErrRecordNotFound) {
-			return "", err
+			return "", ErrProfileNotFound
 		}
 	} else if existingKey != nil {
 		s.logger.Warn("generation blocked: active key exists", logger.Field{Key: "profile_id", Value: profileID})
@@ -156,7 +156,7 @@ func (s *APIKeyService) Authenticate(ctx context.Context, rawKey string) (uint64
 	}
 
 	if !apiKey.IsActive {
-		s.logger.Warn("authenetication failed: key is revoked", logger.Field{Key: "profile_id", Value: apiKey.ProfileID})
+		s.logger.Warn("authentication  failed: key is revoked", logger.Field{Key: "profile_id", Value: apiKey.ProfileID})
 		return 0, ErrKeyRevoked
 	}
 
