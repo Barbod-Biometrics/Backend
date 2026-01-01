@@ -28,6 +28,9 @@ func (r *TicketRepository) getDB(ctx context.Context) *gorm.DB {
 // Create creates a new ticket
 func (r *TicketRepository) Create(ctx context.Context, ticket *entity.Ticket) error {
 	db := r.getDB(ctx)
+	if ticket.Status == "" {
+		ticket.Status = enum.TicketStatusPending
+	}
 	return db.WithContext(ctx).Create(ticket).Error
 }
 

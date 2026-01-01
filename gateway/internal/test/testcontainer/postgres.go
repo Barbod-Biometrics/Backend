@@ -75,6 +75,10 @@ func SetupPostgres(ctx context.Context) (*PostgresContainer, error) {
 		return nil, fmt.Errorf("failed to migrate APIKey: %w", err)
 	}
 
+	if err := db.AutoMigrate(&entity.Ticket{}); err != nil {
+		return nil, fmt.Errorf("failed to migrate Ticket: %w", err)
+	}
+
 	// 5. Others
 	if err := db.AutoMigrate(&entity.Transaction{}); err != nil {
 		return nil, fmt.Errorf("failed to migrate Transaction: %w", err)
