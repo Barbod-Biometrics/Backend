@@ -16,6 +16,18 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+var (
+	ErrProfileNotFound  = errors.New("profile not found")
+	ErrActiveKeyExists  = errors.New("active key exists for this profile")
+	ErrKeyRevoked       = errors.New("api key is revoked")
+	ErrInvalidKeyFormat = errors.New("invalid key format")
+	ErrInvalidKeyLength = errors.New("invalid key length")
+	ErrAuthFailed       = errors.New("authentication failed")
+
+	// General errors
+	ErrRecordNotFound = errors.New("record not found")
+)
+
 type APIKeyService struct {
 	apiKeyRepo  repository.APIKeyRepository
 	profileRepo repository.ProfileRepository
@@ -40,18 +52,18 @@ func (s *APIKeyService) GenerateKey(ctx context.Context, profileID uint64) (stri
 	_, err := s.profileRepo.GetByID(ctx, profileID)
 	if err != nil {
 		s.logger.Warn("api key generation failed: profile not found", logger.Field{Key: "profile_id", Value: profileID})
-		return "", errors.New("profile not found")
+		return "", ErrProfileNotFound
 	}
 
 	// safety check: ensure no active key exists for this profile_id
 	existingKey, err := s.apiKeyRepo.GetActiveByProfileID(ctx, profileID)
-	if err == nil && existingKey != nil {
-		s.logger.Warn("generation blocked: active key exists", logger.Field{Key: "profile_id", Value: profileID})
-		return "", errors.New("active key exists for this profile id")
-	}
-
 	if err != nil {
-		return "", errors.New("record not found in checking active key for the profile id")
+		if !errors.Is(err, ErrRecordNotFound) {
+			return "", err
+		}
+	} else if existingKey != nil {
+		s.logger.Warn("generation blocked: active key exists", logger.Field{Key: "profile_id", Value: profileID})
+		return "", ErrActiveKeyExists
 	}
 
 	bytes := make([]byte, 32)
@@ -127,7 +139,7 @@ func (s *APIKeyService) Authenticate(ctx context.Context, rawKey string) (uint64
 
 	if !strings.HasPrefix(rawKey, visualPrefix) {
 		s.logger.Warn("authentication failed: invalid prefix", logger.Field{Key: "key_fragment", Value: rawKey[:4]})
-		return 0, errors.New("invalid key format")
+		return 0, ErrInvalidKeyFormat
 	}
 
 	if len(rawKey) <= len(visualPrefix)+8 {
@@ -145,7 +157,7 @@ func (s *APIKeyService) Authenticate(ctx context.Context, rawKey string) (uint64
 
 	if !apiKey.IsActive {
 		s.logger.Warn("authenetication failed: key is revoked", logger.Field{Key: "profile_id", Value: apiKey.ProfileID})
-		return 0, errors.New("key is revoked")
+		return 0, ErrKeyRevoked
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(apiKey.KeyHash), []byte(rawKey))

@@ -22,6 +22,11 @@ func TestApiKeyService_GenerateKey(t *testing.T) {
 	ctx := context.Background()
 	profileID := uint64(12345)
 
+	mockProfileRepo.On("GetByID", ctx, profileID).Return(&entity.Profile{ProfileID: profileID}, nil)
+	mockRepo.On("GetActiveByProfileID", ctx, profileID).
+		Return(nil, service.ErrRecordNotFound)
+	mockProfileRepo.On("UpdateHasAPIKey", ctx, profileID, true).Return(nil)
+
 	mockRepo.On("Create", ctx, mock.AnythingOfType("*entity.APIKey")).Return(nil)
 	mockAppLogger.On("Info", mock.Anything, mock.Anything).Return()
 
@@ -44,17 +49,26 @@ func TestAPIKeyService_RegenerateKey(t *testing.T) {
 	profileID := uint64(10)
 	existingKey := &entity.APIKey{KeyID: 555, ProfileID: 10, IsActive: true}
 
-	mockRepo.On("GetActiveByProfileID", ctx, profileID).Return(existingKey, nil)
-	mockAppLogger.On("Info", mock.Anything, mock.Anything).Return()
+	mockRepo.On("GetActiveByProfileID", ctx, profileID).Return(existingKey, nil).Once()
 
 	mockRepo.On("Revoke", ctx, "555").Return(nil)
+	mockAppLogger.On("Info", mock.Anything, mock.Anything).Return()
+
+	mockProfileRepo.On("GetByID", ctx, profileID).Return(&entity.Profile{ProfileID: profileID}, nil)
+
+	mockRepo.On("GetActiveByProfileID", ctx, profileID).
+		Return(nil, service.ErrRecordNotFound).Once()
 
 	mockRepo.On("Create", ctx, mock.AnythingOfType("*entity.APIKey")).Return(nil)
+
+	mockProfileRepo.On("UpdateHasAPIKey", ctx, profileID, true).Return(nil)
 
 	rawKey, err := svc.RegenerateKey(ctx, profileID)
 
 	assert.NoError(t, err)
 	assert.NotEmpty(t, rawKey)
+
+	mockRepo.AssertExpectations(t)
 }
 
 func TestAPIKeyService_Authenticate_Success(t *testing.T) {
