@@ -131,5 +131,5 @@ func TestAPIKeyService_Authenticate_Revoked(t *testing.T) {
 	_, err := svc.Authenticate(context.Background(), rawKey)
 
 	assert.Error(t, err)
-	assert.Equal(t, "key is revoked", err.Error())
+	assert.ErrorIs(t, err, service.ErrKeyRevoked)
 }
