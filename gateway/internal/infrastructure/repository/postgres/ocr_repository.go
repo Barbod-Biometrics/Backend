@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
@@ -116,4 +117,57 @@ func (r *OCRRepository) GetResultsByProfileID(ctx context.Context, profileID uin
 	}
 
 	return results, nil
+}
+
+func (r *OCRRepository) GetReports(ctx context.Context, filter repository.OCRReportFilter) ([]*entity.OCRModel, int64, error) {
+	db := r.getDB(ctx)
+
+	var results []*entity.OCRModel
+	var totalCount int64
+
+	// base query
+	query := db.WithContext(ctx).Where("profile_id = ?", filter.ProfileID)
+
+	// status filter
+	if filter.Status != nil {
+		switch *filter.Status {
+		case "success":
+			query = query.Where("success = ?", true)
+		case "failed":
+			query = query.Where("success = ?", false)
+		}
+
+	}
+
+	// date filter
+	if filter.FromDate != nil {
+		query = query.Where("created_at >= ?", *filter.FromDate)
+	}
+	if filter.Todate != nil {
+		query = query.Where("created_at <= ?", *filter.Todate)
+	}
+
+	// count test
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// sorting
+	sortString := "created_at DESC" // default
+	if filter.SortBy == "date" {
+		if filter.SortOrder == "asc" {
+			sortString = "created_at ASC"
+		} else {
+			sortString = "created_at DESC"
+		}
+	}
+
+	// executing query
+	offset := (filter.Page - 1) * filter.Limit
+	err := query.Order(sortString).
+		Limit(filter.Limit).
+		Offset(offset).
+		Find(&results).Error
+
+	return results, totalCount, err
 }
