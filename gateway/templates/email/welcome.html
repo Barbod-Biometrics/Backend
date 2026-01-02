@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html>
+<html dir="rtl" lang="fa">
 <head>
+    <meta charset="UTF-8">
     <style>
-        body { font-family: Arial, sans-serif; }
+        @import url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css');
+        body { font-family: Vazirmatn, Arial, sans-serif; direction: rtl; text-align: right; }
         .container { padding: 20px; }
         .header { background-color: #f8f9fa; padding: 10px; }
     </style>
@@ -10,11 +12,11 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Welcome to Our Service!</h1>
+            <h1>به سرویس ما خوش آمدید!</h1>
         </div>
-        <p>Hello <strong>{{.Name}}</strong>,</p>
-        <p>Your account has been created successfully. Your login code is: <b>{{.LoginCode}}</b></p>
-        <p>Thanks,<br>The Team</p>
+        <p>سلام <strong>{{.Name}}</strong> عزیز،</p>
+        <p>حساب کاربری شما با موفقیت ایجاد شد. کد ورود شما: <b>{{.LoginCode}}</b></p>
+        <p>با تشکر،<br>تیم باربد</p>
     </div>
 </body>
 </html>

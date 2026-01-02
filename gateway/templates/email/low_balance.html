@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html>
+<html dir="rtl" lang="fa">
 <head>
+    <meta charset="UTF-8">
     <style>
-        body { font-family: Arial, sans-serif; }
+        @import url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css');
+        body { font-family: Vazirmatn, Arial, sans-serif; direction: rtl; text-align: right; }
         .container { padding: 20px; }
         .header { background-color: #f8f9fa; padding: 10px; }
         .warning { color: #856404; background-color: #fff3cd; border: 1px solid #ffeeba; padding: 10px; border-radius: 4px; }
@@ -11,15 +13,15 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Low Balance Warning</h1>
+            <h1>هشدار موجودی کم</h1>
         </div>
-        <p>Hello <strong>{{.Name}}</strong>,</p>
+        <p>سلام <strong>{{.Name}}</strong> عزیز،</p>
         <div class="warning">
-            <p>Your balance for profile <strong>{{.ProfileName}}</strong> is running low.</p>
-            <p><strong>Current Balance:</strong> {{.Balance}}</p>
+            <p>موجودی پروفایل <strong>{{.ProfileName}}</strong> شما رو به اتمام است.</p>
+            <p><strong>موجودی فعلی:</strong> {{.Balance}}</p>
         </div>
-        <p>Please top up your balance to ensure uninterrupted service.</p>
-        <p>Thanks,<br>The Barbod Team</p>
+        <p>لطفاً برای جلوگیری از قطع سرویس، موجودی خود را افزایش دهید.</p>
+        <p>با تشکر،<br>تیم باربد</p>
     </div>
 </body>
 </html>
