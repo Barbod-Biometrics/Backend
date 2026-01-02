@@ -134,13 +134,14 @@ func (r *FaceVerificationRepository) GetReports(ctx context.Context, filter repo
 	// sorting
 	sortString := "created_at DESC" // default: newwest first
 
-	if filter.SortBy != "date" {
+	switch filter.SortBy {
+	case "date":
 		if filter.SortOrder == "asc" {
 			sortString = "created_at ASC"
 		} else {
 			sortString = "created_at DESC"
 		}
-	} else if filter.SortBy == "rate" {
+	case "rate":
 		if filter.SortOrder == "asc" {
 			sortString = "highest_similarity ASC"
 		} else {

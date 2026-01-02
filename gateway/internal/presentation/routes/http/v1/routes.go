@@ -180,10 +180,10 @@ func (r *Route) RegisterRoutes() http.Handler {
 
 		}
 
-		modelReorts := v1.Group("/report")
-		modelReorts.Use((middleware.JWTMiddleware(r.jwtKeyManager)))
+		modelReports := v1.Group("/report")
+		modelReports.Use((middleware.JWTMiddleware(r.jwtKeyManager)))
 		{
-			modelReorts.GET("/face-verification", r.faceVerificationController.GetReport)
+			modelReports.GET("/face-verification", r.faceVerificationController.GetReport)
 		}
 
 		ocr := v1.Group("/ocr")
