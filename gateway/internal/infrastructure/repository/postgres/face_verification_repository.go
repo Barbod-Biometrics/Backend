@@ -110,9 +110,10 @@ func (r *FaceVerificationRepository) GetReports(ctx context.Context, filter repo
 
 	// status filter
 	if filter.Status != nil {
-		if *filter.Status == "success" {
+		switch *filter.Status {
+		case "success":
 			query = query.Where("success = ?", true)
-		} else if *filter.Status == "failed" {
+		case "failed":
 			query = query.Where("success = ?", false)
 		}
 	}

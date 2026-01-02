@@ -22,7 +22,7 @@ type GetFaceReportRequest struct {
 
 	// filters
 	Status   string           `form:"status"`
-	FromDate types.JalaliDate `form:"from_date"` // miladi or shamsi? which one?
+	FromDate types.JalaliDate `form:"from_date"`
 	ToDate   types.JalaliDate `form:"to_date"`
 
 	// sorting

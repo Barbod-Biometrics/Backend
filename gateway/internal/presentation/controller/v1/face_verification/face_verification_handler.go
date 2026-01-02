@@ -487,24 +487,24 @@ func (fv *FaceVerificationHandler) HealthCheck(c *gin.Context) {
 // @Param to_date query string false "To Date (YYYY-MM-DD)"
 // @Param sort_by query string false "Sort By (date, rate)"
 // @Param sort_order query string false "Order (asc, desc)"
-// @Router /api/v1/verification/report [get]
+// @Success 200 {object} face_verification.FaceReportResponse
+// @Failure 400 {object} map[string]string "Invalid Parameters"
+// @Failure 404 {object} map[string]string "Profile Not Found"
+// @Failure 500 {object} map[string]string "Internal Server Error"
+// @Router /api/v1/report/face-verification [get]
 func (h *FaceVerificationHandler) GetReport(c *gin.Context) {
 	var req faceVerificationDto.GetFaceReportRequest
 
-	// 1. Bind Query Params
+	// Bind Query Params
 	if err := c.ShouldBindQuery(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid parameters"})
 		return
 	}
 
-	// 2. Security Check (Optional but recommended)
-	// userID := h.getUserID(c)
-	// Verify profile belongs to user...
-
-	// 3. Call UseCase
+	// Call UseCase
 	resp, err := h.faceVerificationUsecase.GetReports(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch report"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 

@@ -356,6 +356,12 @@ func (s *FaceVerificationService) HealthCheck(ctx context.Context) (*faceVerific
 
 func (s *FaceVerificationService) GetReports(ctx context.Context, req faceVerificationDto.GetFaceReportRequest) (*faceVerificationDto.FaceReportResponse, error) {
 
+	// security check for the profile id availability before anything
+	_, err := s.profileRepo.GetByID(ctx, req.ProfileID)
+	if err != nil {
+		return nil, fmt.Errorf("profile check failed: %w", err)
+	}
+
 	filter := repository.FaceReportFilter{
 		ProfileID: req.ProfileID,
 		Page:      req.Page,

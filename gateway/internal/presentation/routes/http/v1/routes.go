@@ -146,7 +146,13 @@ func (r *Route) RegisterRoutes() http.Handler {
 			faceVerification.POST("/verify", r.faceVerificationController.VerifyFace)
 			faceVerification.POST("/crop", r.faceVerificationController.CropImage)
 			faceVerification.GET("/health", r.faceVerificationController.HealthCheck)
-			faceVerification.GET("/report", r.faceVerificationController.GetReport)
+
+		}
+
+		modelReorts := v1.Group("/report")
+		modelReorts.Use((middleware.JWTMiddleware(r.jwtKeyManager)))
+		{
+			modelReorts.GET("/face-verification", r.faceVerificationController.GetReport)
 		}
 
 		ocr := v1.Group("/ocr")
