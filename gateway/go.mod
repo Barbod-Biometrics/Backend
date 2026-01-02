@@ -40,11 +40,11 @@ require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/go-sql-driver/mysql v1.8.1 // indirect
+	github.com/yaa110/go-persian-calendar v1.3.0 // indirect
 	gorm.io/driver/mysql v1.5.6 // indirect
 )
 
 require (
-	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/DATA-DOG/go-sqlmock v1.5.2 // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
@@ -85,7 +85,6 @@ require (
 	github.com/go-openapi/swag/typeutils v0.25.3 // indirect
 	github.com/go-openapi/swag/yamlutils v0.25.3 // indirect
 	github.com/go-playground/validator/v10 v10.28.0 // indirect
-	github.com/go-sql-driver/mysql v1.8.1 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/goccy/go-yaml v1.18.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.2 // indirect
@@ -154,6 +153,4 @@ require (
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	gorm.io/driver/mysql v1.5.6 // indirect
-	gorm.io/datatypes v1.2.7
 )

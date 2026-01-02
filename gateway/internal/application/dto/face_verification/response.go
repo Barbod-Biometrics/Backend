@@ -33,7 +33,7 @@ type FaceReportItem struct {
 	Duration float64 `json:"duration"`
 	Message  string  `json:"message"`
 	Reason   string  `json:"reason"`
-	Rate     float32 `json:"rate"`
+	Rate     float64 `json:"rate"`
 }
 
 type FaceReportResponse struct {

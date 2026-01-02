@@ -106,7 +106,7 @@ func (r *FaceVerificationRepository) GetReports(ctx context.Context, filter repo
 	query := db.WithContext(ctx).Model(&entity.FaceVerificationModel{})
 
 	// filter on profile id(madatory)
-	query = query.Where("profile_id = ?", filter.PofileID)
+	query = query.Where("profile_id = ?", filter.ProfileID)
 
 	// status filter
 	if filter.Status != nil {

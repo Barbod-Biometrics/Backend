@@ -1,5 +1,7 @@
 package face_verification
 
+import "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/types"
+
 type FaceVerificationRequest struct {
 	Photo []byte `json:"photo" form:"photo"`
 	Video []byte `json:"video" form:"video"`
@@ -15,11 +17,13 @@ type HealthCheckRequest struct {
 
 type GetFaceReportRequest struct {
 	ProfileID uint64 `form:"profile_id" binding:"required"`
+	Page      int    `form:"page,default=1"`
+	Limit     int    `form:"limit,default=20"`
 
 	// filters
-	Status   string `form:"status"`
-	FromDate string `form:"from_date"` // miladi or shamsi? which one?
-	ToDate   string `form:"to_date"`
+	Status   string           `form:"status"`
+	FromDate types.JalaliDate `form:"from_date"` // miladi or shamsi? which one?
+	ToDate   types.JalaliDate `form:"to_date"`
 
 	// sorting
 	SortBy    string `form:"sort_by"`

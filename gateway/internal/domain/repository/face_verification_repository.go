@@ -2,17 +2,18 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 )
 
 type FaceReportFilter struct {
-	PofileID uint64
+	ProfileID uint64
 
 	// filters
 	Status   *string
-	FromDate *string
-	ToDate   *string
+	FromDate *time.Time
+	ToDate   *time.Time
 
 	// pagination
 	Page  int
