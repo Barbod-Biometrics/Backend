@@ -112,6 +112,7 @@ func (s *ProfileService) mapEntityToResponse(e *entity.Profile) *profile.Profile
 		VerificationStatus: string(e.VerificationStatus),
 		IsActive:           e.IsActive,
 		CreatedAt:          e.CreatedAt,
+		HasApiKey:          e.HasApiKey,
 	}
 
 	if e.PersonDetails != nil {

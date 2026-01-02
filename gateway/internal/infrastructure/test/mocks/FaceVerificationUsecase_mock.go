@@ -253,3 +253,89 @@ func (_c *MockFaceVerificationUsecase_VerifyFace_Call) RunAndReturn(run func(ctx
 	_c.Call.Return(run)
 	return _c
 }
+
+// VerifyFaceWithIP provides a mock function for the type MockFaceVerificationUsecase
+func (_mock *MockFaceVerificationUsecase) VerifyFaceWithIP(ctx context.Context, profileID uint64, photo []byte, video []byte, clientIP string) (*face_verification.FaceVerificationResponse, error) {
+	ret := _mock.Called(ctx, profileID, photo, video, clientIP)
+
+	if len(ret) == 0 {
+		panic("no return value specified for VerifyFaceWithIP")
+	}
+
+	var r0 *face_verification.FaceVerificationResponse
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint64, []byte, []byte, string) (*face_verification.FaceVerificationResponse, error)); ok {
+		return returnFunc(ctx, profileID, photo, video, clientIP)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint64, []byte, []byte, string) *face_verification.FaceVerificationResponse); ok {
+		r0 = returnFunc(ctx, profileID, photo, video, clientIP)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*face_verification.FaceVerificationResponse)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint64, []byte, []byte, string) error); ok {
+		r1 = returnFunc(ctx, profileID, photo, video, clientIP)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockFaceVerificationUsecase_VerifyFaceWithIP_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'VerifyFaceWithIP'
+type MockFaceVerificationUsecase_VerifyFaceWithIP_Call struct {
+	*mock.Call
+}
+
+// VerifyFaceWithIP is a helper method to define mock.On call
+//   - ctx context.Context
+//   - profileID uint64
+//   - photo []byte
+//   - video []byte
+//   - clientIP string
+func (_e *MockFaceVerificationUsecase_Expecter) VerifyFaceWithIP(ctx interface{}, profileID interface{}, photo interface{}, video interface{}, clientIP interface{}) *MockFaceVerificationUsecase_VerifyFaceWithIP_Call {
+	return &MockFaceVerificationUsecase_VerifyFaceWithIP_Call{Call: _e.mock.On("VerifyFaceWithIP", ctx, profileID, photo, video, clientIP)}
+}
+
+func (_c *MockFaceVerificationUsecase_VerifyFaceWithIP_Call) Run(run func(ctx context.Context, profileID uint64, photo []byte, video []byte, clientIP string)) *MockFaceVerificationUsecase_VerifyFaceWithIP_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint64
+		if args[1] != nil {
+			arg1 = args[1].(uint64)
+		}
+		var arg2 []byte
+		if args[2] != nil {
+			arg2 = args[2].([]byte)
+		}
+		var arg3 []byte
+		if args[3] != nil {
+			arg3 = args[3].([]byte)
+		}
+		var arg4 string
+		if args[4] != nil {
+			arg4 = args[4].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+		)
+	})
+	return _c
+}
+
+func (_c *MockFaceVerificationUsecase_VerifyFaceWithIP_Call) Return(faceVerificationResponse *face_verification.FaceVerificationResponse, err error) *MockFaceVerificationUsecase_VerifyFaceWithIP_Call {
+	_c.Call.Return(faceVerificationResponse, err)
+	return _c
+}
+
+func (_c *MockFaceVerificationUsecase_VerifyFaceWithIP_Call) RunAndReturn(run func(ctx context.Context, profileID uint64, photo []byte, video []byte, clientIP string) (*face_verification.FaceVerificationResponse, error)) *MockFaceVerificationUsecase_VerifyFaceWithIP_Call {
+	_c.Call.Return(run)
+	return _c
+}

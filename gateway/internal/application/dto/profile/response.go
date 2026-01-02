@@ -19,6 +19,7 @@ type ProfileResponse struct {
 	VerificationStatus string    `json:"verification_status"`
 	IsActive           bool      `json:"is_active"`
 	CreatedAt          time.Time `json:"created_at"`
+	HasApiKey          bool      `json:"has_apikey"`
 
 	PersonDetails   *PersonDetailsResponse   `json:"person_details,omitempty"`
 	BusinessDetails *BusinessDetailsResponse `json:"business_details,omitempty"`
