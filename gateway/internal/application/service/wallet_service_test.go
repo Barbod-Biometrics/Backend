@@ -121,7 +121,7 @@ func TestDeposit_Success(t *testing.T) {
 	user := &entity.User{UserID: 500, Email: &email}
 	mockUserRepo.On("GetByID", mock.Anything, uint64(500)).Return(user, nil).Maybe()
 	mockProfile.On("GetByID", mock.Anything, uint64(100)).Return(profile, nil).Maybe()
-	mockEmail.On("SendWithTemplate", mock.Anything, email, "Balance Top-up Successful", "balance_topup.html", mock.Anything).Return(nil).Maybe()
+	mockEmail.On("SendWithTemplate", mock.Anything, email, "افزایش موجودی موفقیت‌آمیز بود", "balance_topup.html", mock.Anything).Return(nil).Maybe()
 
 	req := wallet.DepositRequest{Amount: 500, Description: "deposit"}
 	resp, err := svc.Deposit(ctx, 500, 100, req)

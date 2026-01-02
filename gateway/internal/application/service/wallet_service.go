@@ -172,7 +172,7 @@ func (s *WalletService) Deposit(ctx context.Context, userID uint64, profileID ui
 			"NewBalance":  newBalance,
 		}
 
-		_ = s.emailService.SendWithTemplate(context.Background(), *user.Email, "Balance Top-up Successful", "balance_topup.html", data)
+		_ = s.emailService.SendWithTemplate(context.Background(), *user.Email, "افزایش موجودی موفقیت‌آمیز بود", "balance_topup.html", data)
 	}()
 
 	return &wallet.DepositResponse{

@@ -254,7 +254,7 @@ func (s *AdminProfileService) ApproveProfile(ctx context.Context, profileID uint
 			"ProfileName": p.ProfileName,
 		}
 
-		_ = s.emailService.SendWithTemplate(context.Background(), *user.Email, "Profile Accepted", "profile_accepted.html", data)
+		_ = s.emailService.SendWithTemplate(context.Background(), *user.Email, "تایید پروفایل", "profile_accepted.html", data)
 	}()
 
 	return nil
@@ -298,7 +298,7 @@ func (s *AdminProfileService) RejectProfile(ctx context.Context, profileID uint6
 			"Reason":      req.Reason,
 		}
 
-		_ = s.emailService.SendWithTemplate(context.Background(), *user.Email, "Profile Rejected", "profile_rejected.html", data)
+		_ = s.emailService.SendWithTemplate(context.Background(), *user.Email, "عدم تایید پروفایل", "profile_rejected.html", data)
 	}()
 
 	return nil

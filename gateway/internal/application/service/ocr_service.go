@@ -261,6 +261,6 @@ func (s *OCRService) checkLowBalance(profileID uint64, balance uint64) {
 			"Balance":     balance,
 		}
 
-		_ = s.emailService.SendWithTemplate(ctx, *user.Email, "Low Balance Warning", "low_balance.html", data)
+		_ = s.emailService.SendWithTemplate(ctx, *user.Email, "هشدار موجودی کم", "low_balance.html", data)
 	}()
 }

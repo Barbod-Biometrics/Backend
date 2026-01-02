@@ -184,7 +184,7 @@ func TestApproveRejectProfileFlows(t *testing.T) {
 	mockRepo.On("Update", mock.Anything, mock.MatchedBy(func(p *entity.Profile) bool { return p.VerificationStatus == entity.StatusVerified })).Return(nil)
 
 	mockUserRepo.On("GetByID", mock.Anything, uint64(100)).Return(user, nil).Maybe()
-	mockEmail.On("SendWithTemplate", mock.Anything, email, "Profile Accepted", "profile_accepted.html", mock.Anything).Return(nil).Maybe()
+	mockEmail.On("SendWithTemplate", mock.Anything, email, "تایید پروفایل", "profile_accepted.html", mock.Anything).Return(nil).Maybe()
 
 	err := svc.ApproveProfile(tctx, 10, admin.ApproveProfileRequest{})
 	assert.NoError(t, err)
@@ -202,7 +202,7 @@ func TestApproveRejectProfileFlows(t *testing.T) {
 	mockRepo.On("Update", mock.Anything, mock.MatchedBy(func(p *entity.Profile) bool { return p.VerificationStatus == entity.StatusRejected })).Return(nil)
 
 	mockUserRepo.On("GetByID", mock.Anything, uint64(100)).Return(user, nil).Maybe()
-	mockEmail.On("SendWithTemplate", mock.Anything, email, "Profile Rejected", "profile_rejected.html", mock.Anything).Return(nil).Maybe()
+	mockEmail.On("SendWithTemplate", mock.Anything, email, "عدم تایید پروفایل", "profile_rejected.html", mock.Anything).Return(nil).Maybe()
 
 	err = svc.RejectProfile(tctx, 20, admin.RejectProfileRequest{Reason: "Not valid"})
 	assert.NoError(t, err)
