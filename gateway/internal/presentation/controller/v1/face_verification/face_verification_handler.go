@@ -473,3 +473,40 @@ func (fv *FaceVerificationHandler) HealthCheck(c *gin.Context) {
 	)
 	c.JSON(http.StatusOK, result)
 }
+
+// GetReport returns the data for the frontend chart/table
+// @Summary Get Face Verification Report
+// @Tags FaceVerification
+// @Accept json
+// @Produce json
+// @Param profile_id query int true "Profile ID"
+// @Param page query int false "Page" default(1)
+// @Param limit query int false "Limit" default(20)
+// @Param status query string false "Status (success, failed)"
+// @Param from_date query string false "From Date (YYYY-MM-DD)"
+// @Param to_date query string false "To Date (YYYY-MM-DD)"
+// @Param sort_by query string false "Sort By (date, rate)"
+// @Param sort_order query string false "Order (asc, desc)"
+// @Success 200 {object} face_verification.FaceReportResponse
+// @Failure 400 {object} map[string]string "Invalid Parameters"
+// @Failure 404 {object} map[string]string "Profile Not Found"
+// @Failure 500 {object} map[string]string "Internal Server Error"
+// @Router /api/v1/report/face-verification [get]
+func (h *FaceVerificationHandler) GetReport(c *gin.Context) {
+	var req faceVerificationDto.GetFaceReportRequest
+
+	// Bind Query Params
+	if err := c.ShouldBindQuery(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid parameters"})
+		return
+	}
+
+	// Call UseCase
+	resp, err := h.faceVerificationUsecase.GetReports(c.Request.Context(), req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}

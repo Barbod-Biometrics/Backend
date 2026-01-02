@@ -40,10 +40,12 @@ require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/go-sql-driver/mysql v1.8.1 // indirect
+	github.com/yaa110/go-persian-calendar v1.3.0 // indirect
 	gorm.io/driver/mysql v1.5.6 // indirect
 )
 
 require (
+	github.com/DATA-DOG/go-sqlmock v1.5.2 // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/bytedance/gopkg v0.1.3 // indirect

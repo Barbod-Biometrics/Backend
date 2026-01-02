@@ -6,25 +6,10 @@ import (
 	"time"
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
-
-type FaceVerificationModel struct {
-	ID                    uint64         `gorm:"primaryKey;autoIncrement" json:"id"`
-	ProfileID             uint64         `gorm:"not null;index" json:"profile_id"`
-	Success               bool           `gorm:"not null;index" json:"success"`
-	Reason                string         `gorm:"type:text" json:"reason"`
-	Message               string         `gorm:"type:text" json:"message"`
-	HighestSimilarity     float64        `gorm:"type:double precision;index" json:"highest_similarity"`
-	ProcessingTimeSeconds float64        `gorm:"type:double precision" json:"processing_time_seconds"`
-	Stats                 datatypes.JSON `gorm:"type:jsonb" json:"stats"`
-	CreatedAt             time.Time      `gorm:"not null;default:now()" json:"created_at"`
-}
-
-func (FaceVerificationModel) TableName() string {
-	return "face_verifications"
-}
 
 type FaceVerificationRepository struct {
 	db *gorm.DB
@@ -57,7 +42,7 @@ func (r *FaceVerificationRepository) SaveResult(ctx context.Context, profileID u
 		statsBytes = datatypes.JSON([]byte("null"))
 	}
 
-	model := &FaceVerificationModel{
+	model := &entity.FaceVerificationModel{
 		ProfileID:             profileID,
 		Success:               result != nil && result.Success,
 		Reason:                "",
@@ -81,7 +66,7 @@ func (r *FaceVerificationRepository) SaveResult(ctx context.Context, profileID u
 func (r *FaceVerificationRepository) GetResultsByProfileID(ctx context.Context, profileID uint64) ([]*entity.FaceVerificationRecord, error) {
 	db := r.getDB(ctx)
 
-	var rows []FaceVerificationModel
+	var rows []*entity.FaceVerificationModel
 	if err := db.WithContext(ctx).
 		Where("profile_id = ?", profileID).
 		Order("created_at DESC").
@@ -110,4 +95,67 @@ func (r *FaceVerificationRepository) GetResultsByProfileID(ctx context.Context, 
 	}
 
 	return results, nil
+}
+
+func (r *FaceVerificationRepository) GetReports(ctx context.Context, filter repository.FaceReportFilter) ([]*entity.FaceVerificationModel, int64, error) {
+	db := r.getDB(ctx)
+
+	var jobs []*entity.FaceVerificationModel
+	var totalCount int64
+
+	query := db.WithContext(ctx).Model(&entity.FaceVerificationModel{})
+
+	// filter on profile id(madatory)
+	query = query.Where("profile_id = ?", filter.ProfileID)
+
+	// status filter
+	if filter.Status != nil {
+		switch *filter.Status {
+		case "success":
+			query = query.Where("success = ?", true)
+		case "failed":
+			query = query.Where("success = ?", false)
+		}
+	}
+
+	// date filter
+	if filter.FromDate != nil {
+		query = query.Where("created_at >= ?", *filter.FromDate)
+	}
+	if filter.ToDate != nil {
+		query = query.Where("created_at <= ?", *filter.ToDate)
+	}
+
+	// for pagination
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// sorting
+	sortString := "created_at DESC" // default: newwest first
+
+	switch filter.SortBy {
+	case "date":
+		if filter.SortOrder == "asc" {
+			sortString = "created_at ASC"
+		} else {
+			sortString = "created_at DESC"
+		}
+	case "rate":
+		if filter.SortOrder == "asc" {
+			sortString = "highest_similarity ASC"
+		} else {
+			sortString = "highest_similarity DESC"
+		}
+	}
+
+	// pagination
+	offset := (filter.Page - 1) * filter.Limit
+	err := query.Order(sortString).
+		Limit(filter.Limit).
+		Offset(offset).
+		Find(&jobs).Error
+
+	return jobs, totalCount, err
+
 }
