@@ -120,6 +120,7 @@ func (r *Route) RegisterRoutes() http.Handler {
 
 		api_key := v1.Group("/api-key")
 		{
+			api_key.POST("/:profile_id/generate", r.apiKeyController.GenerateKey)
 			api_key.POST("/:profile_id/regenerate", r.apiKeyController.RegenerateKey)
 		}
 

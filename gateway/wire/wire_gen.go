@@ -52,7 +52,7 @@ func InitializeApplication() (*Application, error) {
 	profileHandler := ProvideProfileHandler(profileUsecase)
 	apiKeyRepository := postgres.NewApiKeyRepository(db)
 	logger := ProvideGenericLogger(appLogger)
-	apiKeyService := service.NewAPIKeyService(apiKeyRepository, logger)
+	apiKeyService := service.NewAPIKeyService(apiKeyRepository, profileRepository, logger)
 	apiKeyHandler := ProvideAPIKeyController(apiKeyService, logger)
 	adminProfileUsecase := service.NewAdminProfileService(profileRepository)
 	adminProfileHandler := ProvideAdminProfileHandler(adminProfileUsecase)
