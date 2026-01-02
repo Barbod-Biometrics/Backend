@@ -12,4 +12,6 @@ type OCRUsecase interface {
 	ExtractTextWithIP(ctx context.Context, profileID uint64, image []byte, clientIP string) (*ocrDto.OCRResponse, error)
 
 	HealthCheck(ctx context.Context) (*ocrDto.HealthCheckResponseDTO, error)
+
+	GetReports(ctx context.Context, req ocrDto.GetOCRReportRequest) (*ocrDto.OCRReportResponse, error)
 }

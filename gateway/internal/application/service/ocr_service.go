@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
+	"math"
 	"time"
 
 	ocrDto "github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/ocr"
@@ -12,6 +14,7 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/exception"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/date"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/ocr"
 )
 
@@ -24,6 +27,7 @@ type OCRService struct {
 	transactionRepo repository.TransactionRepository
 	unitOfWork      repository.UnitOfWork
 	trialService    *TrialService
+	ocrRepo         repository.OCRRepository
 }
 
 func NewOCRService(
@@ -35,6 +39,7 @@ func NewOCRService(
 	transactionRepo repository.TransactionRepository,
 	unitOfWork repository.UnitOfWork,
 	trialService *TrialService,
+	ocrRepo repository.OCRRepository,
 ) *OCRService {
 	return &OCRService{
 		client:          cli,
@@ -45,6 +50,7 @@ func NewOCRService(
 		transactionRepo: transactionRepo,
 		unitOfWork:      unitOfWork,
 		trialService:    trialService,
+		ocrRepo:         ocrRepo,
 	}
 }
 
@@ -216,4 +222,64 @@ func (s *OCRService) HealthCheck(ctx context.Context) (*ocrDto.HealthCheckRespon
 		logger.Field{Key: "status", Value: result.Status},
 	)
 	return result, nil
+}
+
+func (s *OCRService) GetReports(ctx context.Context, req ocrDto.GetOCRReportRequest) (*ocrDto.OCRReportResponse, error) {
+
+	_, err := s.profileRepo.GetByID(ctx, req.ProfileID)
+	if err != nil {
+		return nil, fmt.Errorf("profile check failed: %w", err)
+	}
+
+	filter := repository.OCRReportFilter{
+		ProfileID: req.ProfileID,
+		Page:      req.Page,
+		Limit:     req.Limit,
+		SortBy:    req.SortBy,
+		SortOrder: req.SortOrder,
+	}
+
+	if req.Status != "" {
+		filter.Status = &req.Status
+	}
+
+	if !req.FromDate.IsZero() {
+		t := req.FromDate.ToTime()
+		filter.FromDate = &t
+	}
+	if !req.ToDate.IsZero() {
+		t := req.ToDate.ToTime()
+		t = t.Add(24 * time.Hour).Add(-1 * time.Second)
+		filter.Todate = &t
+	}
+
+	results, total, err := s.ocrRepo.GetReports(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]ocrDto.OCRReportItem, 0)
+	for _, r := range results {
+		statusStr := "Failed"
+		if r.Success {
+			statusStr = "Success"
+		}
+
+		items = append(items, ocrDto.OCRReportItem{
+			ID:      r.ID,
+			Date:    date.ToJalaliString(r.CreatedAt),
+			Status:  statusStr,
+			Message: r.Message,
+			Stats:   r.Stats,
+		})
+	}
+
+	totalPages := int(math.Ceil(float64(total) / float64(req.Limit)))
+
+	return &ocrDto.OCRReportResponse{
+		Items:      items,
+		TotalCount: total,
+		Page:       req.Page,
+		TotalPages: totalPages,
+	}, nil
 }
