@@ -67,11 +67,13 @@ type SMSGateway struct {
 }
 
 type Minio struct {
-	Port         string
-	PanelPort    string
-	Host         string
-	UserRoot     string
-	PasswordRoot string
+	Port           string
+	PanelPort      string
+	Host           string
+	UserRoot       string
+	PasswordRoot   string
+	PublicEndpoint string // External endpoint for presigned URLs
+	PublicSecure   bool   // Use HTTPS for presigned URLs
 }
 
 type Logger struct {
@@ -133,11 +135,13 @@ func NewEnvironment() *Env {
 			APIKey: os.Getenv("SMS_GATEWAY_API_KEY"),
 		},
 		Minio: Minio{
-			Port:         os.Getenv("MINIO_PORT"),
-			PanelPort:    os.Getenv("MINIO_PANEL_PORT"),
-			Host:         os.Getenv("MINIO_HOST"),
-			UserRoot:     os.Getenv("MINIO_ROOT_USER"),
-			PasswordRoot: os.Getenv("MINIO_ROOT_PASSWORD"),
+			Port:           os.Getenv("MINIO_PORT"),
+			PanelPort:      os.Getenv("MINIO_PANEL_PORT"),
+			Host:           os.Getenv("MINIO_HOST"),
+			UserRoot:       os.Getenv("MINIO_ROOT_USER"),
+			PasswordRoot:   os.Getenv("MINIO_ROOT_PASSWORD"),
+			PublicEndpoint: os.Getenv("MINIO_PUBLIC_ENDPOINT"),
+			PublicSecure:   getEnvBool("MINIO_PUBLIC_SECURE", false), // Use HTTPS for production
 		},
 		Postgres: Postgres{
 			Host:     os.Getenv("POSTGRES_HOST"),

@@ -1,5 +1,5 @@
 package business
 
-type ReGenerateAPIKeyResquest struct {
+type GenerateAPIKeyRequest struct {
 	ProfileID uint64 `json:"profile_id"`
 }

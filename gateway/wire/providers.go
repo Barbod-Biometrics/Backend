@@ -26,6 +26,7 @@ import (
 	faceVerificationController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/face_verification"
 	ocrController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/ocr"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/support"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/transaction"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/user"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/wallet"
@@ -137,6 +138,10 @@ func ProvideTransactionHandler(transactionUsecase usecase.TransactionUsecase, pr
 	return transaction.NewTransactionHandler(transactionUsecase, profileRepository, logger.Logger(l))
 }
 
+func ProvideTicketHandler(ticketUsecase usecase.TicketUsecase, l logger.Logger) *support.TicketHandler {
+	return support.NewTicketHandler(ticketUsecase, logger.Logger(l))
+}
+
 func ProvideRouter(
 	authController *user.GeneralUserController,
 	profileHandler *profile.ProfileHandler,
@@ -144,6 +149,7 @@ func ProvideRouter(
 	adminProfileHandler *admin.AdminProfileHandler,
 	walletHandler *wallet.WalletHandler,
 	transactionHandler *transaction.TransactionHandler,
+	ticketHandler *support.TicketHandler,
 	apiKeyUsecase usecase.APIKeyUsecase,
 	appLogger logger.Logger,
 	jwtKeyManager domainJWT.KeyManager,
@@ -160,6 +166,7 @@ func ProvideRouter(
 		ocrHandler,
 		walletHandler,
 		transactionHandler,
+		ticketHandler,
 		apiKeyUsecase,
 		appLogger,
 		jwtKeyManager,

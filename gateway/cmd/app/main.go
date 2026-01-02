@@ -49,8 +49,11 @@ func main() {
 	setSwaggerHost(cfg.Env.Server.Host, cfg.Env.Server.Port)
 
 	// Database Migration
+	// Note: Order matters - Ticket and TicketMessage must come after User due to FK constraints
 	err = app.DB.AutoMigrate(
 		&entity.User{},
+		&entity.Ticket{},
+		&entity.TicketMessage{},
 		&entity.Profile{},
 		&entity.ProfileBusinessDetails{},
 		&entity.ProfilePersonDetails{},
