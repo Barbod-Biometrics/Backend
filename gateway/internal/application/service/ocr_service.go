@@ -27,7 +27,6 @@ type OCRService struct {
 	transactionRepo repository.TransactionRepository
 	unitOfWork      repository.UnitOfWork
 	trialService    *TrialService
-	ocrRepo         repository.OCRRepository
 }
 
 func NewOCRService(
@@ -39,7 +38,6 @@ func NewOCRService(
 	transactionRepo repository.TransactionRepository,
 	unitOfWork repository.UnitOfWork,
 	trialService *TrialService,
-	ocrRepo repository.OCRRepository,
 ) *OCRService {
 	return &OCRService{
 		client:          cli,
@@ -50,7 +48,6 @@ func NewOCRService(
 		transactionRepo: transactionRepo,
 		unitOfWork:      unitOfWork,
 		trialService:    trialService,
-		ocrRepo:         ocrRepo,
 	}
 }
 
@@ -253,7 +250,7 @@ func (s *OCRService) GetReports(ctx context.Context, req ocrDto.GetOCRReportRequ
 		filter.Todate = &t
 	}
 
-	results, total, err := s.ocrRepo.GetReports(ctx, filter)
+	results, total, err := s.repo.GetReports(ctx, filter)
 	if err != nil {
 		return nil, err
 	}

@@ -258,3 +258,39 @@ func (h *OCRHandler) HealthCheck(c *gin.Context) {
 
 	c.JSON(http.StatusOK, result)
 }
+
+// GetReport returns the data for the OCR history
+// @Summary Get OCR Report
+// @Description Fetches paginated, filtered OCR jobs for a profile.
+// @Tags OCR
+// @Accept json
+// @Produce json
+// @Param profile_id query int true "Profile ID"
+// @Param page query int false "Page Number" default(1)
+// @Param limit query int false "Items per page" default(20)
+// @Param status query string false "Filter by status (success, failed)"
+// @Param from_date query string false "Start Date (Jalali: YYYY-MM-DD)"
+// @Param to_date query string false "End Date (Jalali: YYYY-MM-DD)"
+// @Param sort_by query string false "Sort field (date)"
+// @Param sort_order query string false "Order (asc, desc)"
+// @Success 200 {object} ocr.OCRReportResponse
+// @Failure 400 {object} map[string]string "Invalid Parameters"
+// @Failure 404 {object} map[string]string "Profile Not Found"
+// @Failure 500 {object} map[string]string "Internal Server Error"
+// @Router /api/v1/report/ocr [get]
+func (h *OCRHandler) GetReport(c *gin.Context) {
+	var req ocrDto.GetOCRReportRequest
+
+	if err := c.ShouldBindQuery(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid parameters"})
+		return
+	}
+
+	resp, err := h.ocrUsecase.GetReports(c.Request.Context(), req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
