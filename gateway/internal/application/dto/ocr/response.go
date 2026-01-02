@@ -1,8 +1,6 @@
 package ocr
 
-import (
-	"gorm.io/datatypes"
-)
+import "encoding/json"
 
 type OCRResponse struct {
 	Success bool                   `json:"success"`
@@ -26,11 +24,11 @@ type HealthCheckResponseDTO struct {
 }
 
 type OCRReportItem struct {
-	ID      uint64         `json:"id"`
-	Date    string         `json:"date"`   // jalali string
-	Status  string         `json:"status"` // "Failed" or "Success"
-	Message string         `json:"message"`
-	Stats   datatypes.JSON `json:"stats"`
+	ID      uint64          `json:"id"`
+	Date    string          `json:"date"`   // jalali string
+	Status  string          `json:"status"` // "Failed" or "Success"
+	Message string          `json:"message"`
+	Stats   json.RawMessage `json:"stats,omitempty" swaggertype:"object"`
 }
 
 type OCRReportResponse struct {

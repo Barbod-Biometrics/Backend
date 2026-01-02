@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -267,7 +268,7 @@ func (s *OCRService) GetReports(ctx context.Context, req ocrDto.GetOCRReportRequ
 			Date:    date.ToJalaliString(r.CreatedAt),
 			Status:  statusStr,
 			Message: r.Message,
-			Stats:   r.Stats,
+			Stats:   json.RawMessage(r.Stats),
 		})
 	}
 
