@@ -27,6 +27,7 @@ func (r *ProfileRepository) GetPersonalProfileByUserID(ctx context.Context, user
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
+		return nil, err
 	}
 
 	return &profile, nil
