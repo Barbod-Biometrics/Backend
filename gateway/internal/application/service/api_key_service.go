@@ -105,7 +105,7 @@ func (s *APIKeyService) GenerateKey(ctx context.Context, profileID uint64) (stri
 	if err != nil {
 		// NOTE: in a normal world we have to rollback the API key creation here.
 
-		s.logger.Error("failed to update profile has_apikey flag",
+		s.logger.Error("failed to update profile has_api_key flag",
 			logger.Field{Key: "profile_id", Value: profileID},
 			logger.Field{Key: "error", Value: err})
 	}
