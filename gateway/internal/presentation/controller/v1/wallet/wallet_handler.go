@@ -6,6 +6,7 @@ import (
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/wallet"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/exception"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/middleware"
 	"github.com/gin-gonic/gin"
@@ -27,7 +28,7 @@ func NewWalletHandler(u usecase.WalletUsecase, logger logger.Logger) *WalletHand
 func (h *WalletHandler) getUserID(c *gin.Context) uint64 {
 	userID, err := middleware.GetUserIDFromContext(c)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		panic(exception.NewUnauthorizedError("", nil))
 	}
 	return userID
 }
@@ -50,8 +51,7 @@ func (h *WalletHandler) GetWalletSummary(c *gin.Context) {
 	profileIDParam := c.Param("id")
 	profileID, err := strconv.ParseUint(profileIDParam, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid profile id"})
-		return
+		panic(exception.NewBadRequestError("ERR_INVALID_PROFILE_ID", "Invalid profile ID", err))
 	}
 
 	userID := h.getUserID(c)
@@ -84,8 +84,7 @@ func (h *WalletHandler) GetTransactions(c *gin.Context) {
 	profileIDParam := c.Param("id")
 	profileID, err := strconv.ParseUint(profileIDParam, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid profile id"})
-		return
+		panic(exception.NewBadRequestError("ERR_INVALID_PROFILE_ID", "Invalid profile ID", err))
 	}
 
 	// Parse pagination params
@@ -133,14 +132,12 @@ func (h *WalletHandler) Deposit(c *gin.Context) {
 	profileIDParam := c.Param("id")
 	profileID, err := strconv.ParseUint(profileIDParam, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid profile id"})
-		return
+		panic(exception.NewBadRequestError("ERR_INVALID_PROFILE_ID", "Invalid profile ID", err))
 	}
 
 	var req wallet.DepositRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+		panic(exception.BindingError{Err: err})
 	}
 
 	userID := h.getUserID(c)
