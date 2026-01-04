@@ -8,7 +8,7 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/user"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/service"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
-	exception "github.com/Barbod-Biometrics/Backend/gateway/internal/domain/exception"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/exception"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/middleware"
 	"github.com/gin-gonic/gin"
 )
@@ -39,18 +39,15 @@ func NewUserController(authUsecase usecase.AuthUsecase, userUsecase usecase.User
 func (g *GeneralUserController) GetUserProfileHandler(c *gin.Context) {
 	userID, err := middleware.GetUserIDFromContext(c)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized", "details": err.Error()})
-		return
+		panic(exception.NewUnauthorizedError("", nil))
 	}
 
 	profile, err := g.userUsecase.GetUserByID(c.Request.Context(), userID)
 	if err != nil {
 		if err == service.ErrUserNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
-			return
+			panic(exception.NotFoundError{Item: "user"})
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user profile"})
-		return
+		panic(err)
 	}
 	c.JSON(http.StatusOK, profile)
 }
@@ -70,17 +67,12 @@ func (g *GeneralUserController) GetUserProfileHandler(c *gin.Context) {
 func (g *GeneralUserController) UpdateProfileHandler(c *gin.Context) {
 	userID, err := middleware.GetUserIDFromContext(c)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized", "details": err.Error()})
-		return
+		panic(exception.NewUnauthorizedError("", nil))
 	}
 
 	var req user.UpdateProfileRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Invalid request body",
-			"details": err.Error(),
-		})
-		return
+		panic(exception.BindingError{Err: err})
 	}
 
 	req.UserID = userID
@@ -89,15 +81,14 @@ func (g *GeneralUserController) UpdateProfileHandler(c *gin.Context) {
 	if err != nil {
 		switch err {
 		case service.ErrUserNotFound:
-			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			panic(exception.NotFoundError{Item: "user"})
 		case service.ErrEmailAlreadyExist:
-			c.JSON(http.StatusConflict, gin.H{"error": "Email already exists"})
+			panic(exception.NewBadRequestError("ERR_EMAIL_EXISTS", "Email already exists", err))
 		case service.ErrPhoneAlreadyExist:
-			c.JSON(http.StatusConflict, gin.H{"error": "Phone number already exists"})
+			panic(exception.NewBadRequestError("ERR_PHONE_EXISTS", "Phone number already exists", err))
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile", "details": err.Error()})
+			panic(err)
 		}
-		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
