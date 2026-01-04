@@ -217,3 +217,30 @@ func (s *OCRService) HealthCheck(ctx context.Context) (*ocrDto.HealthCheckRespon
 	)
 	return result, nil
 }
+
+func (s *OCRService) ApproveResult(ctx context.Context, ocrID uint64, profileID uint64) error {
+
+	s.logger.Info("Starting OCR result approval process",
+		logger.Field{Key: "ocr_id", Value: ocrID},
+		logger.Field{Key: "profile_id", Value: profileID},
+	)
+
+	err := s.repo.ApproveOCRResult(ctx, ocrID, profileID)
+	if err != nil {
+		s.logger.Error("Failed to approve OCR result",
+			logger.Field{Key: "error", Value: err},
+			logger.Field{Key: "ocr_id", Value: ocrID},
+			logger.Field{Key: "profile_id", Value: profileID},
+		)
+
+		return err
+	}
+
+	s.logger.Info("OCR result approved successfully",
+		logger.Field{Key: "ocr_id", Value: ocrID},
+		logger.Field{Key: "profile_id", Value: profileID},
+	)
+
+	return nil
+
+}

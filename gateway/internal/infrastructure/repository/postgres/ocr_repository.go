@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
@@ -116,4 +117,23 @@ func (r *OCRRepository) GetResultsByProfileID(ctx context.Context, profileID uin
 	}
 
 	return results, nil
+}
+
+func (r *OCRRepository) ApproveOCRResult(ctx context.Context, ocrID uint64, profileID uint64) error {
+	db := r.getDB(ctx)
+
+	result := db.WithContext(ctx).
+		Model(&entity.OCRModel{}).
+		Where("id = ? AND profile_id = ?", ocrID, profileID).
+		Update("approved", true)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("record not found or access denied")
+	}
+
+	return nil
 }
