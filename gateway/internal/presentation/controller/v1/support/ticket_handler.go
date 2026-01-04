@@ -6,6 +6,7 @@ import (
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/ticket"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/exception"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/middleware"
 	"github.com/gin-gonic/gin"
@@ -64,8 +65,7 @@ func (h *TicketHandler) parseTicketIDParam(c *gin.Context) (uint64, error) {
 func (h *TicketHandler) GetUserTickets(c *gin.Context) {
 	userID, err := h.getUserID(c)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-		return
+		panic(exception.NewUnauthorizedError("", nil))
 	}
 
 	tickets, err := h.ticketUsecase.GetUserTickets(c.Request.Context(), userID)
@@ -73,8 +73,7 @@ func (h *TicketHandler) GetUserTickets(c *gin.Context) {
 		h.log.Error("failed to get user tickets",
 			logger.Field{Key: "error", Value: err},
 		)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		panic(err)
 	}
 
 	c.JSON(http.StatusOK, ticket.SuccessListResponse{
@@ -99,14 +98,12 @@ func (h *TicketHandler) GetUserTickets(c *gin.Context) {
 func (h *TicketHandler) CreateTicket(c *gin.Context) {
 	userID, err := h.getUserID(c)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-		return
+		panic(exception.NewUnauthorizedError("", nil))
 	}
 
 	var req ticket.CreateTicketRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+		panic(exception.BindingError{Err: err})
 	}
 
 	resp, err := h.ticketUsecase.CreateTicket(c.Request.Context(), userID, req)
@@ -114,8 +111,7 @@ func (h *TicketHandler) CreateTicket(c *gin.Context) {
 		h.log.Error("failed to create ticket",
 			logger.Field{Key: "error", Value: err},
 		)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		panic(err)
 	}
 
 	c.JSON(http.StatusCreated, ticket.SuccessResponse{
@@ -140,14 +136,12 @@ func (h *TicketHandler) CreateTicket(c *gin.Context) {
 func (h *TicketHandler) GetUploadURL(c *gin.Context) {
 	userID, err := h.getUserID(c)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-		return
+		panic(exception.NewUnauthorizedError("", nil))
 	}
 
 	fileExtension := c.Query("file_extension")
 	if fileExtension == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "file_extension is required"})
-		return
+		panic(exception.NewBadRequestError("ERR_FILE_EXTENSION_REQUIRED", "file_extension is required", nil))
 	}
 
 	uploadURL, objectKey, err := h.ticketUsecase.GetUploadURL(c.Request.Context(), userID, fileExtension)
