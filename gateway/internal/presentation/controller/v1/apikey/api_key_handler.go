@@ -7,6 +7,7 @@ import (
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/business"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/exception"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
 	"github.com/gin-gonic/gin"
 )
@@ -43,8 +44,7 @@ func (h *ApiKeyHandler) GenerateKey(c *gin.Context) {
 	ProfileID, err := strconv.ParseUint(profileIDStr, 10, 64)
 	if err != nil {
 		h.logger.Warn("generate request failed: invalid profile_id", logger.Field{Key: "input_id", Value: profileIDStr})
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid profile ID"})
-		return
+		panic(exception.NewAppError("ERR_INVALID_PROFILE_ID", "Invalid profile ID", http.StatusBadRequest, err))
 	}
 
 	req := business.GenerateAPIKeyRequest{
@@ -55,14 +55,9 @@ func (h *ApiKeyHandler) GenerateKey(c *gin.Context) {
 	if err != nil {
 		if errors.Is(err, errors.New("active key exists for this profile id")) {
 			h.logger.Warn("generate request blocked: active key exists", logger.Field{Key: "profile_id", Value: req.ProfileID})
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":   "Active API key already exists for this profile ID",
-				"message": "Use /regenerate to replace your key.",
-			})
-			return
+			panic(exception.NewAppError("ERR_API_KEY_ACTIVE_EXISTS", "apikey.activeKeyExists", http.StatusBadRequest, err))
 		}
-		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
-		return
+		panic(err)
 	}
 
 	resp := business.NewAPIKeyResponse{
@@ -95,8 +90,7 @@ func (h *ApiKeyHandler) RegenerateKey(c *gin.Context) {
 	ProfileID, err := strconv.ParseUint(profileIDStr, 10, 64)
 	if err != nil {
 		h.logger.Warn("regenerate request failed: invalid profile_id", logger.Field{Key: "input_id", Value: profileIDStr})
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid profile ID"})
-		return
+		panic(exception.NewAppError("ERR_INVALID_PROFILE_ID", "Invalid profile ID", http.StatusBadRequest, err))
 	}
 
 	req := business.GenerateAPIKeyRequest{
@@ -105,8 +99,7 @@ func (h *ApiKeyHandler) RegenerateKey(c *gin.Context) {
 
 	rawKey, err := h.apiKeyUsecase.RegenerateKey(c.Request.Context(), req.ProfileID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+		panic(err)
 	}
 
 	resp := business.NewAPIKeyResponse{
