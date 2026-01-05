@@ -115,15 +115,29 @@ func (r *ContactSalesRepository) List(ctx context.Context, filter repository.Con
 
 func (r *ContactSalesRepository) MarkRead(ctx context.Context, id uint64) error {
 	now := time.Now()
-	return r.getDB(ctx).WithContext(ctx).
+	result := r.getDB(ctx).WithContext(ctx).
 		Model(&entity.ContactSalesRequest{}).
 		Where("id = ?", id).
 		Updates(map[string]interface{}{
 			"status":  entity.ContactSalesStatusRead,
 			"read_at": &now,
-		}).Error
+		})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
 }
 
 func (r *ContactSalesRepository) Delete(ctx context.Context, id uint64) error {
-	return r.getDB(ctx).WithContext(ctx).Delete(&entity.ContactSalesRequest{}, id).Error
+	result := r.getDB(ctx).WithContext(ctx).Delete(&entity.ContactSalesRequest{}, id)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
 }
