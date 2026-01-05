@@ -19,10 +19,12 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/localization"
 	Logger "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/logger"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/ocr"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/recaptcha"
 	postgresRepo "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/repository/postgres"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/telemetry"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/admin"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/apikey"
+	contactController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/contact"
 	faceVerificationController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/face_verification"
 	ocrController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/ocr"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
@@ -147,6 +149,7 @@ func ProvideRouter(
 	profileHandler *profile.ProfileHandler,
 	apiKeyController *apikey.ApiKeyHandler,
 	adminProfileHandler *admin.AdminProfileHandler,
+	contactSalesHandler *contactController.ContactSalesHandler,
 	walletHandler *wallet.WalletHandler,
 	transactionHandler *transaction.TransactionHandler,
 	ticketHandler *support.TicketHandler,
@@ -162,6 +165,7 @@ func ProvideRouter(
 		profileHandler,
 		apiKeyController,
 		adminProfileHandler,
+		contactSalesHandler,
 		faceVerificationHandler,
 		ocrHandler,
 		walletHandler,
@@ -229,6 +233,22 @@ func ProvideOCRService(
 
 func ProvideOCRHandler(ocrUsecase usecase.OCRUsecase, l logger.Logger) *ocrController.OCRHandler {
 	return ocrController.NewOCRHandler(ocrUsecase, l)
+}
+
+func ProvideRecaptchaVerifier(cfg *bootstrap.Config) recaptcha.Verifier {
+	return recaptcha.NewGoogleVerifier(cfg.Env.Recaptcha.Secret, cfg.Env.Recaptcha.VerifyURL, cfg.Env.Recaptcha.Enabled)
+}
+
+func ProvideContactSalesRepository(db *gorm.DB) repository.ContactSalesRepository {
+	return postgresRepo.NewContactSalesRepository(db)
+}
+
+func ProvideContactSalesUsecase(repo repository.ContactSalesRepository, verifier recaptcha.Verifier, l logger.Logger) usecase.ContactSalesUsecase {
+	return service.NewContactSalesService(repo, verifier, l)
+}
+
+func ProvideContactSalesHandler(contactSalesUsecase usecase.ContactSalesUsecase, l logger.Logger) *contactController.ContactSalesHandler {
+	return contactController.NewContactSalesHandler(contactSalesUsecase, l)
 }
 
 type Application struct {

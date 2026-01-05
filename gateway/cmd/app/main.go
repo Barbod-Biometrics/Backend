@@ -62,6 +62,7 @@ func main() {
 		&entity.Service{},
 		&entity.FaceVerificationModel{},
 		&entity.OCRModel{},
+		&entity.ContactSalesRequest{},
 	)
 	if err != nil {
 		app.Logger.Fatal("Failed to migrate database", logger.Field{Key: "error", Value: err})
