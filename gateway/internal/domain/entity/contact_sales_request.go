@@ -21,7 +21,7 @@ type ContactSalesRequest struct {
 	BusinessName string             `gorm:"size:150;not null" json:"business_name"`
 	Email        *string            `gorm:"size:150" json:"email,omitempty"`
 	Description  string             `gorm:"type:text;not null" json:"description"`
-	Status       ContactSalesStatus `gorm:"type:varchar(20);not null;default:'new'" json:"status"`
+	Status       ContactSalesStatus `gorm:"type:varchar(20);not null;default:'new';index" json:"status"`
 	ReadAt       *time.Time         `json:"read_at,omitempty"`
 	CreatedAt    time.Time          `gorm:"not null;default:now()" json:"created_at"`
 	UpdatedAt    time.Time          `gorm:"not null;default:now()" json:"updated_at"`
