@@ -6,10 +6,12 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/bootstrap"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/service"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/communication"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/enum"
 	domainJWT "github.com/Barbod-Biometrics/Backend/gateway/internal/domain/jwt"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/communication/email"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/communication/sms"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/database/redis"
 	face_verification "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/face_verificaiton"
@@ -26,6 +28,7 @@ import (
 	faceVerificationController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/face_verification"
 	ocrController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/ocr"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/support"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/transaction"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/user"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/wallet"
@@ -90,6 +93,10 @@ func ProvideSMSService(cfg *bootstrap.Config) *sms.SMSService {
 	return sms.NewSMSService(cfg.Env.SMSGateway.APIKey, cfg.Env.OTP.BackdoorCode)
 }
 
+func ProvideEmailService(cfg *bootstrap.Config, appLogger logger.Logger) communication.EmailService {
+	return email.NewGmailService(cfg.Env.Gmail, appLogger)
+}
+
 func ProvideTranslator() *localization.TranslationService {
 	return localization.GetService()
 }
@@ -133,6 +140,10 @@ func ProvideTransactionHandler(transactionUsecase usecase.TransactionUsecase, pr
 	return transaction.NewTransactionHandler(transactionUsecase, profileRepository, logger.Logger(l))
 }
 
+func ProvideTicketHandler(ticketUsecase usecase.TicketUsecase, l logger.Logger) *support.TicketHandler {
+	return support.NewTicketHandler(ticketUsecase, logger.Logger(l))
+}
+
 func ProvideRouter(
 	authController *user.GeneralUserController,
 	profileHandler *profile.ProfileHandler,
@@ -141,6 +152,7 @@ func ProvideRouter(
 	contactSalesHandler *contactController.ContactSalesHandler,
 	walletHandler *wallet.WalletHandler,
 	transactionHandler *transaction.TransactionHandler,
+	ticketHandler *support.TicketHandler,
 	apiKeyUsecase usecase.APIKeyUsecase,
 	appLogger logger.Logger,
 	jwtKeyManager domainJWT.KeyManager,
@@ -158,6 +170,7 @@ func ProvideRouter(
 		ocrHandler,
 		walletHandler,
 		transactionHandler,
+		ticketHandler,
 		apiKeyUsecase,
 		appLogger,
 		jwtKeyManager,
@@ -180,11 +193,14 @@ func ProvideFaceVerificationService(
 	repo repository.FaceVerificationRepository,
 	serviceRepo repository.ServiceRepository,
 	profileRepo repository.ProfileRepository,
+	userRepo repository.UserRepository,
 	transactionRepo repository.TransactionRepository,
+	emailService communication.EmailService,
 	unitOfWork repository.UnitOfWork,
 	trialService *service.TrialService,
+	cfg *bootstrap.Config,
 ) usecase.FaceVerificationUsecase {
-	return service.NewFaceVerificationService(client, l, repo, serviceRepo, profileRepo, transactionRepo, unitOfWork, trialService)
+	return service.NewFaceVerificationService(client, l, repo, serviceRepo, profileRepo, userRepo, transactionRepo, emailService, unitOfWork, trialService, cfg)
 }
 
 func ProvideFaceVerificationHandler(ms usecase.FaceVerificationUsecase, l logger.Logger) *faceVerificationController.FaceVerificationHandler {
@@ -195,8 +211,8 @@ func ProvideOCRClient(cfg *bootstrap.Config, l logger.Logger) *ocr.OCRClient {
 	return ocr.NewOCRClient(cfg.Env.OCR.OCRURL, l)
 }
 
-func ProvideOCRRepository(db *gorm.DB) repository.OCRRepository {
-	return postgresRepo.NewOCRRepository(db)
+func ProvideOCRRepository(db *gorm.DB, l logger.Logger) repository.OCRRepository {
+	return postgresRepo.NewOCRRepository(db, l)
 }
 
 func ProvideOCRService(
@@ -205,11 +221,14 @@ func ProvideOCRService(
 	repo repository.OCRRepository,
 	serviceRepo repository.ServiceRepository,
 	profileRepo repository.ProfileRepository,
+	userRepo repository.UserRepository,
 	transactionRepo repository.TransactionRepository,
+	emailService communication.EmailService,
 	unitOfWork repository.UnitOfWork,
 	trialService *service.TrialService,
+	cfg *bootstrap.Config,
 ) usecase.OCRUsecase {
-	return service.NewOCRService(client, l, repo, serviceRepo, profileRepo, transactionRepo, unitOfWork, trialService)
+	return service.NewOCRService(client, l, repo, serviceRepo, profileRepo, userRepo, transactionRepo, emailService, unitOfWork, trialService, cfg)
 }
 
 func ProvideOCRHandler(ocrUsecase usecase.OCRUsecase, l logger.Logger) *ocrController.OCRHandler {

@@ -9,7 +9,6 @@ import (
 	docs "github.com/Barbod-Biometrics/Backend/gateway/docs"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
-	postgresRepo "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/repository/postgres"
 
 	appWire "github.com/Barbod-Biometrics/Backend/gateway/wire"
 	"github.com/gin-gonic/gin"
@@ -49,17 +48,20 @@ func main() {
 	setSwaggerHost(cfg.Env.Server.Host, cfg.Env.Server.Port)
 
 	// Database Migration
+	// Note: Order matters - Ticket and TicketMessage must come after User due to FK constraints
 	err = app.DB.AutoMigrate(
 		&entity.User{},
+		&entity.Ticket{},
+		&entity.TicketMessage{},
 		&entity.Profile{},
+		&entity.APIKey{},
 		&entity.ProfileBusinessDetails{},
 		&entity.ProfilePersonDetails{},
 		&entity.AuthorizedSignatory{},
-		&entity.APIKey{},
 		&entity.Transaction{},
 		&entity.Service{},
-		&postgresRepo.FaceVerificationModel{},
-		&postgresRepo.OCRModel{},
+		&entity.FaceVerificationModel{},
+		&entity.OCRModel{},
 		&entity.ContactSalesRequest{},
 	)
 	if err != nil {

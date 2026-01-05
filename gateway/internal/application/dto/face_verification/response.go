@@ -1,10 +1,5 @@
 package face_verification
 
-type FaceVerificationRequest struct {
-	Photo []byte `json:"photo" form:"photo"`
-	Video []byte `json:"video" form:"video"`
-}
-
 type FaceVerificationResponse struct {
 	Success  bool        `json:"success"`
 	Reason   string      `json:"reason"`
@@ -17,10 +12,6 @@ type FaceVerificationResponse struct {
 	RechargeInSeconds int `json:"recharge_in_seconds,omitempty"`
 }
 
-type CropImageRequest struct {
-	Image []byte `json:"image" form:"image"`
-}
-
 type CropImageResponse struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`
@@ -28,13 +19,26 @@ type CropImageResponse struct {
 	Image   []byte `json:"image,omitempty"`
 }
 
-type HealthCheckRequest struct {
-	// no fields
-}
-
 type HealthCheckResponseDTO struct {
 	Status  string      `json:"status"`
 	Message string      `json:"message"`
 	Models  interface{} `json:"models,omitempty"`
 	Config  interface{} `json:"config,omitempty"`
+}
+
+type FaceReportItem struct {
+	ID       uint64  `json:"id"`
+	Date     string  `json:"date"`
+	Status   string  `json:"status"`
+	Duration float64 `json:"duration"`
+	Message  string  `json:"message"`
+	Reason   string  `json:"reason"`
+	Rate     float64 `json:"rate"`
+}
+
+type FaceReportResponse struct {
+	Items      []FaceReportItem `json:"items"`
+	TotalCount int64            `json:"total_count"`
+	Page       int              `json:"page"`
+	TotalPages int              `json:"total_pages"`
 }

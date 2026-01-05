@@ -23,6 +23,11 @@ type Env struct {
 	FaceVerification FaceVerification
 	OCR              OCR
 	Recaptcha        Recaptcha
+	Wallet           Wallet
+}
+
+type Wallet struct {
+	LowBalanceThreshold uint64
 }
 
 type Admin struct {
@@ -63,11 +68,13 @@ type SMSGateway struct {
 }
 
 type Minio struct {
-	Port         string
-	PanelPort    string
-	Host         string
-	UserRoot     string
-	PasswordRoot string
+	Port           string
+	PanelPort      string
+	Host           string
+	UserRoot       string
+	PasswordRoot   string
+	PublicEndpoint string // External endpoint for presigned URLs
+	PublicSecure   bool   // Use HTTPS for presigned URLs
 }
 
 type Logger struct {
@@ -135,11 +142,13 @@ func NewEnvironment() *Env {
 			APIKey: os.Getenv("SMS_GATEWAY_API_KEY"),
 		},
 		Minio: Minio{
-			Port:         os.Getenv("MINIO_PORT"),
-			PanelPort:    os.Getenv("MINIO_PANEL_PORT"),
-			Host:         os.Getenv("MINIO_HOST"),
-			UserRoot:     os.Getenv("MINIO_ROOT_USER"),
-			PasswordRoot: os.Getenv("MINIO_ROOT_PASSWORD"),
+			Port:           os.Getenv("MINIO_PORT"),
+			PanelPort:      os.Getenv("MINIO_PANEL_PORT"),
+			Host:           os.Getenv("MINIO_HOST"),
+			UserRoot:       os.Getenv("MINIO_ROOT_USER"),
+			PasswordRoot:   os.Getenv("MINIO_ROOT_PASSWORD"),
+			PublicEndpoint: os.Getenv("MINIO_PUBLIC_ENDPOINT"),
+			PublicSecure:   getEnvBool("MINIO_PUBLIC_SECURE", false), // Use HTTPS for production
 		},
 		Postgres: Postgres{
 			Host:     os.Getenv("POSTGRES_HOST"),
@@ -171,7 +180,7 @@ func NewEnvironment() *Env {
 			SenderEmail:      os.Getenv("SENDER_GMAIL"),
 			SmtpHost:         getEnvString("GMAIL_SMTP_HOST", "smtp.gmail.com"),
 			SmtpPort:         getEnvInt("GMAIL_SMTP_PORT", 587),
-			TemplateDir:      getEnvString("GMAIL_TEMPLATE_DIR", "templates/emails"),
+			TemplateDir:      getEnvString("GMAIL_TEMPLATE_DIR", "templates/email"),
 		},
 		FaceVerification: FaceVerification{
 			FaceVerificationURL: getEnvString("FACE_VERIFICATION_URL", "http://localhost:5000"),
@@ -183,6 +192,9 @@ func NewEnvironment() *Env {
 			Enabled:   getEnvBool("RECAPTCHA_ENABLED", false),
 			Secret:    os.Getenv("RECAPTCHA_SECRET"),
 			VerifyURL: getEnvString("RECAPTCHA_VERIFY_URL", "https://www.google.com/recaptcha/api/siteverify"),
+		},
+		Wallet: Wallet{
+			LowBalanceThreshold: uint64(getEnvInt("WALLET_LOW_BALANCE_THRESHOLD", 1000)),
 		},
 	}
 }

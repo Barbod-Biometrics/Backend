@@ -10,29 +10,72 @@ import (
 	"time"
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/communication"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
 	"golang.org/x/crypto/bcrypt"
 )
 
+var (
+	ErrProfileNotFound  = errors.New("profile not found")
+	ErrActiveKeyExists  = errors.New("active key exists for this profile")
+	ErrKeyRevoked       = errors.New("api key is revoked")
+	ErrInvalidKeyFormat = errors.New("invalid key format")
+	ErrInvalidKeyLength = errors.New("invalid key length")
+	ErrAuthFailed       = errors.New("authentication failed")
+
+	// General errors
+	ErrRecordNotFound = errors.New("record not found")
+)
+
 type APIKeyService struct {
-	apiKeyRepo repository.APIKeyRepository
-	logger     logger.Logger
+	apiKeyRepo   repository.APIKeyRepository
+	profileRepo  repository.ProfileRepository
+	userRepo     repository.UserRepository
+	emailService communication.EmailService
+	logger       logger.Logger
 }
 
 var _ usecase.APIKeyUsecase = (*APIKeyService)(nil)
 
-func NewAPIKeyService(apiKeyRepo repository.APIKeyRepository, logger logger.Logger) *APIKeyService {
+func NewAPIKeyService(
+	apiKeyRepo repository.APIKeyRepository,
+	profileRepo repository.ProfileRepository,
+	userRepo repository.UserRepository,
+	emailService communication.EmailService,
+	logger logger.Logger,
+) *APIKeyService {
 	return &APIKeyService{
-		apiKeyRepo: apiKeyRepo,
-		logger:     logger,
+		apiKeyRepo:   apiKeyRepo,
+		profileRepo:  profileRepo,
+		userRepo:     userRepo,
+		emailService: emailService,
+		logger:       logger,
 	}
 }
 
 func (s *APIKeyService) GenerateKey(ctx context.Context, profileID uint64) (string, error) {
 
 	s.logger.Info("starting api key generation", logger.Field{Key: "profile_id", Value: profileID})
+
+	// safety check: ensure profile exists
+	p, err := s.profileRepo.GetByID(ctx, profileID)
+	if err != nil {
+		s.logger.Warn("api key generation failed: profile not found", logger.Field{Key: "profile_id", Value: profileID})
+		return "", ErrProfileNotFound
+	}
+
+	// safety check: ensure no active key exists for this profile_id
+	existingKey, err := s.apiKeyRepo.GetActiveByProfileID(ctx, profileID)
+	if err != nil {
+		if !errors.Is(err, ErrRecordNotFound) {
+			return "", ErrProfileNotFound
+		}
+	} else if existingKey != nil {
+		s.logger.Warn("generation blocked: active key exists", logger.Field{Key: "profile_id", Value: profileID})
+		return "", ErrActiveKeyExists
+	}
 
 	bytes := make([]byte, 32)
 	if _, err := rand.Read(bytes); err != nil {
@@ -69,7 +112,37 @@ func (s *APIKeyService) GenerateKey(ctx context.Context, profileID uint64) (stri
 		return "", err
 	}
 
+	err = s.profileRepo.UpdateHasAPIKey(ctx, profileID, true)
+	if err != nil {
+		// NOTE: in a normal world we have to rollback the API key creation here.
+
+		s.logger.Error("failed to update profile has_api_key flag",
+			logger.Field{Key: "profile_id", Value: profileID},
+			logger.Field{Key: "error", Value: err})
+	}
+
 	s.logger.Info("api key generated successfully", logger.Field{Key: "profile_id", Value: profileID})
+
+	go func() {
+		user, err := s.userRepo.GetByID(context.Background(), p.UserID)
+		if err != nil || user == nil || user.Email == nil || *user.Email == "" {
+			return
+		}
+
+		name := ""
+		if p.ProfileType == entity.ProfileTypePersonal && p.PersonDetails != nil {
+			name = p.PersonDetails.FirstName + " " + p.PersonDetails.LastName
+		} else if p.ProfileType == entity.ProfileTypeBusiness && p.BusinessDetails != nil {
+			name = p.BusinessDetails.RepFirstName + " " + p.BusinessDetails.RepLastName
+		}
+
+		data := map[string]interface{}{
+			"Name":        name,
+			"ProfileName": p.ProfileName,
+		}
+
+		_ = s.emailService.SendWithTemplate(context.Background(), *user.Email, "کلید API جدید صادر شد", "api_key_generated.html", data)
+	}()
 
 	return fullRawKey, nil
 }
@@ -98,7 +171,7 @@ func (s *APIKeyService) Authenticate(ctx context.Context, rawKey string) (uint64
 
 	if !strings.HasPrefix(rawKey, visualPrefix) {
 		s.logger.Warn("authentication failed: invalid prefix", logger.Field{Key: "key_fragment", Value: rawKey[:4]})
-		return 0, errors.New("invalid key format")
+		return 0, ErrInvalidKeyFormat
 	}
 
 	if len(rawKey) <= len(visualPrefix)+8 {
@@ -115,8 +188,8 @@ func (s *APIKeyService) Authenticate(ctx context.Context, rawKey string) (uint64
 	}
 
 	if !apiKey.IsActive {
-		s.logger.Warn("authenetication failed: key is revoked", logger.Field{Key: "profile_id", Value: apiKey.ProfileID})
-		return 0, errors.New("key is revoked")
+		s.logger.Warn("authentication  failed: key is revoked", logger.Field{Key: "profile_id", Value: apiKey.ProfileID})
+		return 0, ErrKeyRevoked
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(apiKey.KeyHash), []byte(rawKey))

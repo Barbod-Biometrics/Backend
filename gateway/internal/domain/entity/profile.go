@@ -62,6 +62,7 @@ type Profile struct {
 	VerificationStatus VerificationStatus `gorm:"type:varchar(20);default:'draft';not null" json:"verification_status"`
 	IsActive           bool               `gorm:"default:true;not null" json:"is_active"`
 	CreatedAt          time.Time          `gorm:"not null;default:now()" json:"created_at"`
+	HasApiKey          bool               `gorm:"not null;default:false" json:"has_api_key"`
 
 	PersonDetails   *ProfilePersonDetails   `gorm:"foreignKey:ProfileID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"person_details,omitempty"`
 	BusinessDetails *ProfileBusinessDetails `gorm:"foreignKey:ProfileID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"business_details,omitempty"`

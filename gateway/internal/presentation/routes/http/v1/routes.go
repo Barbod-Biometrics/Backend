@@ -14,6 +14,7 @@ import (
 	contactController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/contact"
 	ocrController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/ocr"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/support"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/transaction"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/user"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/wallet"
@@ -33,6 +34,7 @@ type Route struct {
 	ocrController              *ocrController.OCRHandler
 	walletController           *wallet.WalletHandler
 	transactionController      *transaction.TransactionHandler
+	ticketController           *support.TicketHandler
 	jwtKeyManager              domainJWT.KeyManager
 	serviceName                string
 	constants                  *bootstrap.Constants
@@ -50,6 +52,7 @@ func NewRouter(
 	ocrHandler *ocrController.OCRHandler,
 	walletHandler *wallet.WalletHandler,
 	transactionHandler *transaction.TransactionHandler,
+	ticketHandler *support.TicketHandler,
 	apiKeyUsecase usecase.APIKeyUsecase,
 	appLogger logger.Logger,
 	jwtKeyManager domainJWT.KeyManager,
@@ -64,6 +67,7 @@ func NewRouter(
 		contactSalesController:     contactSalesHandler,
 		walletController:           walletHandler,
 		transactionController:      transactionHandler,
+		ticketController:           ticketHandler,
 		faceVerificationController: faceVerificationHandler,
 		ocrController:              ocrHandler,
 		jwtKeyManager:              jwtKeyManager,
@@ -120,6 +124,7 @@ func (r *Route) RegisterRoutes() http.Handler {
 
 		api_key := v1.Group("/api-key")
 		{
+			api_key.POST("/:profile_id/generate", r.apiKeyController.GenerateKey)
 			api_key.POST("/:profile_id/regenerate", r.apiKeyController.RegenerateKey)
 		}
 
@@ -147,6 +152,14 @@ func (r *Route) RegisterRoutes() http.Handler {
 				adminProfiles.POST("/:id/approve", r.adminProfileController.ApproveProfile)
 				adminProfiles.POST("/:id/reject", r.adminProfileController.RejectProfile)
 			}
+
+			// Admin ticket routes
+			adminTickets := adminGroup.Group("/tickets")
+			{
+				adminTickets.GET("", r.ticketController.GetAllTickets)
+				adminTickets.GET("/:ticketId", r.ticketController.GetTicketDetail)
+				adminTickets.GET("/:ticketId/file", r.ticketController.GetTicketFile)
+			}
 		}
 
 		user := v1.Group("/user")
@@ -156,19 +169,50 @@ func (r *Route) RegisterRoutes() http.Handler {
 			user.POST("/update-info", r.userController.UpdateProfileHandler)
 		}
 
-		faceVerification := v1.Group("/face-verification")
-		faceVerification.Use(middleware.APIKeyAuth(r.apiKeyUsecase, r.log))
+		// Support ticket routes - require JWT
+		supportGroup := v1.Group("/support")
+		supportGroup.Use(middleware.JWTMiddleware(r.jwtKeyManager))
 		{
-			faceVerification.POST("/verify", r.faceVerificationController.VerifyFace)
-			faceVerification.POST("/crop", r.faceVerificationController.CropImage)
-			faceVerification.GET("/health", r.faceVerificationController.HealthCheck)
+			supportGroup.GET("/tickets", r.ticketController.GetUserTickets)
+			supportGroup.POST("/tickets", r.ticketController.CreateTicket)
+			supportGroup.GET("/tickets/upload-url", r.ticketController.GetUploadURL)
 		}
 
-		ocr := v1.Group("/ocr")
-		ocr.Use(middleware.APIKeyAuth(r.apiKeyUsecase, r.log))
+		// Ticket message routes - require JWT (shared between user and admin)
+		tickets := v1.Group("/tickets")
+		tickets.Use(middleware.JWTMiddleware(r.jwtKeyManager))
 		{
-			ocr.POST("/extract", r.ocrController.ExtractText)
-			ocr.GET("/health", r.ocrController.HealthCheck)
+			tickets.GET("/:ticketId/messages", r.ticketController.GetTicketMessages)
+			tickets.POST("/:ticketId/messages", r.ticketController.SendMessage)
+			tickets.POST("/:ticketId/close", r.ticketController.CloseTicket)
+		}
+
+		faceVerificationMachine := v1.Group("/face-verification")
+		faceVerificationMachine.Use(middleware.APIKeyAuth(r.apiKeyUsecase, r.log))
+		{
+			faceVerificationMachine.POST("/verify", r.faceVerificationController.VerifyFace)
+			faceVerificationMachine.POST("/crop", r.faceVerificationController.CropImage)
+			faceVerificationMachine.GET("/health", r.faceVerificationController.HealthCheck)
+
+		}
+
+		modelReports := v1.Group("/report")
+		modelReports.Use((middleware.JWTMiddleware(r.jwtKeyManager)))
+		{
+			modelReports.GET("/face-verification", r.faceVerificationController.GetReport)
+		}
+
+		ocrMachine := v1.Group("/ocr")
+		ocrMachine.Use(middleware.APIKeyAuth(r.apiKeyUsecase, r.log))
+		{
+			ocrMachine.POST("/extract", r.ocrController.ExtractText)
+			ocrMachine.GET("/health", r.ocrController.HealthCheck)
+		}
+
+		ocrUser := v1.Group("/ocr")
+		ocrUser.Use(middleware.JWTMiddleware(r.jwtKeyManager))
+		{
+			ocrUser.POST("/approve", r.ocrController.ApproveResult)
 		}
 
 		demo := v1.Group("/demo")
