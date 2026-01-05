@@ -31,6 +31,9 @@ func (r *ApiKeyRepository) GetByPrefix(ctx context.Context, prefix string) (*ent
 
 	err := db.WithContext(ctx).Where("key_prefix = ?", prefix).First(&apiKey).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return &apiKey, nil
@@ -42,6 +45,9 @@ func (r *ApiKeyRepository) GetActiveByProfileID(ctx context.Context, profileID u
 
 	err := db.WithContext(ctx).Where("profile_id = ? AND is_active = ?", profileID, true).First(&apiKey).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return &apiKey, nil

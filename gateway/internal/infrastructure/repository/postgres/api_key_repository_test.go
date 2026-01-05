@@ -10,7 +10,25 @@ import (
 	repoPostgres "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/repository/postgres"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/test/testcontainer"
 	"github.com/stretchr/testify/assert"
+	"gorm.io/gorm"
 )
+
+func createDummyProfile(t *testing.T, db *gorm.DB) uint64 {
+	profile := entity.Profile{
+		UserID:             100, // Dummy user ID
+		ProfileType:        "personal",
+		ProfileName:        "Test Profile",
+		VerificationStatus: "verified",
+		IsActive:           true,
+		CreatedAt:          time.Now(),
+	}
+
+	// We create it in the DB immediately
+	err := db.Create(&profile).Error
+	assert.NoError(t, err, "failed to create seed profile")
+
+	return profile.ProfileID
+}
 
 func TestApiKeyRepository_Create(t *testing.T) {
 	ctx := context.Background()
@@ -22,8 +40,11 @@ func TestApiKeyRepository_Create(t *testing.T) {
 
 	repo := repoPostgres.NewApiKeyRepository(pg.DB)
 
+	// --- FIX: Create Parent First ---
+	realProfileID := createDummyProfile(t, pg.DB)
+
 	apiKey := &entity.APIKey{
-		ProfileID: 10,
+		ProfileID: realProfileID, // <--- Use the Real ID
 		KeyHash:   "hash123",
 		KeyPrefix: "pref123",
 		IsActive:  true,
@@ -51,10 +72,12 @@ func TestApiKeyRepository_GetByPrefix(t *testing.T) {
 
 	repo := repoPostgres.NewApiKeyRepository(pg.DB)
 
-	prefix := "abcdef12" // 8 chars
-	// seed
+	// --- FIX: Create Parent First ---
+	realProfileID := createDummyProfile(t, pg.DB)
+	prefix := "abcdef12"
+
 	apiKey := entity.APIKey{
-		ProfileID: 100,
+		ProfileID: realProfileID, // <--- Use the Real ID
 		KeyHash:   "somehash",
 		KeyPrefix: prefix,
 		IsActive:  true,
@@ -67,7 +90,7 @@ func TestApiKeyRepository_GetByPrefix(t *testing.T) {
 
 	assert.NoError(t, err)
 	if assert.NotNil(t, result) {
-		assert.Equal(t, uint64(100), result.ProfileID)
+		assert.Equal(t, realProfileID, result.ProfileID)
 		assert.Equal(t, prefix, result.KeyPrefix)
 	}
 }
@@ -82,13 +105,14 @@ func TestApiKeyRepository_GetActiveByProfileID(t *testing.T) {
 
 	repo := repoPostgres.NewApiKeyRepository(pg.DB)
 
-	profileID := uint64(55)
+	// --- FIX: Create Parent First ---
+	profileID := createDummyProfile(t, pg.DB)
 
 	// seed active
 	apiKey := entity.APIKey{
-		ProfileID: profileID,
+		ProfileID: profileID, // <--- Use the Real ID
 		KeyHash:   "hash_act",
-		KeyPrefix: "pref_act", // 8 chars
+		KeyPrefix: "pref_act",
 		IsActive:  true,
 		CreatedAt: time.Now(),
 	}
@@ -124,11 +148,13 @@ func TestApiKeyRepository_Revoke(t *testing.T) {
 
 	repo := repoPostgres.NewApiKeyRepository(pg.DB)
 
-	// seed
+	// --- FIX: Create Parent First ---
+	realProfileID := createDummyProfile(t, pg.DB)
+
 	apiKey := entity.APIKey{
-		ProfileID: 123,
+		ProfileID: realProfileID, // <--- Use the Real ID
 		KeyHash:   "revoke_h",
-		KeyPrefix: "revoke_p", // 8 chars
+		KeyPrefix: "revoke_p",
 		IsActive:  true,
 		CreatedAt: time.Now(),
 	}

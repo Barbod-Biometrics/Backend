@@ -1,9 +1,5 @@
 package ocr
 
-type OCRRequest struct {
-	Image string `json:"image" binding:"required"`
-}
-
 type OCRResponse struct {
 	Success bool                   `json:"success"`
 	Message string                 `json:"message,omitempty"`
