@@ -56,6 +56,26 @@ services:
       timeout: 3s
       retries: 3
 
+  alloy:
+    image: grafana/alloy:latest
+    container_name: barbod-alloy
+    restart: always
+    volumes:
+      - ./monitoring/alloy/config.alloy:/etc/alloy/config.alloy
+    command: run --server.http.listen-addr=0.0.0.0:12345 /etc/alloy/config.alloy
+    environment:
+      - GRAFANA_CLOUD_PROMETHEUS_URL=${GRAFANA_CLOUD_PROMETHEUS_URL}
+      - GRAFANA_CLOUD_PROMETHEUS_USER=${GRAFANA_CLOUD_PROMETHEUS_USER}
+      - GRAFANA_CLOUD_LOKI_URL=${GRAFANA_CLOUD_LOKI_URL}
+      - GRAFANA_CLOUD_LOKI_USER=${GRAFANA_CLOUD_LOKI_USER}
+      - GRAFANA_CLOUD_TEMPO_ENDPOINT=${GRAFANA_CLOUD_TEMPO_ENDPOINT}
+      - GRAFANA_CLOUD_TEMPO_USER=${GRAFANA_CLOUD_TEMPO_USER}
+      - GRAFANA_CLOUD_API_KEY=${GRAFANA_CLOUD_API_KEY}
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+      - "12345:12345" # Alloy UI
+
   gateway:
     image: ghcr.io/barbod-biometrics/gateway:latest
     # build: # This is for testing the apis locally and do not have to get the image from the repository (remove the comments if you want to test locally)
@@ -74,7 +94,9 @@ services:
       - postgres
       - redis
       - minio
-      - jaeger
+      - alloy
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4318
 
 volumes:
   postgres-data:

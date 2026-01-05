@@ -41,20 +41,86 @@ services:
     volumes:
       - minio-data:/data
 
-  jaeger:
-    image: jaegertracing/all-in-one:latest
-    container_name: barbod-jaeger-dev
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: barbod-redis-exporter
+    environment:
+      - REDIS_ADDR=redis:6379
+    depends_on:
+      - redis
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter
+    container_name: barbod-postgres-exporter
+    environment:
+      - DATA_SOURCE_NAME=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+    depends_on:
+      - postgres
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: barbod-cadvisor-dev
     restart: always
     ports:
-      - "16686:16686"  # Jaeger UI
-      - "4318:4318"    # OTLP HTTP receiver
+      - "8090:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: barbod-node-exporter-dev
+    restart: always
+    pid: "host"
+    ports:
+      - "9101:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+
+  # jaeger:
+  #   image: jaegertracing/all-in-one:latest
+  #   container_name: barbod-jaeger-dev
+  #   restart: always
+  #   ports:
+  #     - "16686:16686"  # Jaeger UI
+  #     - "4318:4318"    # OTLP HTTP receiver
+  #   environment:
+  #     - COLLECTOR_OTLP_ENABLED=true
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:16686/api/traces"]
+  #     interval: 10s
+  #     timeout: 3s
+  #     retries: 3
+
+  alloy:
+    image: grafana/alloy:latest
+    container_name: barbod-alloy-dev
+    restart: always
+    volumes:
+      - ./monitoring/alloy/config.alloy:/etc/alloy/config.alloy
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: run --server.http.listen-addr=0.0.0.0:12345 /etc/alloy/config.alloy
+    user: root
     environment:
-      - COLLECTOR_OTLP_ENABLED=true
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:16686/api/traces"]
-      interval: 10s
-      timeout: 3s
-      retries: 3
+      - GRAFANA_CLOUD_PROMETHEUS_URL=${GRAFANA_CLOUD_PROMETHEUS_URL}
+      - GRAFANA_CLOUD_PROMETHEUS_USER=${GRAFANA_CLOUD_PROMETHEUS_USER}
+      - GRAFANA_CLOUD_LOKI_URL=${GRAFANA_CLOUD_LOKI_URL}
+      - GRAFANA_CLOUD_LOKI_USER=${GRAFANA_CLOUD_LOKI_USER}
+      - GRAFANA_CLOUD_TEMPO_ENDPOINT=${GRAFANA_CLOUD_TEMPO_ENDPOINT}
+      - GRAFANA_CLOUD_TEMPO_USER=${GRAFANA_CLOUD_TEMPO_USER}
+      - GRAFANA_CLOUD_API_KEY=${GRAFANA_CLOUD_API_KEY}
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+      - "12345:12345" # Alloy UI
 
   gateway:
     build:
@@ -70,7 +136,9 @@ services:
       - postgres
       - redis
       - minio
-      - jaeger
+      - alloy
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4318
     volumes:
       - ./gateway:/app:cached
       # cache module download and compiled package objects across container restarts
