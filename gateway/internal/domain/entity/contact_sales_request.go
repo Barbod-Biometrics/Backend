@@ -23,7 +23,7 @@ type ContactSalesRequest struct {
 	Description  string             `gorm:"type:text;not null" json:"description"`
 	Status       ContactSalesStatus `gorm:"type:varchar(20);not null;default:'new';index" json:"status"`
 	ReadAt       *time.Time         `json:"read_at,omitempty"`
-	CreatedAt    time.Time          `gorm:"not null;default:now()" json:"created_at"`
+	CreatedAt    time.Time          `gorm:"not null;default:now();index" json:"created_at"`
 	UpdatedAt    time.Time          `gorm:"not null;default:now()" json:"updated_at"`
 	DeletedAt    gorm.DeletedAt     `gorm:"index" json:"-"`
 }
