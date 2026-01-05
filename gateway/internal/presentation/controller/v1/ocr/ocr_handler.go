@@ -37,7 +37,7 @@ func (h *OCRHandler) getUserID(c *gin.Context) uint64 {
 // @Router /ocr/extract [post]
 // @Summary Extract text from image using OCR
 // @Description Extract text content from an uploaded image using OCR technology
-// @Tags OCR
+// @Tags OCR - Machine
 // @Security ApiKeyAuth
 // @Accept multipart/form-data
 // @Produce json
@@ -249,7 +249,7 @@ func (h *OCRHandler) DemoExtract(c *gin.Context) {
 // @Router /ocr/health [get]
 // @Summary Check OCR service health
 // @Description Check if the OCR service is running and healthy
-// @Tags OCR
+// @Tags OCR - Machine
 // @Produce json
 // @Success 200 {object} ocr.HealthCheckResponseDTO "Service is healthy"
 // @Failure 500 {object} map[string]interface{} "Service is unhealthy"
@@ -273,10 +273,10 @@ func (h *OCRHandler) HealthCheck(c *gin.Context) {
 // ApproveResult approves a specific OCR record
 // @summary Approve OCR Result
 // @Description Marks an OCR result as verified/approved by the user
-// @Tags OCR
+// @Tags OCR - User
 // @Accept json
 // @Produce json
-// @Param request body ocr.ApproveOCRResult true "Approval Request"
+// @Param request body ocr.ApproveOCRRequest true "Approval Request"
 // @Success 200 {object} map[string]string "Success"
 // @Failure 400 {object} map[string]string "Invalid Request"
 // @Failure 403 {object} map[string]string "Forbidden - Profiles does not belong to user"
