@@ -21,8 +21,8 @@ type AdminListContactSalesRequest struct {
 	Status    string `form:"status" binding:"omitempty,oneof=new read"`
 	Search    string `form:"search" binding:"omitempty,max=150"`
 	HasEmail  *bool  `form:"has_email"`
-	FromDate  string `form:"from_date" binding:"omitempty,len=10"` // YYYY-MM-DD
-	ToDate    string `form:"to_date" binding:"omitempty,len=10"`   // YYYY-MM-DD
+	FromDate  string `form:"from_date" binding:"omitempty,datetime=2006-01-02"` // YYYY-MM-DD
+	ToDate    string `form:"to_date" binding:"omitempty,datetime=2006-01-02"`   // YYYY-MM-DD
 	SortBy    string `form:"sort_by" binding:"omitempty,oneof=created_at status"`
 	SortOrder string `form:"sort_order" binding:"omitempty,oneof=asc desc"`
 }
