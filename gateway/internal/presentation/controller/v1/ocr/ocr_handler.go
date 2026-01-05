@@ -308,6 +308,7 @@ func (h *OCRHandler) ApproveResult(c *gin.Context) {
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
