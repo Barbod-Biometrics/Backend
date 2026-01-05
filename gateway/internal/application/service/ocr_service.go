@@ -2,7 +2,10 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"math"
 	"time"
 
 	"github.com/Barbod-Biometrics/Backend/gateway/bootstrap"
@@ -14,6 +17,7 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/exception"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/date"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/ocr"
 )
 
@@ -263,6 +267,99 @@ func (s *OCRService) checkLowBalance(profileID uint64, balance uint64) {
 
 		_ = s.emailService.SendWithTemplate(ctx, *user.Email, "هشدار موجودی کم", "low_balance.html", data)
 	}()
+}
+
+func (s *OCRService) GetReports(ctx context.Context, req ocrDto.GetOCRReportRequest, userID uint64) (*ocrDto.OCRReportResponse, error) {
+
+	s.logger.Info("Starting OCR report retrieval",
+		logger.Field{Key: "profile_id", Value: req.ProfileID},
+		logger.Field{Key: "page", Value: req.Page},
+		logger.Field{Key: "limit", Value: req.Limit},
+		logger.Field{Key: "filter_status", Value: req.Status},
+	)
+
+	profile, err := s.profileRepo.GetByID(ctx, req.ProfileID)
+	if err != nil {
+		s.logger.Warn("OCR report failed: profile lookup failed",
+			logger.Field{Key: "error", Value: err},
+			logger.Field{Key: "profile_id", Value: req.ProfileID},
+		)
+		return nil, fmt.Errorf("profile check failed: %w", err)
+	}
+
+	// If the profile exists, but the UserID inside it doesn't match the Token's UserID...
+	if profile.UserID != userID {
+		s.logger.Warn("Security Alert: User attempted to access another user's OCR reports",
+			logger.Field{Key: "token_user_id", Value: userID},
+			logger.Field{Key: "target_profile_id", Value: req.ProfileID},
+			logger.Field{Key: "target_profile_owner", Value: profile.UserID},
+		)
+		return nil, errors.New("profile access denied")
+	}
+
+	filter := repository.OCRReportFilter{
+		ProfileID: req.ProfileID,
+		Page:      req.Page,
+		Limit:     req.Limit,
+		SortBy:    req.SortBy,
+		SortOrder: req.SortOrder,
+	}
+
+	if req.Status != "" {
+		filter.Status = &req.Status
+	}
+
+	if !req.FromDate.IsZero() {
+		t := req.FromDate.ToTime()
+		filter.FromDate = &t
+	}
+	if !req.ToDate.IsZero() {
+		t := req.ToDate.ToTime()
+		t = t.Add(24 * time.Hour).Add(-1 * time.Second)
+		filter.ToDate = &t
+	}
+
+	results, total, err := s.repo.GetReports(ctx, filter)
+	if err != nil {
+		s.logger.Error("Failed to fetch OCR reports from repository",
+			logger.Field{Key: "error", Value: err},
+			logger.Field{Key: "profile_id", Value: req.ProfileID},
+		)
+		return nil, err
+	}
+
+	items := make([]ocrDto.OCRReportItem, 0)
+	for _, r := range results {
+		statusStr := "Failed"
+		if r.Success {
+			statusStr = "Success"
+		}
+
+		items = append(items, ocrDto.OCRReportItem{
+			ID:      r.ID,
+			Date:    date.ToJalaliString(r.CreatedAt),
+			Status:  statusStr,
+			Message: r.Message,
+			Stats:   json.RawMessage(r.Stats),
+		})
+	}
+
+	if req.Limit == 0 {
+		return nil, errors.New("Adevision by zero occured in ocr get reports")
+	}
+	totalPages := int(math.Ceil(float64(total) / float64(req.Limit)))
+	s.logger.Info("OCR reports retrieved successfully",
+		logger.Field{Key: "profile_id", Value: req.ProfileID},
+		logger.Field{Key: "total_count", Value: total},
+		logger.Field{Key: "items_returned", Value: len(items)},
+	)
+
+	return &ocrDto.OCRReportResponse{
+		Items:      items,
+		TotalCount: total,
+		Page:       req.Page,
+		TotalPages: totalPages,
+	}, nil
 }
 
 func (s *OCRService) ApproveResult(ctx context.Context, userID uint64, ocrID uint64, profileID uint64) error {

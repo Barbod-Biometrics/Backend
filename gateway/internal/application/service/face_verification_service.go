@@ -403,12 +403,33 @@ func (s *FaceVerificationService) checkLowBalance(profileID uint64, balance uint
 	}()
 }
 
-func (s *FaceVerificationService) GetReports(ctx context.Context, req faceVerificationDto.GetFaceReportRequest) (*faceVerificationDto.FaceReportResponse, error) {
+func (s *FaceVerificationService) GetReports(ctx context.Context, req faceVerificationDto.GetFaceReportRequest, userID uint64) (*faceVerificationDto.FaceReportResponse, error) {
+
+	s.logger.Info("Starting Face-Verification report retrieval",
+		logger.Field{Key: "profile_id", Value: req.ProfileID},
+		logger.Field{Key: "page", Value: req.Page},
+		logger.Field{Key: "limit", Value: req.Limit},
+		logger.Field{Key: "filter_status", Value: req.Status},
+	)
 
 	// security check for the profile id availability before anything
-	_, err := s.profileRepo.GetByID(ctx, req.ProfileID)
+	profile, err := s.profileRepo.GetByID(ctx, req.ProfileID)
 	if err != nil {
+		s.logger.Warn("Face-Verification report failed: profile lookup failed",
+			logger.Field{Key: "error", Value: err},
+			logger.Field{Key: "profile_id", Value: req.ProfileID},
+		)
 		return nil, fmt.Errorf("profile check failed: %w", err)
+	}
+
+	// If the profile exists, but the UserID inside it doesn't match the Token's UserID...
+	if profile.UserID != userID {
+		s.logger.Warn("Security Alert: User attempted to access another user's Face-Verification reports",
+			logger.Field{Key: "token_user_id", Value: userID},
+			logger.Field{Key: "target_profile_id", Value: req.ProfileID},
+			logger.Field{Key: "target_profile_owner", Value: profile.UserID},
+		)
+		return nil, errors.New("profile access denied")
 	}
 
 	filter := repository.FaceReportFilter{
@@ -438,6 +459,10 @@ func (s *FaceVerificationService) GetReports(ctx context.Context, req faceVerifi
 
 	jobs, total, err := s.repo.GetReports(ctx, filter)
 	if err != nil {
+		s.logger.Error("Failed to fetch Face-Verification reports from repository",
+			logger.Field{Key: "error", Value: err},
+			logger.Field{Key: "profile_id", Value: req.ProfileID},
+		)
 		return nil, err
 	}
 
@@ -460,6 +485,12 @@ func (s *FaceVerificationService) GetReports(ctx context.Context, req faceVerifi
 	}
 
 	totalPages := int(math.Ceil(float64(total) / float64(req.Limit)))
+
+	s.logger.Info("Face-Verification reports retrieved successfully",
+		logger.Field{Key: "profile_id", Value: req.ProfileID},
+		logger.Field{Key: "total_count", Value: total},
+		logger.Field{Key: "items_returned", Value: len(items)},
+	)
 
 	return &faceVerificationDto.FaceReportResponse{
 		Items:      items,

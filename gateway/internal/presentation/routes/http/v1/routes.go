@@ -200,6 +200,7 @@ func (r *Route) RegisterRoutes() http.Handler {
 		modelReports.Use((middleware.JWTMiddleware(r.jwtKeyManager)))
 		{
 			modelReports.GET("/face-verification", r.faceVerificationController.GetReport)
+			modelReports.GET("/ocr", r.ocrController.GetReport)
 		}
 
 		ocrMachine := v1.Group("/ocr")

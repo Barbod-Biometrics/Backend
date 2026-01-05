@@ -8,6 +8,7 @@ import (
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
@@ -147,6 +148,79 @@ func (r *OCRRepository) GetResultsByProfileID(ctx context.Context, profileID uin
 	return results, nil
 }
 
+func (r *OCRRepository) GetReports(ctx context.Context, filter repository.OCRReportFilter) ([]*entity.OCRModel, int64, error) {
+	db := r.getDB(ctx)
+
+	var results []*entity.OCRModel
+	var totalCount int64
+
+	// base query
+	query := db.WithContext(ctx).
+		Model(&entity.OCRModel{}).
+		Where("profile_id = ?", filter.ProfileID)
+
+	// status filter
+	if filter.Status != nil {
+		switch *filter.Status {
+		case "success":
+			query = query.Where("success = ?", true)
+		case "failed":
+			query = query.Where("success = ?", false)
+		}
+
+	}
+
+	// date filter
+	if filter.FromDate != nil {
+		query = query.Where("created_at >= ?", *filter.FromDate)
+	}
+	if filter.ToDate != nil {
+		query = query.Where("created_at <= ?", *filter.ToDate)
+	}
+
+	// get total count of matching reports
+	if err := query.Count(&totalCount).Error; err != nil {
+		r.logger.Error("Failed to count OCR reports",
+			logger.Field{Key: "error", Value: err},
+			logger.Field{Key: "profile_id", Value: filter.ProfileID},
+		)
+		return nil, 0, err
+	}
+
+	// sorting
+	sortString := "created_at DESC" // default
+	if filter.SortBy == "date" {
+		if filter.SortOrder == "asc" {
+			sortString = "created_at ASC"
+		} else {
+			sortString = "created_at DESC"
+		}
+	}
+
+	// executing query
+	page := filter.Page
+	if page < 1 {
+		page = 1
+	}
+	offset := (page - 1) * filter.Limit
+
+	err := query.Order(sortString).
+		Limit(filter.Limit).
+		Offset(offset).
+		Find(&results).Error
+
+	if err != nil {
+		r.logger.Error("Failed to fetch OCR report records",
+			logger.Field{Key: "error", Value: err},
+			logger.Field{Key: "profile_id", Value: filter.ProfileID},
+			logger.Field{Key: "offset", Value: offset},
+			logger.Field{Key: "limit", Value: filter.Limit},
+		)
+		return nil, 0, err
+	}
+
+	return results, totalCount, err
+}
 func (r *OCRRepository) ApproveOCRResult(ctx context.Context, ocrID uint64, profileID uint64) error {
 	db := r.getDB(ctx)
 
