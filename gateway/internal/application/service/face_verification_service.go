@@ -467,4 +467,4 @@ func (s *FaceVerificationService) GetReports(ctx context.Context, req faceVerifi
 		Page:       req.Page,
 		TotalPages: totalPages,
 	}, nil
-
+}
