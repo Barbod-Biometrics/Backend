@@ -41,10 +41,15 @@ services:
     volumes:
       - minio-data:/data
 
+  # Jaeger is replaced by LGTM stack (Tempo for traces)
+  # Use docker-compose-monitoring.yml for full observability
+  # Keep Jaeger for backward compatibility / standalone development
   jaeger:
     image: jaegertracing/all-in-one:latest
     container_name: barbod-jaeger
     restart: always
+    profiles:
+      - jaeger  # Only start with --profile jaeger
     ports:
       - "16686:16686"  # Jaeger UI
       - "4318:4318"    # OTLP HTTP receiver
@@ -55,6 +60,9 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
+    networks:
+      - default
+      - monitoring
 
   gateway:
     image: ghcr.io/barbod-biometrics/gateway:latest
@@ -74,7 +82,16 @@ services:
       - postgres
       - redis
       - minio
-      - jaeger
+    networks:
+      - default
+      - monitoring
+
+networks:
+  default:
+    driver: bridge
+  monitoring:
+    name: barbod_monitoring
+    external: true
 
 volumes:
   postgres-data:

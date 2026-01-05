@@ -38,13 +38,21 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_PROMETHEUS_AUTH_TYPE: public
     volumes:
       - minio-data:/data
+    networks:
+      - default
+      - monitoring
 
+  # Jaeger is replaced by LGTM stack (Tempo for traces)
+  # Use docker-compose-monitoring.yml for full observability
   jaeger:
     image: jaegertracing/all-in-one:latest
     container_name: barbod-jaeger-dev
     restart: always
+    profiles:
+      - jaeger  # Only start with --profile jaeger
     ports:
       - "16686:16686"  # Jaeger UI
       - "4318:4318"    # OTLP HTTP receiver
@@ -55,6 +63,9 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
+    networks:
+      - default
+      - monitoring
 
   gateway:
     build:
@@ -70,19 +81,30 @@ services:
       - postgres
       - redis
       - minio
-      - jaeger
     volumes:
       - ./gateway:/app:cached
+      - logs-data:/app/logs
       # cache module download and compiled package objects across container restarts
       - gateway-mod-cache:/go/pkg/mod
       - gateway-build-cache:/root/.cache/go-build
     working_dir: /app
     command: ["air"]
+    networks:
+      - default
+      - monitoring
+
+networks:
+  default:
+    driver: bridge
+  monitoring:
+    name: barbod_monitoring
+    external: true
 
 volumes:
   postgres-data:
   redis-data:
   minio-data:
+  logs-data:
   gateway-mod-cache:
   gateway-build-cache:
     
