@@ -28,7 +28,8 @@ func NewOCRHandler(ocrUsecase usecase.OCRUsecase, logger logger.Logger) *OCRHand
 func (h *OCRHandler) getUserID(c *gin.Context) uint64 {
 	userID, err := middleware.GetUserIDFromContext(c)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		// Return 0 to indicate an unauthorized user; caller is responsible for handling the response.
+		return 0
 	}
 	return userID
 }
