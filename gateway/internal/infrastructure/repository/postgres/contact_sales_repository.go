@@ -38,7 +38,7 @@ func (r *ContactSalesRepository) List(ctx context.Context, filter repository.Con
 	if filter.Search != nil && *filter.Search != "" {
 		pattern := "%" + *filter.Search + "%"
 		db = db.Where(
-			r.db.Where("first_name ILIKE ?", pattern).
+			db.Where("first_name ILIKE ?", pattern).
 				Or("last_name ILIKE ?", pattern).
 				Or("phone ILIKE ?", pattern).
 				Or("business_name ILIKE ?", pattern).
