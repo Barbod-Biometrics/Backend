@@ -44,28 +44,14 @@ func InitTelemetry(ctx context.Context, config *bootstrap.Telemetry) (*Telemetry
 	}
 
 
-	var meterProvider *metric.MeterProvider
-	// Disable metrics provider for now to avoid exporting metrics to
-	// backends that don't implement the OTLP metrics endpoint (e.g. Jaeger
-	// all-in-one). To re-enable metrics, uncomment the code below and ensure
-	// the `OTLPEndpoint` points to an OTLP-compatible collector.
-	/*
-		var meterProvider *metric.MeterProvider
-		if !isLikelyJaegerEndpoint(config.OTLPEndpoint) {
-			meterProvider, err = initMeterProvider(ctx, config.OTLPEndpoint, res)
-			if err != nil {
-				tracerProvider.Shutdown(ctx)
-				return nil, fmt.Errorf("failed to initialize meter provider: %w", err)
-			}
-		}
-	*/
+	meterProvider, err := initMeterProvider(ctx, config.OTLPEndpoint, res)
+	if err != nil {
+		tracerProvider.Shutdown(ctx)
+		return nil, fmt.Errorf("failed to initialize meter provider: %w", err)
+	}
 
 	otel.SetTracerProvider(tracerProvider)
-	// otel.SetMeterProvider is intentionally disabled while metrics exporter
-	// remains off to prevent 404s against non-metrics endpoints.
-	// if meterProvider != nil {
-	//     otel.SetMeterProvider(meterProvider)
-	// }
+	otel.SetMeterProvider(meterProvider)
 
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
 		propagation.TraceContext{},
