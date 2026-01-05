@@ -27,6 +27,16 @@ func NewFaceVerificationHandler(faceVerificationUsecase usecase.FaceVerification
 	}
 }
 
+// getUserID extracts the authenticated user's ID from the request context.
+// The user ID is set by the JWT middleware after validating the access token.
+func (h *FaceVerificationHandler) getUserID(c *gin.Context) uint64 {
+	userID, err := middleware.GetUserIDFromContext(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+	}
+	return userID
+}
+
 // VerifyFace godoc
 // @Summary Verify face in video matches photo
 // @Description Verify if the face detected in a video matches the provided reference photo
@@ -497,12 +507,22 @@ func (h *FaceVerificationHandler) GetReport(c *gin.Context) {
 
 	// Bind Query Params
 	if err := c.ShouldBindQuery(&req); err != nil {
+		h.logger.Error("Invalid query parameters for Face-Verification report",
+			logger.Field{Key: "error", Value: err.Error()},
+		)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid parameters"})
 		return
 	}
 
+	userID := h.getUserID(c)
+	if userID == 0 {
+		h.logger.Warn("Unauthorized attempt to access Face-Verification reports")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
 	// Call UseCase
-	resp, err := h.faceVerificationUsecase.GetReports(c.Request.Context(), req)
+	resp, err := h.faceVerificationUsecase.GetReports(c.Request.Context(), req, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
