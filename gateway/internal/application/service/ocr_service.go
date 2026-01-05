@@ -217,3 +217,45 @@ func (s *OCRService) HealthCheck(ctx context.Context) (*ocrDto.HealthCheckRespon
 	)
 	return result, nil
 }
+
+func (s *OCRService) ApproveResult(ctx context.Context, userID uint64, ocrID uint64, profileID uint64) error {
+
+	s.logger.Info("Starting OCR result approval process",
+		logger.Field{Key: "profile_id", Value: profileID},
+		logger.Field{Key: "user_id", Value: userID},
+		logger.Field{Key: "ocr_id", Value: ocrID},
+	)
+
+	profile, err := s.profileRepo.GetByID(ctx, profileID)
+	if err != nil {
+		s.logger.Error("Failed to fetch profile for ownership check", logger.Field{Key: "error", Value: err})
+		return err
+	}
+
+	if profile == nil || profile.UserID != userID {
+		s.logger.Warn("Unauthorized attempt to approve OCR for another user",
+			logger.Field{Key: "token_user_id", Value: userID},
+			logger.Field{Key: "target_profile_id", Value: profileID},
+		)
+		return errors.New("profile access denied")
+	}
+
+	err = s.repo.ApproveOCRResult(ctx, ocrID, profileID)
+	if err != nil {
+		s.logger.Error("Failed to approve OCR result",
+			logger.Field{Key: "error", Value: err},
+			logger.Field{Key: "ocr_id", Value: ocrID},
+			logger.Field{Key: "profile_id", Value: profileID},
+		)
+
+		return err
+	}
+
+	s.logger.Info("OCR result approved successfully",
+		logger.Field{Key: "ocr_id", Value: ocrID},
+		logger.Field{Key: "profile_id", Value: profileID},
+	)
+
+	return nil
+
+}
