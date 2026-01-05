@@ -1,0 +1,67 @@
+# Promtail Configuration for Barbod Backend
+# Ships logs from files to Loki
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+    batchwait: 1s
+    batchsize: 1048576
+
+scrape_configs:
+  # Scrape Gateway JSON logs from file
+  - job_name: gateway-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: gateway
+          service: barbod-gateway
+          __path__: /app/logs/*.log
+    pipeline_stages:
+      - json:
+          expressions:
+            level: level
+            timestamp: timestamp
+            message: message
+            caller: caller
+            trace_id: trace_id
+            span_id: span_id
+      - labels:
+          level:
+          trace_id:
+          span_id:
+      - timestamp:
+          source: timestamp
+          format: RFC3339Nano
+
+  # Scrape Docker container logs from files directly
+  - job_name: docker-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: docker
+          __path__: /var/lib/docker/containers/*/*-json.log
+    pipeline_stages:
+      - json:
+          expressions:
+            log: log
+            stream: stream
+            time: time
+      - output:
+          source: log
+
+  # System logs
+  - job_name: system
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: varlogs
+          __path__: /var/log/*.log

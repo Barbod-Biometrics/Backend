@@ -1,0 +1,120 @@
+# Prometheus Configuration for Barbod Backend
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'barbod-backend'
+    environment: 'production'
+
+# Alerting configuration (optional - for alertmanager integration)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - alertmanager:9093
+
+# Rule files for recording rules and alerts
+rule_files:
+  # - /etc/prometheus/rules/*.yml
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # OpenTelemetry Collector metrics
+  - job_name: 'otel-collector'
+    static_configs:
+      - targets: ['otel-collector:8888']
+    metrics_path: /metrics
+
+  # Metrics exported by OTel collector from services
+  - job_name: 'otel-collector-export'
+    static_configs:
+      - targets: ['otel-collector:8889']
+    metrics_path: /metrics
+
+  # Go Gateway service (connect to monitoring network first)
+  - job_name: 'barbod-gateway'
+    static_configs:
+      - targets: ['barbod-gateway-dev:8080']
+    metrics_path: /metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'barbod-gateway'
+
+  # Face Verification Python service
+  - job_name: 'face-verification'
+    static_configs:
+      - targets: ['barbod-face-verification:5100']
+    metrics_path: /metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'face-verification'
+
+  # PostgreSQL metrics (via postgres_exporter)
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'barbod-postgres'
+
+  # Redis metrics (via redis_exporter)
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'barbod-redis'
+
+  # MinIO metrics - requires MINIO_PROMETHEUS_AUTH_TYPE=public in MinIO env
+  - job_name: 'minio'
+    static_configs:
+      - targets: ['barbod-minio:9000']
+    metrics_path: /minio/v2/metrics/cluster
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'barbod-minio'
+
+  # Docker container metrics (via cAdvisor)
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'cadvisor'
+
+  # Node metrics (via node_exporter if deployed)
+  # - job_name: 'node'
+  #   static_configs:
+  #     - targets: ['node-exporter:9100']
+
+  # Loki metrics
+  - job_name: 'loki'
+    static_configs:
+      - targets: ['loki:3100']
+    metrics_path: /metrics
+
+  # Tempo metrics
+  - job_name: 'tempo'
+    static_configs:
+      - targets: ['tempo:3200']
+    metrics_path: /metrics
+
+  # Grafana metrics
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+    metrics_path: /metrics
+
+# Remote write configuration (for Tempo metrics generator)
+remote_write: []
