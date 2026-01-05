@@ -283,7 +283,6 @@ func (h *OCRHandler) HealthCheck(c *gin.Context) {
 // @Failure 404 {object} map[string]string "Record not found"
 // @Router /api/v1/ocr/approve [post]
 func (h *OCRHandler) ApproveResult(c *gin.Context) {
-	h.logger.Info("Recieved OCR result approval results")
 
 	var req ocr.ApproveOCRRequest
 	if err := c.ShouldBind(&req); err != nil {
@@ -294,7 +293,7 @@ func (h *OCRHandler) ApproveResult(c *gin.Context) {
 
 	userID := h.getUserID(c)
 	if userID == 0 {
-		h.logger.Error("Unauthorized attempt to access the ocr/approve api", logger.Field{Key: "user_id", Value: userID})
+		h.logger.Warn("Unauthorized attempt to access OCR approval API")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
