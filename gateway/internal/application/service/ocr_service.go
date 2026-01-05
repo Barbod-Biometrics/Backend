@@ -233,7 +233,7 @@ func (s *OCRService) ApproveResult(ctx context.Context, userID uint64, ocrID uin
 	}
 
 	if profile == nil || profile.UserID != userID {
-		s.logger.Warn("Unathorized attempt to approve OCR for another user",
+		s.logger.Warn("Unauthorized attempt to approve OCR for another user",
 			logger.Field{Key: "token_user_id", Value: userID},
 			logger.Field{Key: "target_profile_id", Value: profileID},
 		)

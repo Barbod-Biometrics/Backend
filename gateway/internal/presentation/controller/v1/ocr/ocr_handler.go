@@ -271,7 +271,7 @@ func (h *OCRHandler) HealthCheck(c *gin.Context) {
 }
 
 // ApproveResult approves a specific OCR record
-// @summary Approve OCR Result
+// @Summary Approve OCR Result
 // @Description Marks an OCR result as verified/approved by the user
 // @Tags OCR - User
 // @Accept json
@@ -279,14 +279,14 @@ func (h *OCRHandler) HealthCheck(c *gin.Context) {
 // @Param request body ocr.ApproveOCRRequest true "Approval Request"
 // @Success 200 {object} map[string]string "Success"
 // @Failure 400 {object} map[string]string "Invalid Request"
-// @Failure 403 {object} map[string]string "Forbidden - Profiles does not belong to user"
+// @Failure 403 {object} map[string]string "Forbidden - Profile does not belong to user"
 // @Failure 404 {object} map[string]string "Record not found"
 // @Router /api/v1/ocr/approve [post]
 func (h *OCRHandler) ApproveResult(c *gin.Context) {
 
 	var req ocr.ApproveOCRRequest
 	if err := c.ShouldBind(&req); err != nil {
-		h.logger.Error("Invalid request body/structure for getting the approval of the project", logger.Field{Key: "error", Value: err})
+		h.logger.Error("Invalid request body/structure for approving the OCR record", logger.Field{Key: "error", Value: err})
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
