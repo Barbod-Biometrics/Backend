@@ -36,11 +36,13 @@ var InfrastructureSet = wire.NewSet(
 	ProvideTelemetry,
 	ProvideJWTKeyManager,
 	ProvideSMSService,
+	ProvideEmailService,
 	ProvideTranslator,
 	ProvideLocalizationTranslator,
 	ProvideRecovery,
 	ProvideFaceVerificationClient,
 	ProvideOCRClient,
+	ProvideRecaptchaVerifier,
 
 	wire.Bind(new(domainJWT.KeyManager), new(*jwt.JWTKeyManager)),
 	wire.Bind(new(communication.SMSService), new(*sms.SMSService)),
@@ -66,6 +68,8 @@ var RepositorySet = wire.NewSet(
 	postgres.NewOCRRepository,
 	wire.Bind(new(repository.OCRRepository), new(*postgres.OCRRepository)),
 
+	ProvideContactSalesRepository,
+
 	postgres.NewServiceRepository,
 
 	postgres.NewTicketRepository,
@@ -90,6 +94,7 @@ var ServiceSet = wire.NewSet(
 	service.NewTrialService,
 	service.NewFaceVerificationService,
 	service.NewOCRService,
+	ProvideContactSalesUsecase,
 	service.NewTicketService,
 
 	wire.Bind(new(usecase.UserUsecase), new(*service.UserService)),
@@ -113,6 +118,7 @@ var ControllerSet = wire.NewSet(
 	ProvideTransactionHandler,
 	ProvideFaceVerificationHandler,
 	ProvideOCRHandler,
+	ProvideContactSalesHandler,
 	ProvideTicketHandler,
 )
 

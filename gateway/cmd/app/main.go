@@ -53,8 +53,8 @@ func main() {
 		&entity.User{},
 		&entity.Ticket{},
 		&entity.TicketMessage{},
-		&entity.APIKey{},
 		&entity.Profile{},
+		&entity.APIKey{},
 		&entity.ProfileBusinessDetails{},
 		&entity.ProfilePersonDetails{},
 		&entity.AuthorizedSignatory{},
@@ -62,6 +62,7 @@ func main() {
 		&entity.Service{},
 		&entity.FaceVerificationModel{},
 		&entity.OCRModel{},
+		&entity.ContactSalesRequest{},
 	)
 	if err != nil {
 		app.Logger.Fatal("Failed to migrate database", logger.Field{Key: "error", Value: err})

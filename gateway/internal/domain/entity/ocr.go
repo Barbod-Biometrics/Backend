@@ -26,6 +26,7 @@ type OCRModel struct {
 	Success   bool           `gorm:"not null;index" json:"success"`
 	Message   string         `gorm:"type:text" json:"message"`
 	Stats     datatypes.JSON `gorm:"type:jsonb" json:"stats"`
+	Approved  bool           `gorm:"not null;default:false" json:"approved"`
 	CreatedAt time.Time      `gorm:"not null;default:now()" json:"created_at"`
 }
 

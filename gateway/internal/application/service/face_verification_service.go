@@ -8,8 +8,10 @@ import (
 	"math"
 	"time"
 
+	"github.com/Barbod-Biometrics/Backend/gateway/bootstrap"
 	faceVerificationDto "github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/face_verification"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/communication"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/enum"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/exception"
@@ -19,14 +21,17 @@ import (
 )
 
 type FaceVerificationService struct {
-	client          *face_verification.FaceVerificationClient
-	logger          logger.Logger
-	repo            repository.FaceVerificationRepository
-	serviceRepo     repository.ServiceRepository
-	profileRepo     repository.ProfileRepository
-	transactionRepo repository.TransactionRepository
-	unitOfWork      repository.UnitOfWork
-	trialService    *TrialService
+	client              *face_verification.FaceVerificationClient
+	logger              logger.Logger
+	repo                repository.FaceVerificationRepository
+	serviceRepo         repository.ServiceRepository
+	profileRepo         repository.ProfileRepository
+	userRepo            repository.UserRepository
+	transactionRepo     repository.TransactionRepository
+	emailService        communication.EmailService
+	unitOfWork          repository.UnitOfWork
+	trialService        *TrialService
+	lowBalanceThreshold uint64
 }
 
 func NewFaceVerificationService(
@@ -35,19 +40,25 @@ func NewFaceVerificationService(
 	repo repository.FaceVerificationRepository,
 	serviceRepo repository.ServiceRepository,
 	profileRepo repository.ProfileRepository,
+	userRepo repository.UserRepository,
 	transactionRepo repository.TransactionRepository,
+	emailService communication.EmailService,
 	unitOfWork repository.UnitOfWork,
 	trialService *TrialService,
+	cfg *bootstrap.Config,
 ) *FaceVerificationService {
 	return &FaceVerificationService{
-		client:          cli,
-		logger:          logger,
-		repo:            repo,
-		serviceRepo:     serviceRepo,
-		profileRepo:     profileRepo,
-		transactionRepo: transactionRepo,
-		unitOfWork:      unitOfWork,
-		trialService:    trialService,
+		client:              cli,
+		logger:              logger,
+		repo:                repo,
+		serviceRepo:         serviceRepo,
+		profileRepo:         profileRepo,
+		userRepo:            userRepo,
+		transactionRepo:     transactionRepo,
+		emailService:        emailService,
+		unitOfWork:          unitOfWork,
+		trialService:        trialService,
+		lowBalanceThreshold: cfg.Env.Wallet.LowBalanceThreshold,
 	}
 }
 
@@ -157,6 +168,8 @@ func (s *FaceVerificationService) VerifyFaceWithIP(ctx context.Context, profileI
 				logger.Field{Key: "amount", Value: serviceCost},
 				logger.Field{Key: "new_balance", Value: profile.Balance},
 			)
+
+			s.checkLowBalance(profileID, profile.Balance)
 
 			return nil
 		})
@@ -310,6 +323,8 @@ func (s *FaceVerificationService) CropImage(ctx context.Context, profileID uint6
 				logger.Field{Key: "new_balance", Value: profile.Balance},
 			)
 
+			s.checkLowBalance(profileID, profile.Balance)
+
 			return nil
 		})
 
@@ -352,6 +367,40 @@ func (s *FaceVerificationService) HealthCheck(ctx context.Context) (*faceVerific
 		logger.Field{Key: "status", Value: result.Status},
 	)
 	return result, nil
+}
+
+func (s *FaceVerificationService) checkLowBalance(profileID uint64, balance uint64) {
+	if balance >= s.lowBalanceThreshold {
+		return
+	}
+
+	go func() {
+		ctx := context.Background()
+		profile, err := s.profileRepo.GetByID(ctx, profileID)
+		if err != nil || profile == nil {
+			return
+		}
+
+		user, err := s.userRepo.GetByID(ctx, profile.UserID)
+		if err != nil || user == nil || user.Email == nil || *user.Email == "" {
+			return
+		}
+
+		name := ""
+		if profile.ProfileType == entity.ProfileTypePersonal && profile.PersonDetails != nil {
+			name = profile.PersonDetails.FirstName + " " + profile.PersonDetails.LastName
+		} else if profile.ProfileType == entity.ProfileTypeBusiness && profile.BusinessDetails != nil {
+			name = profile.BusinessDetails.RepFirstName + " " + profile.BusinessDetails.RepLastName
+		}
+
+		data := map[string]interface{}{
+			"Name":        name,
+			"ProfileName": profile.ProfileName,
+			"Balance":     balance,
+		}
+
+		_ = s.emailService.SendWithTemplate(ctx, *user.Email, "هشدار موجودی کم", "low_balance.html", data)
+	}()
 }
 
 func (s *FaceVerificationService) GetReports(ctx context.Context, req faceVerificationDto.GetFaceReportRequest, userID uint64) (*faceVerificationDto.FaceReportResponse, error) {
@@ -449,5 +498,4 @@ func (s *FaceVerificationService) GetReports(ctx context.Context, req faceVerifi
 		Page:       req.Page,
 		TotalPages: totalPages,
 	}, nil
-
 }

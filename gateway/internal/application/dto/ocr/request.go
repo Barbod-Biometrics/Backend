@@ -18,3 +18,7 @@ type GetOCRReportRequest struct {
 	SortBy    string `form:"sort_by"`
 	SortOrder string `form:"sort_order"`
 }
+type ApproveOCRRequest struct {
+	ID        uint64 `json:"id" binding:"required"`
+	ProfileID uint64 `json:"profile_id" binding:"required"`
+}

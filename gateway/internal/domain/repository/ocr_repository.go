@@ -28,4 +28,5 @@ type OCRRepository interface {
 	SaveResult(ctx context.Context, profileID uint64, result *entity.OCRRecord) error
 	GetResultsByProfileID(ctx context.Context, profileID uint64) ([]*entity.OCRRecord, error)
 	GetReports(ctx context.Context, filter OCRReportFilter) ([]*entity.OCRModel, int64, error)
+	ApproveOCRResult(ctx context.Context, ocrID uint64, profileID uint64) error
 }

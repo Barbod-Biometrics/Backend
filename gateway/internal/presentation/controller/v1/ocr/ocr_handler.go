@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/ocr"
 	ocrDto "github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/ocr"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/exception"
@@ -28,6 +29,8 @@ func (h *OCRHandler) getUserID(c *gin.Context) uint64 {
 	userID, err := middleware.GetUserIDFromContext(c)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		// Return 0 to indicate an unauthorized user; caller is responsible for handling the response.
+		return 0
 	}
 	return userID
 }
@@ -36,7 +39,7 @@ func (h *OCRHandler) getUserID(c *gin.Context) uint64 {
 // @Router /ocr/extract [post]
 // @Summary Extract text from image using OCR
 // @Description Extract text content from an uploaded image using OCR technology
-// @Tags OCR
+// @Tags OCR - Machine
 // @Security ApiKeyAuth
 // @Accept multipart/form-data
 // @Produce json
@@ -248,7 +251,7 @@ func (h *OCRHandler) DemoExtract(c *gin.Context) {
 // @Router /ocr/health [get]
 // @Summary Check OCR service health
 // @Description Check if the OCR service is running and healthy
-// @Tags OCR
+// @Tags OCR - Machine
 // @Produce json
 // @Success 200 {object} ocr.HealthCheckResponseDTO "Service is healthy"
 // @Failure 500 {object} map[string]interface{} "Service is unhealthy"
@@ -305,12 +308,57 @@ func (h *OCRHandler) GetReport(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
-
 	resp, err := h.ocrUsecase.GetReports(c.Request.Context(), req, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
 	c.JSON(http.StatusOK, resp)
+}
+
+// ApproveResult approves a specific OCR record
+// @Summary Approve OCR Result
+// @Description Marks an OCR result as verified/approved by the user
+// @Tags OCR - User
+// @Accept json
+// @Produce json
+// @Param request body ocr.ApproveOCRRequest true "Approval Request"
+// @Success 200 {object} map[string]string "Success"
+// @Failure 400 {object} map[string]string "Invalid Request"
+// @Failure 403 {object} map[string]string "Forbidden - Profile does not belong to user"
+// @Failure 404 {object} map[string]string "Record not found"
+// @Router /api/v1/ocr/approve [post]
+func (h *OCRHandler) ApproveResult(c *gin.Context) {
+
+	var req ocr.ApproveOCRRequest
+	if err := c.ShouldBind(&req); err != nil {
+		h.logger.Error("Invalid request body/structure for approving the OCR record", logger.Field{Key: "error", Value: err})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	userID := h.getUserID(c)
+	if userID == 0 {
+		h.logger.Warn("Unauthorized attempt to access OCR approval API")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	err := h.ocrUsecase.ApproveResult(c.Request.Context(), userID, req.ID, req.ProfileID)
+	if err != nil {
+		switch err.Error() {
+		case "record not found or access denied":
+			c.JSON(http.StatusNotFound, gin.H{"error": "OCR record not found"})
+		case "profile access denied":
+			c.JSON(http.StatusForbidden, gin.H{"error": "You do not own this profile"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "OCR result approved successfully",
+	})
 }
