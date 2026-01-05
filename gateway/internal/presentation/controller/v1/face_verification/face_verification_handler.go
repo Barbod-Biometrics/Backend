@@ -487,6 +487,7 @@ func (fv *FaceVerificationHandler) HealthCheck(c *gin.Context) {
 // GetReport returns the data for the frontend chart/table
 // @Summary Get Face Verification Report
 // @Tags Model-Reports
+// @Security BearerAuth
 // @Accept json
 // @Produce json
 // @Param profile_id query int true "Profile ID"

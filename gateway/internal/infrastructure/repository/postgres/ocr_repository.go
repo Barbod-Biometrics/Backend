@@ -155,7 +155,9 @@ func (r *OCRRepository) GetReports(ctx context.Context, filter repository.OCRRep
 	var totalCount int64
 
 	// base query
-	query := db.WithContext(ctx).Where("profile_id = ?", filter.ProfileID)
+	query := db.WithContext(ctx).
+		Model(&entity.OCRModel{}).
+		Where("profile_id = ?", filter.ProfileID)
 
 	// status filter
 	if filter.Status != nil {
@@ -172,11 +174,11 @@ func (r *OCRRepository) GetReports(ctx context.Context, filter repository.OCRRep
 	if filter.FromDate != nil {
 		query = query.Where("created_at >= ?", *filter.FromDate)
 	}
-	if filter.Todate != nil {
-		query = query.Where("created_at <= ?", *filter.Todate)
+	if filter.ToDate != nil {
+		query = query.Where("created_at <= ?", *filter.ToDate)
 	}
 
-	// count test
+	// get total count of matching reports
 	if err := query.Count(&totalCount).Error; err != nil {
 		r.logger.Error("Failed to count OCR reports",
 			logger.Field{Key: "error", Value: err},
@@ -196,7 +198,12 @@ func (r *OCRRepository) GetReports(ctx context.Context, filter repository.OCRRep
 	}
 
 	// executing query
-	offset := (filter.Page - 1) * filter.Limit
+	page := filter.Page
+	if page < 1 {
+		page = 1
+	}
+	offset := (page - 1) * filter.Limit
+
 	err := query.Order(sortString).
 		Limit(filter.Limit).
 		Offset(offset).

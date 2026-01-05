@@ -13,7 +13,7 @@ type OCRReportFilter struct {
 	// optional filters
 	Status   *string
 	FromDate *time.Time
-	Todate   *time.Time
+	ToDate   *time.Time
 
 	// pagination
 	Page  int

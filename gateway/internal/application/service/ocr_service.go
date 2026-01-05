@@ -235,7 +235,40 @@ func (s *OCRService) HealthCheck(ctx context.Context) (*ocrDto.HealthCheckRespon
 	return result, nil
 }
 
-<<<<<<< HEAD
+func (s *OCRService) checkLowBalance(profileID uint64, balance uint64) {
+	if balance >= s.lowBalanceThreshold {
+		return
+	}
+
+	go func() {
+		ctx := context.Background()
+		profile, err := s.profileRepo.GetByID(ctx, profileID)
+		if err != nil || profile == nil {
+			return
+		}
+
+		user, err := s.userRepo.GetByID(ctx, profile.UserID)
+		if err != nil || user == nil || user.Email == nil || *user.Email == "" {
+			return
+		}
+
+		name := ""
+		if profile.ProfileType == entity.ProfileTypePersonal && profile.PersonDetails != nil {
+			name = profile.PersonDetails.FirstName + " " + profile.PersonDetails.LastName
+		} else if profile.ProfileType == entity.ProfileTypeBusiness && profile.BusinessDetails != nil {
+			name = profile.BusinessDetails.RepFirstName + " " + profile.BusinessDetails.RepLastName
+		}
+
+		data := map[string]interface{}{
+			"Name":        name,
+			"ProfileName": profile.ProfileName,
+			"Balance":     balance,
+		}
+
+		_ = s.emailService.SendWithTemplate(ctx, *user.Email, "هشدار موجودی کم", "low_balance.html", data)
+	}()
+}
+
 func (s *OCRService) GetReports(ctx context.Context, req ocrDto.GetOCRReportRequest, userID uint64) (*ocrDto.OCRReportResponse, error) {
 
 	s.logger.Info("Starting OCR report retrieval",
@@ -283,7 +316,7 @@ func (s *OCRService) GetReports(ctx context.Context, req ocrDto.GetOCRReportRequ
 	if !req.ToDate.IsZero() {
 		t := req.ToDate.ToTime()
 		t = t.Add(24 * time.Hour).Add(-1 * time.Second)
-		filter.Todate = &t
+		filter.ToDate = &t
 	}
 
 	results, total, err := s.repo.GetReports(ctx, filter)
@@ -311,8 +344,10 @@ func (s *OCRService) GetReports(ctx context.Context, req ocrDto.GetOCRReportRequ
 		})
 	}
 
+	if req.Limit == 0 {
+		return nil, errors.New("Adevision by zero occured in ocr get reports")
+	}
 	totalPages := int(math.Ceil(float64(total) / float64(req.Limit)))
-
 	s.logger.Info("OCR reports retrieved successfully",
 		logger.Field{Key: "profile_id", Value: req.ProfileID},
 		logger.Field{Key: "total_count", Value: total},
@@ -325,39 +360,6 @@ func (s *OCRService) GetReports(ctx context.Context, req ocrDto.GetOCRReportRequ
 		Page:       req.Page,
 		TotalPages: totalPages,
 	}, nil
-=======
-func (s *OCRService) checkLowBalance(profileID uint64, balance uint64) {
-	if balance >= s.lowBalanceThreshold {
-		return
-	}
-
-	go func() {
-		ctx := context.Background()
-		profile, err := s.profileRepo.GetByID(ctx, profileID)
-		if err != nil || profile == nil {
-			return
-		}
-
-		user, err := s.userRepo.GetByID(ctx, profile.UserID)
-		if err != nil || user == nil || user.Email == nil || *user.Email == "" {
-			return
-		}
-
-		name := ""
-		if profile.ProfileType == entity.ProfileTypePersonal && profile.PersonDetails != nil {
-			name = profile.PersonDetails.FirstName + " " + profile.PersonDetails.LastName
-		} else if profile.ProfileType == entity.ProfileTypeBusiness && profile.BusinessDetails != nil {
-			name = profile.BusinessDetails.RepFirstName + " " + profile.BusinessDetails.RepLastName
-		}
-
-		data := map[string]interface{}{
-			"Name":        name,
-			"ProfileName": profile.ProfileName,
-			"Balance":     balance,
-		}
-
-		_ = s.emailService.SendWithTemplate(ctx, *user.Email, "هشدار موجودی کم", "low_balance.html", data)
-	}()
 }
 
 func (s *OCRService) ApproveResult(ctx context.Context, userID uint64, ocrID uint64, profileID uint64) error {
@@ -399,5 +401,4 @@ func (s *OCRService) ApproveResult(ctx context.Context, userID uint64, ocrID uin
 	)
 
 	return nil
->>>>>>> 0064148c7ade01e9114f0dc9b7d27ebcbd99b41e
 }

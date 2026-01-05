@@ -78,11 +78,7 @@ func InitializeApplication() (*Application, error) {
 	faceVerificationHandler := ProvideFaceVerificationHandler(faceVerificationService, logger)
 	ocrClient := ProvideOCRClient(config, logger)
 	ocrRepository := postgres.NewOCRRepository(db, logger)
-<<<<<<< HEAD
-	ocrService := service.NewOCRService(ocrClient, logger, ocrRepository, serviceRepository, profileRepository, transactionRepository, unitOfWork, trialService)
-=======
 	ocrService := service.NewOCRService(ocrClient, logger, ocrRepository, serviceRepository, profileRepository, userRepository, transactionRepository, emailService, unitOfWork, trialService, config)
->>>>>>> 0064148c7ade01e9114f0dc9b7d27ebcbd99b41e
 	ocrHandler := ProvideOCRHandler(ocrService, logger)
 	route := ProvideRouter(generalUserController, profileHandler, apiKeyHandler, adminProfileHandler, contactSalesHandler, walletHandler, transactionHandler, ticketHandler, apiKeyService, logger, jwtKeyManager, faceVerificationHandler, ocrHandler, config)
 	telemetry, err := ProvideTelemetry(config)

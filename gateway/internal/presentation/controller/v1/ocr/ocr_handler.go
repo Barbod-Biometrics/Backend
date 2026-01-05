@@ -276,6 +276,7 @@ func (h *OCRHandler) HealthCheck(c *gin.Context) {
 // @Summary Get OCR Report
 // @Description Fetches paginated, filtered OCR jobs for a profile.
 // @Tags Model - Reports
+// @Security BearerAuth
 // @Accept json
 // @Produce json
 // @Param profile_id query int true "Profile ID"
@@ -320,6 +321,7 @@ func (h *OCRHandler) GetReport(c *gin.Context) {
 // @Summary Approve OCR Result
 // @Description Marks an OCR result as verified/approved by the user
 // @Tags OCR - User
+// @Security BearerAuth
 // @Accept json
 // @Produce json
 // @Param request body ocr.ApproveOCRRequest true "Approval Request"
