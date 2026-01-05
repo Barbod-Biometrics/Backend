@@ -17,8 +17,11 @@ type OCRRepository struct {
 	logger logger.Logger
 }
 
-func NewOCRRepository(db *gorm.DB) *OCRRepository {
-	return &OCRRepository{db: db}
+func NewOCRRepository(db *gorm.DB, logger logger.Logger) *OCRRepository {
+	return &OCRRepository{
+		db:     db,
+		logger: logger,
+	}
 }
 
 func (r *OCRRepository) getDB(ctx context.Context) *gorm.DB {
