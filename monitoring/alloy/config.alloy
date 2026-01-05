@@ -1,0 +1,163 @@
+otelcol.receiver.otlp "default" {
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+
+  output {
+    metrics = [otelcol.processor.batch.default.input]
+    traces  = [otelcol.processor.batch.default.input]
+    logs    = [otelcol.processor.batch.default.input]
+  }
+}
+
+otelcol.processor.batch "default" {
+  output {
+    metrics = [otelcol.exporter.prometheus.default.input]
+    traces  = [otelcol.exporter.otlp.tempo.input]
+    logs    = [otelcol.exporter.loki.default.input]
+  }
+}
+
+otelcol.exporter.prometheus "default" {
+  forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+prometheus.remote_write "grafana_cloud" {
+  endpoint {
+    url = env("GRAFANA_CLOUD_PROMETHEUS_URL")
+    basic_auth {
+      username = env("GRAFANA_CLOUD_PROMETHEUS_USER")
+      password = env("GRAFANA_CLOUD_API_KEY")
+    }
+  }
+}
+
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = env("GRAFANA_CLOUD_TEMPO_ENDPOINT")
+    auth     = otelcol.auth.basic.tempo.handler
+  }
+}
+
+otelcol.auth.basic "tempo" {
+  username = env("GRAFANA_CLOUD_TEMPO_USER")
+  password = env("GRAFANA_CLOUD_API_KEY")
+}
+
+otelcol.exporter.loki "default" {
+  forward_to = [loki.write.grafana_cloud.receiver]
+}
+
+loki.write "grafana_cloud" {
+  endpoint {
+    url = env("GRAFANA_CLOUD_LOKI_URL")
+    basic_auth {
+      username = env("GRAFANA_CLOUD_LOKI_USER")
+      password = env("GRAFANA_CLOUD_API_KEY")
+    }
+  }
+}
+
+// Scrape Redis Exporter
+prometheus.scrape "redis" {
+  targets = [{
+    __address__ = "redis-exporter:9121",
+  }]
+  forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+// Scrape Postgres Exporter
+prometheus.scrape "postgres" {
+  targets = [{
+    __address__ = "postgres-exporter:9187",
+  }]
+  forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+// Scrape cAdvisor for container-level metrics (CPU, memory, filesystem, etc.)
+// cAdvisor exposes metrics such as `container_cpu_usage_seconds_total` and `container_memory_usage_bytes`.
+// Run cAdvisor on the host (see docker-compose changes) so it can scrape all containers.
+prometheus.scrape "cadvisor" {
+  targets = [{
+    __address__ = "cadvisor:8080",
+  }]
+
+  // cAdvisor exposes container labels such as `container_label_com_docker_compose_service`.
+  // Alloy's current config syntax doesn't accept a `metric_relabel` block here.
+  // Use Grafana PromQL `label_replace` in the dashboard or add a relabeler before
+  // forwarding if you need a `service_name` label.
+
+  forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+// Scrape node exporter for host-level metrics (node_boot_time, memory, cpu, etc.)
+prometheus.scrape "node_exporter" {
+  targets = [{
+    __address__ = "node-exporter:9100",
+  }]
+  forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+
+// Discovery for Docker containers
+discovery.docker "linux" {
+  host = "unix:///var/run/docker.sock"
+  filter {
+    name = "status"
+    values = ["running"]
+  }
+}
+
+// Relabel Docker targets
+discovery.relabel "docker_logs" {
+  targets = discovery.docker.linux.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+    replacement   = "$1"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "service_name"
+    replacement   = "$1"
+  }
+
+  rule {
+    target_label = "job"
+    replacement  = "docker"
+  }
+}
+
+// Scrape Docker logs using the docker source
+loki.source.docker "default" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.docker_logs.output
+  forward_to = [loki.process.add_labels.receiver]
+}
+
+// Process logs to add useful labels
+loki.process "add_labels" {
+  stage.docker { }
+  
+  stage.static_labels {
+    values = {
+      cluster = "barbod-development",
+    }
+  }
+
+  forward_to = [loki.write.grafana_cloud.receiver, loki.write.local.receiver]
+}
+
+// Debug: Write logs to a local file inside the container
+loki.write "local" {
+  endpoint {
+    url = "http://localhost:3100/loki/api/v1/push" // This will fail but we can see it in logs
+  }
+}

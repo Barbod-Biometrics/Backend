@@ -41,6 +41,49 @@ services:
     volumes:
       - minio-data:/data
 
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: barbod-redis-exporter
+    environment:
+      - REDIS_ADDR=redis:6379
+    depends_on:
+      - redis
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter
+    container_name: barbod-postgres-exporter
+    environment:
+      - DATA_SOURCE_NAME=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+    depends_on:
+      - postgres
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: barbod-cadvisor
+    restart: always
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: barbod-node-exporter
+    restart: always
+    pid: "host"
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+
   jaeger:
     image: jaegertracing/all-in-one:latest
     container_name: barbod-jaeger
@@ -62,7 +105,10 @@ services:
     restart: always
     volumes:
       - ./monitoring/alloy/config.alloy:/etc/alloy/config.alloy
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
     command: run --server.http.listen-addr=0.0.0.0:12345 /etc/alloy/config.alloy
+    user: root
     environment:
       - GRAFANA_CLOUD_PROMETHEUS_URL=${GRAFANA_CLOUD_PROMETHEUS_URL}
       - GRAFANA_CLOUD_PROMETHEUS_USER=${GRAFANA_CLOUD_PROMETHEUS_USER}
