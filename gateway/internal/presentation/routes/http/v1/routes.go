@@ -19,6 +19,7 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/wallet"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/middleware"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -83,7 +84,11 @@ func (r *Route) RegisterRoutes() http.Handler {
 	router.Use(middleware.NewLocalization(translatorService).Localization())
 	router.Use(middleware.NewRecovery(r.constants).Recovery)
 	router.Use(gin.Logger())
+	router.Use(middleware.PrometheusMiddleware())
 	router.Use(middleware.OpenTelemetryMiddleware(r.serviceName))
+
+	// Prometheus metrics endpoint for monitoring
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
