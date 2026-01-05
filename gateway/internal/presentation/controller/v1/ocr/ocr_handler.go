@@ -22,6 +22,16 @@ func NewOCRHandler(ocrUsecase usecase.OCRUsecase, logger logger.Logger) *OCRHand
 	return &OCRHandler{ocrUsecase: ocrUsecase, logger: logger}
 }
 
+// getUserID extracts the authenticated user's ID from the request context.
+// The user ID is set by the JWT middleware after validating the access token.
+func (h *OCRHandler) getUserID(c *gin.Context) uint64 {
+	userID, err := middleware.GetUserIDFromContext(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+	}
+	return userID
+}
+
 // ExtractText godoc
 // @Router /ocr/extract [post]
 // @Summary Extract text from image using OCR
@@ -289,7 +299,14 @@ func (h *OCRHandler) GetReport(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.ocrUsecase.GetReports(c.Request.Context(), req)
+	userID := h.getUserID(c)
+	if userID == 0 {
+		h.logger.Warn("Unauthorized attempt to access OCR reports")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	resp, err := h.ocrUsecase.GetReports(c.Request.Context(), req, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

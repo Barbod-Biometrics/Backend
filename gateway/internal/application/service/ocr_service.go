@@ -222,7 +222,7 @@ func (s *OCRService) HealthCheck(ctx context.Context) (*ocrDto.HealthCheckRespon
 	return result, nil
 }
 
-func (s *OCRService) GetReports(ctx context.Context, req ocrDto.GetOCRReportRequest) (*ocrDto.OCRReportResponse, error) {
+func (s *OCRService) GetReports(ctx context.Context, req ocrDto.GetOCRReportRequest, userID uint64) (*ocrDto.OCRReportResponse, error) {
 
 	s.logger.Info("Starting OCR report retrieval",
 		logger.Field{Key: "profile_id", Value: req.ProfileID},
@@ -231,13 +231,23 @@ func (s *OCRService) GetReports(ctx context.Context, req ocrDto.GetOCRReportRequ
 		logger.Field{Key: "filter_status", Value: req.Status},
 	)
 
-	_, err := s.profileRepo.GetByID(ctx, req.ProfileID)
+	profile, err := s.profileRepo.GetByID(ctx, req.ProfileID)
 	if err != nil {
 		s.logger.Warn("OCR report failed: profile lookup failed",
 			logger.Field{Key: "error", Value: err},
 			logger.Field{Key: "profile_id", Value: req.ProfileID},
 		)
 		return nil, fmt.Errorf("profile check failed: %w", err)
+	}
+
+	// If the profile exists, but the UserID inside it doesn't match the Token's UserID...
+	if profile.UserID != userID {
+		s.logger.Warn("Security Alert: User attempted to access another user's OCR reports",
+			logger.Field{Key: "token_user_id", Value: userID},
+			logger.Field{Key: "target_profile_id", Value: req.ProfileID},
+			logger.Field{Key: "target_profile_owner", Value: profile.UserID},
+		)
+		return nil, errors.New("profile access denied")
 	}
 
 	filter := repository.OCRReportFilter{
