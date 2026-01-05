@@ -36,6 +36,7 @@ var InfrastructureSet = wire.NewSet(
 	ProvideTelemetry,
 	ProvideJWTKeyManager,
 	ProvideSMSService,
+	ProvideEmailService,
 	ProvideTranslator,
 	ProvideLocalizationTranslator,
 	ProvideRecovery,

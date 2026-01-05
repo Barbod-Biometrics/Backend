@@ -22,6 +22,11 @@ type Env struct {
 	Gmail            Gmail
 	FaceVerification FaceVerification
 	OCR              OCR
+	Wallet           Wallet
+}
+
+type Wallet struct {
+	LowBalanceThreshold uint64
 }
 
 type Admin struct {
@@ -168,13 +173,16 @@ func NewEnvironment() *Env {
 			SenderEmail:      os.Getenv("SENDER_GMAIL"),
 			SmtpHost:         getEnvString("GMAIL_SMTP_HOST", "smtp.gmail.com"),
 			SmtpPort:         getEnvInt("GMAIL_SMTP_PORT", 587),
-			TemplateDir:      getEnvString("GMAIL_TEMPLATE_DIR", "templates/emails"),
+			TemplateDir:      getEnvString("GMAIL_TEMPLATE_DIR", "templates/email"),
 		},
 		FaceVerification: FaceVerification{
 			FaceVerificationURL: getEnvString("FACE_VERIFICATION_URL", "http://localhost:5000"),
 		},
 		OCR: OCR{
 			OCRURL: getEnvString("OCR_URL", "http://localhost:5001"),
+		},
+		Wallet: Wallet{
+			LowBalanceThreshold: uint64(getEnvInt("WALLET_LOW_BALANCE_THRESHOLD", 1000)),
 		},
 	}
 }

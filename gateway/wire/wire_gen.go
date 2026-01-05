@@ -52,13 +52,14 @@ func InitializeApplication() (*Application, error) {
 	profileHandler := ProvideProfileHandler(profileUsecase)
 	apiKeyRepository := postgres.NewApiKeyRepository(db)
 	logger := ProvideGenericLogger(appLogger)
-	apiKeyService := service.NewAPIKeyService(apiKeyRepository, profileRepository, logger)
+	emailService := ProvideEmailService(config, logger)
+	apiKeyService := service.NewAPIKeyService(apiKeyRepository, profileRepository, userRepository, emailService, logger)
 	apiKeyHandler := ProvideAPIKeyController(apiKeyService, logger)
-	adminProfileUsecase := service.NewAdminProfileService(profileRepository)
+	adminProfileUsecase := service.NewAdminProfileService(profileRepository, userRepository, emailService)
 	adminProfileHandler := ProvideAdminProfileHandler(adminProfileUsecase)
 	transactionRepository := postgres.NewTransactionRepository(db, logger)
 	unitOfWork := postgres.NewGormUnitOfWork(db)
-	walletUsecase := service.NewWalletService(profileRepository, transactionRepository, unitOfWork, logger)
+	walletUsecase := service.NewWalletService(profileRepository, userRepository, transactionRepository, emailService, unitOfWork, logger)
 	walletHandler := ProvideWalletHandler(walletUsecase, logger)
 	transactionService := service.NewTransactionService(transactionRepository, logger)
 	transactionHandler := ProvideTransactionHandler(transactionService, profileRepository, logger)
@@ -69,11 +70,11 @@ func InitializeApplication() (*Application, error) {
 	faceVerificationRepository := postgres.NewFaceVerificationRepository(db)
 	serviceRepository := postgres.NewServiceRepository(db)
 	trialService := service.NewTrialService(redisClient, logger)
-	faceVerificationService := service.NewFaceVerificationService(faceVerificationClient, logger, faceVerificationRepository, serviceRepository, profileRepository, transactionRepository, unitOfWork, trialService)
+	faceVerificationService := service.NewFaceVerificationService(faceVerificationClient, logger, faceVerificationRepository, serviceRepository, profileRepository, userRepository, transactionRepository, emailService, unitOfWork, trialService, config)
 	faceVerificationHandler := ProvideFaceVerificationHandler(faceVerificationService, logger)
 	ocrClient := ProvideOCRClient(config, logger)
 	ocrRepository := postgres.NewOCRRepository(db, logger)
-	ocrService := service.NewOCRService(ocrClient, logger, ocrRepository, serviceRepository, profileRepository, transactionRepository, unitOfWork, trialService)
+	ocrService := service.NewOCRService(ocrClient, logger, ocrRepository, serviceRepository, profileRepository, userRepository, transactionRepository, emailService, unitOfWork, trialService, config)
 	ocrHandler := ProvideOCRHandler(ocrService, logger)
 	route := ProvideRouter(generalUserController, profileHandler, apiKeyHandler, adminProfileHandler, walletHandler, transactionHandler, ticketHandler, apiKeyService, logger, jwtKeyManager, faceVerificationHandler, ocrHandler, config)
 	telemetry, err := ProvideTelemetry(config)
@@ -106,6 +107,7 @@ var InfrastructureSet = wire.NewSet(
 	ProvideTelemetry,
 	ProvideJWTKeyManager,
 	ProvideSMSService,
+	ProvideEmailService,
 	ProvideTranslator,
 	ProvideLocalizationTranslator,
 	ProvideRecovery,

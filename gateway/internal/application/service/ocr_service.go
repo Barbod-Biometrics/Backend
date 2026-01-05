@@ -5,8 +5,10 @@ import (
 	"errors"
 	"time"
 
+	"github.com/Barbod-Biometrics/Backend/gateway/bootstrap"
 	ocrDto "github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/ocr"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/communication"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/enum"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/exception"
@@ -16,14 +18,17 @@ import (
 )
 
 type OCRService struct {
-	client          *ocr.OCRClient
-	logger          logger.Logger
-	repo            repository.OCRRepository
-	serviceRepo     repository.ServiceRepository
-	profileRepo     repository.ProfileRepository
-	transactionRepo repository.TransactionRepository
-	unitOfWork      repository.UnitOfWork
-	trialService    *TrialService
+	client              *ocr.OCRClient
+	logger              logger.Logger
+	repo                repository.OCRRepository
+	serviceRepo         repository.ServiceRepository
+	profileRepo         repository.ProfileRepository
+	userRepo            repository.UserRepository
+	transactionRepo     repository.TransactionRepository
+	emailService        communication.EmailService
+	unitOfWork          repository.UnitOfWork
+	trialService        *TrialService
+	lowBalanceThreshold uint64
 }
 
 func NewOCRService(
@@ -32,19 +37,25 @@ func NewOCRService(
 	repo repository.OCRRepository,
 	serviceRepo repository.ServiceRepository,
 	profileRepo repository.ProfileRepository,
+	userRepo repository.UserRepository,
 	transactionRepo repository.TransactionRepository,
+	emailService communication.EmailService,
 	unitOfWork repository.UnitOfWork,
 	trialService *TrialService,
+	cfg *bootstrap.Config,
 ) *OCRService {
 	return &OCRService{
-		client:          cli,
-		logger:          logger,
-		repo:            repo,
-		serviceRepo:     serviceRepo,
-		profileRepo:     profileRepo,
-		transactionRepo: transactionRepo,
-		unitOfWork:      unitOfWork,
-		trialService:    trialService,
+		client:              cli,
+		logger:              logger,
+		repo:                repo,
+		serviceRepo:         serviceRepo,
+		profileRepo:         profileRepo,
+		userRepo:            userRepo,
+		transactionRepo:     transactionRepo,
+		emailService:        emailService,
+		unitOfWork:          unitOfWork,
+		trialService:        trialService,
+		lowBalanceThreshold: cfg.Env.Wallet.LowBalanceThreshold,
 	}
 }
 
@@ -151,6 +162,8 @@ func (s *OCRService) ExtractTextWithIP(ctx context.Context, profileID uint64, im
 				logger.Field{Key: "new_balance", Value: profile.Balance},
 			)
 
+			s.checkLowBalance(profileID, profile.Balance)
+
 			return nil
 		})
 
@@ -218,6 +231,40 @@ func (s *OCRService) HealthCheck(ctx context.Context) (*ocrDto.HealthCheckRespon
 	return result, nil
 }
 
+func (s *OCRService) checkLowBalance(profileID uint64, balance uint64) {
+	if balance >= s.lowBalanceThreshold {
+		return
+	}
+
+	go func() {
+		ctx := context.Background()
+		profile, err := s.profileRepo.GetByID(ctx, profileID)
+		if err != nil || profile == nil {
+			return
+		}
+
+		user, err := s.userRepo.GetByID(ctx, profile.UserID)
+		if err != nil || user == nil || user.Email == nil || *user.Email == "" {
+			return
+		}
+
+		name := ""
+		if profile.ProfileType == entity.ProfileTypePersonal && profile.PersonDetails != nil {
+			name = profile.PersonDetails.FirstName + " " + profile.PersonDetails.LastName
+		} else if profile.ProfileType == entity.ProfileTypeBusiness && profile.BusinessDetails != nil {
+			name = profile.BusinessDetails.RepFirstName + " " + profile.BusinessDetails.RepLastName
+		}
+
+		data := map[string]interface{}{
+			"Name":        name,
+			"ProfileName": profile.ProfileName,
+			"Balance":     balance,
+		}
+
+		_ = s.emailService.SendWithTemplate(ctx, *user.Email, "هشدار موجودی کم", "low_balance.html", data)
+	}()
+}
+
 func (s *OCRService) ApproveResult(ctx context.Context, userID uint64, ocrID uint64, profileID uint64) error {
 
 	s.logger.Info("Starting OCR result approval process",
@@ -257,5 +304,4 @@ func (s *OCRService) ApproveResult(ctx context.Context, userID uint64, ocrID uin
 	)
 
 	return nil
-
 }
