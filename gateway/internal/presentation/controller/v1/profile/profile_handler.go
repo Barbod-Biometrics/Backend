@@ -6,6 +6,7 @@ import (
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/profile"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/exception"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/middleware"
 	"github.com/gin-gonic/gin"
 )
@@ -44,15 +45,13 @@ func (h *ProfileHandler) getUserID(c *gin.Context) uint64 {
 func (h *ProfileHandler) CreateDraft(c *gin.Context) {
 	var req profile.CreateProfileRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+		panic(exception.BindingError{Err: err})
 	}
 
 	userID := h.getUserID(c)
 	resp, err := h.profileUsecase.CreateDraft(c.Request.Context(), userID, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		panic(err)
 	}
 
 	c.JSON(http.StatusCreated, resp)
@@ -76,21 +75,18 @@ func (h *ProfileHandler) UpdateDraft(c *gin.Context) {
 	idParam := c.Param("id")
 	profileID, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid profile id"})
-		return
+		panic(exception.NewAppError("ERR_INVALID_PROFILE_ID", "Invalid profile ID", http.StatusBadRequest, err))
 	}
 
 	var req profile.UpdateProfileRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+		panic(exception.BindingError{Err: err})
 	}
 
 	userID := h.getUserID(c)
 	resp, err := h.profileUsecase.UpdateDraft(c.Request.Context(), userID, profileID, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		panic(err)
 	}
 
 	c.JSON(http.StatusOK, resp)
@@ -114,21 +110,18 @@ func (h *ProfileHandler) SaveDocument(c *gin.Context) {
 	idParam := c.Param("id")
 	profileID, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid profile id"})
-		return
+		panic(exception.NewAppError("ERR_INVALID_PROFILE_ID", "Invalid profile ID", http.StatusBadRequest, err))
 	}
 
 	var req profile.SaveDocumentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+		panic(exception.BindingError{Err: err})
 	}
 
 	userID := h.getUserID(c)
 	err = h.profileUsecase.SaveDocument(c.Request.Context(), userID, profileID, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		panic(err)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "document saved successfully"})
@@ -211,14 +204,13 @@ func (h *ProfileHandler) GetProfile(c *gin.Context) {
 func (h *ProfileHandler) GetUploadUrl(c *gin.Context) {
 	var req profile.GetUploadUrlRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		panic(exception.BindingError{Err: err})
 	}
 
 	userID := h.getUserID(c)
 	resp, err := h.profileUsecase.GetUploadUrl(c.Request.Context(), userID, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		panic(err)
 	}
 
 	c.JSON(http.StatusOK, resp)

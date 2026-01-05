@@ -5,6 +5,7 @@ import (
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/profile"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/exception"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/middleware"
@@ -41,7 +42,6 @@ func NewTransactionHandler(transactionUsecase usecase.TransactionUsecase, profil
 // @Failure 500 {object} map[string]string "Internal server error"
 // @Router /api/v1/billing/summary [get]
 func (h *TransactionHandler) GetUsageSummary(c *gin.Context) {
-
 	userID := h.getUserID(c)
 	if c.IsAborted() {
 		return
@@ -53,8 +53,7 @@ func (h *TransactionHandler) GetUsageSummary(c *gin.Context) {
 		h.logger.Warn("invalid usage summary request format",
 			logger.Field{Key: "error", Value: err},
 		)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request parameters"})
-		return
+		panic(exception.NewBadRequestError("ERR_INVALID_PARAMS", "invalid request parameters", err))
 	}
 
 	userProfiles, err := h.profileRepository.GetByUserID(c.Request.Context(), userID)
@@ -63,8 +62,7 @@ func (h *TransactionHandler) GetUsageSummary(c *gin.Context) {
 			logger.Field{Key: "user_id", Value: userID},
 			logger.Field{Key: "error", Value: err},
 		)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal validation error"})
-		return
+		panic(exception.NewInternalError("ERR_INTERNAL", "Internal validation error", err))
 	}
 
 	isAuthorized := false
@@ -80,8 +78,7 @@ func (h *TransactionHandler) GetUsageSummary(c *gin.Context) {
 			logger.Field{Key: "user_id", Value: userID},
 			logger.Field{Key: "target_profile_id", Value: req.ProfileID},
 		)
-		c.JSON(http.StatusForbidden, gin.H{"error": "access denied to this profile"})
-		return
+		panic(exception.NewNoPropertyAccessForbiddenError("profile"))
 	}
 
 	summary, err := h.transactionUsecase.GetUsageSummary(c.Request.Context(), req.ProfileID)
@@ -90,8 +87,7 @@ func (h *TransactionHandler) GetUsageSummary(c *gin.Context) {
 			logger.Field{Key: "profile_id", Value: req.ProfileID},
 			logger.Field{Key: "error", Value: err},
 		)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve usage summary"})
-		return
+		panic(err)
 	}
 
 	c.JSON(http.StatusOK, summary)
@@ -103,7 +99,7 @@ func (h *TransactionHandler) getUserID(c *gin.Context) uint64 {
 		h.logger.Warn("failed to extract user_id from context",
 			logger.Field{Key: "error", Value: err},
 		)
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		panic(exception.NewUnauthorizedError("", nil))
 	}
 	return userID
 }
