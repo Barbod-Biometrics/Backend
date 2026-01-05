@@ -207,8 +207,8 @@ func ProvideOCRClient(cfg *bootstrap.Config, l logger.Logger) *ocr.OCRClient {
 	return ocr.NewOCRClient(cfg.Env.OCR.OCRURL, l)
 }
 
-func ProvideOCRRepository(db *gorm.DB) repository.OCRRepository {
-	return postgresRepo.NewOCRRepository(db)
+func ProvideOCRRepository(db *gorm.DB, l logger.Logger) repository.OCRRepository {
+	return postgresRepo.NewOCRRepository(db, l)
 }
 
 func ProvideOCRService(

@@ -171,12 +171,12 @@ func (r *Route) RegisterRoutes() http.Handler {
 			tickets.POST("/:ticketId/close", r.ticketController.CloseTicket)
 		}
 
-		faceVerification := v1.Group("/face-verification")
-		faceVerification.Use(middleware.APIKeyAuth(r.apiKeyUsecase, r.log))
+		faceVerificationMachine := v1.Group("/face-verification")
+		faceVerificationMachine.Use(middleware.APIKeyAuth(r.apiKeyUsecase, r.log))
 		{
-			faceVerification.POST("/verify", r.faceVerificationController.VerifyFace)
-			faceVerification.POST("/crop", r.faceVerificationController.CropImage)
-			faceVerification.GET("/health", r.faceVerificationController.HealthCheck)
+			faceVerificationMachine.POST("/verify", r.faceVerificationController.VerifyFace)
+			faceVerificationMachine.POST("/crop", r.faceVerificationController.CropImage)
+			faceVerificationMachine.GET("/health", r.faceVerificationController.HealthCheck)
 
 		}
 
@@ -186,11 +186,17 @@ func (r *Route) RegisterRoutes() http.Handler {
 			modelReports.GET("/face-verification", r.faceVerificationController.GetReport)
 		}
 
-		ocr := v1.Group("/ocr")
-		ocr.Use(middleware.APIKeyAuth(r.apiKeyUsecase, r.log))
+		ocrMachine := v1.Group("/ocr")
+		ocrMachine.Use(middleware.APIKeyAuth(r.apiKeyUsecase, r.log))
 		{
-			ocr.POST("/extract", r.ocrController.ExtractText)
-			ocr.GET("/health", r.ocrController.HealthCheck)
+			ocrMachine.POST("/extract", r.ocrController.ExtractText)
+			ocrMachine.GET("/health", r.ocrController.HealthCheck)
+		}
+
+		ocrUser := v1.Group("/ocr")
+		ocrUser.Use(middleware.JWTMiddleware(r.jwtKeyManager))
+		{
+			ocrUser.POST("/approve", r.ocrController.ApproveResult)
 		}
 
 		demo := v1.Group("/demo")
