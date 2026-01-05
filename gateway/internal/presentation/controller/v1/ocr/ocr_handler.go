@@ -262,7 +262,7 @@ func (h *OCRHandler) HealthCheck(c *gin.Context) {
 // GetReport returns the data for the OCR history
 // @Summary Get OCR Report
 // @Description Fetches paginated, filtered OCR jobs for a profile.
-// @Tags OCR
+// @Tags Model - Reports
 // @Accept json
 // @Produce json
 // @Param profile_id query int true "Profile ID"
@@ -282,6 +282,9 @@ func (h *OCRHandler) GetReport(c *gin.Context) {
 	var req ocrDto.GetOCRReportRequest
 
 	if err := c.ShouldBindQuery(&req); err != nil {
+		h.logger.Error("Invalid query parameters for OCR report",
+			logger.Field{Key: "error", Value: err.Error()},
+		)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid parameters"})
 		return
 	}

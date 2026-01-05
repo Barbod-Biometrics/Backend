@@ -6,17 +6,22 @@ import (
 	"time"
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
 type OCRRepository struct {
-	db *gorm.DB
+	db     *gorm.DB
+	logger logger.Logger
 }
 
-func NewOCRRepository(db *gorm.DB) *OCRRepository {
-	return &OCRRepository{db: db}
+func NewOCRRepository(db *gorm.DB, logger logger.Logger) *OCRRepository {
+	return &OCRRepository{
+		db:     db,
+		logger: logger,
+	}
 }
 
 func (r *OCRRepository) getDB(ctx context.Context) *gorm.DB {
@@ -149,6 +154,10 @@ func (r *OCRRepository) GetReports(ctx context.Context, filter repository.OCRRep
 
 	// count test
 	if err := query.Count(&totalCount).Error; err != nil {
+		r.logger.Error("Failed to count OCR reports",
+			logger.Field{Key: "error", Value: err},
+			logger.Field{Key: "profile_id", Value: filter.ProfileID},
+		)
 		return nil, 0, err
 	}
 
@@ -168,6 +177,16 @@ func (r *OCRRepository) GetReports(ctx context.Context, filter repository.OCRRep
 		Limit(filter.Limit).
 		Offset(offset).
 		Find(&results).Error
+
+	if err != nil {
+		r.logger.Error("Failed to fetch OCR report records",
+			logger.Field{Key: "error", Value: err},
+			logger.Field{Key: "profile_id", Value: filter.ProfileID},
+			logger.Field{Key: "offset", Value: offset},
+			logger.Field{Key: "limit", Value: filter.Limit},
+		)
+		return nil, 0, err
+	}
 
 	return results, totalCount, err
 }

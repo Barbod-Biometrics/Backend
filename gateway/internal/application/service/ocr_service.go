@@ -224,8 +224,19 @@ func (s *OCRService) HealthCheck(ctx context.Context) (*ocrDto.HealthCheckRespon
 
 func (s *OCRService) GetReports(ctx context.Context, req ocrDto.GetOCRReportRequest) (*ocrDto.OCRReportResponse, error) {
 
+	s.logger.Info("Starting OCR report retrieval",
+		logger.Field{Key: "profile_id", Value: req.ProfileID},
+		logger.Field{Key: "page", Value: req.Page},
+		logger.Field{Key: "limit", Value: req.Limit},
+		logger.Field{Key: "filter_status", Value: req.Status},
+	)
+
 	_, err := s.profileRepo.GetByID(ctx, req.ProfileID)
 	if err != nil {
+		s.logger.Warn("OCR report failed: profile lookup failed",
+			logger.Field{Key: "error", Value: err},
+			logger.Field{Key: "profile_id", Value: req.ProfileID},
+		)
 		return nil, fmt.Errorf("profile check failed: %w", err)
 	}
 
@@ -253,6 +264,10 @@ func (s *OCRService) GetReports(ctx context.Context, req ocrDto.GetOCRReportRequ
 
 	results, total, err := s.repo.GetReports(ctx, filter)
 	if err != nil {
+		s.logger.Error("Failed to fetch OCR reports from repository",
+			logger.Field{Key: "error", Value: err},
+			logger.Field{Key: "profile_id", Value: req.ProfileID},
+		)
 		return nil, err
 	}
 
@@ -273,6 +288,12 @@ func (s *OCRService) GetReports(ctx context.Context, req ocrDto.GetOCRReportRequ
 	}
 
 	totalPages := int(math.Ceil(float64(total) / float64(req.Limit)))
+
+	s.logger.Info("OCR reports retrieved successfully",
+		logger.Field{Key: "profile_id", Value: req.ProfileID},
+		logger.Field{Key: "total_count", Value: total},
+		logger.Field{Key: "items_returned", Value: len(items)},
+	)
 
 	return &ocrDto.OCRReportResponse{
 		Items:      items,
