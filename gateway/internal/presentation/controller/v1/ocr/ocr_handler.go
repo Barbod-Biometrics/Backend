@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/ocr"
 	ocrDto "github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/ocr"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/exception"
@@ -20,6 +21,16 @@ type OCRHandler struct {
 
 func NewOCRHandler(ocrUsecase usecase.OCRUsecase, logger logger.Logger) *OCRHandler {
 	return &OCRHandler{ocrUsecase: ocrUsecase, logger: logger}
+}
+
+// getUserID extracts the authenticated user's ID from the request context.
+// The user ID is set by the JWT middleware after validating the access token.
+func (h *OCRHandler) getUserID(c *gin.Context) uint64 {
+	userID, err := middleware.GetUserIDFromContext(c)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+	}
+	return userID
 }
 
 // ExtractText godoc
@@ -257,4 +268,51 @@ func (h *OCRHandler) HealthCheck(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, result)
+}
+
+// ApproveResult approves a specific OCR record
+// @summary Approve OCR Result
+// @Description Marks an OCR result as verified/approved by the user
+// @Tags OCR
+// @Accept json
+// @Produce json
+// @Param request body ocr.ApproveOCRResult true "Approval Request"
+// @Success 200 {object} map[string]string "Success"
+// @Failure 400 {object} map[string]string "Invalid Request"
+// @Failure 403 {object} map[string]string "Forbidden - Profiles does not belong to user"
+// @Failure 404 {object} map[string]string "Record not found"
+// @Router /api/v1/ocr/approve [post]
+func (h *OCRHandler) ApproveResult(c *gin.Context) {
+	h.logger.Info("Recieved OCR result approval results")
+
+	var req ocr.ApproveOCRRequest
+	if err := c.ShouldBind(&req); err != nil {
+		h.logger.Error("Invalid request body/structure for getting the approval of the project", logger.Field{Key: "error", Value: err})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	userID := h.getUserID(c)
+	if userID == 0 {
+		h.logger.Error("Unauthorized attempt to access the ocr/approve api", logger.Field{Key: "user_id", Value: userID})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	err := h.ocrUsecase.ApproveResult(c.Request.Context(), userID, req.ID, req.ProfileID)
+	if err != nil {
+		switch err.Error() {
+		case "record not found or access denied":
+			c.JSON(http.StatusNotFound, gin.H{"error": "OCR record not found"})
+		case "profile access denied":
+			c.JSON(http.StatusForbidden, gin.H{"error": "You do not own this profile"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "OCR result approved successfully",
+	})
 }

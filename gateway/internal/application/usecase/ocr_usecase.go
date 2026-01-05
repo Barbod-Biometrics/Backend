@@ -13,5 +13,5 @@ type OCRUsecase interface {
 
 	HealthCheck(ctx context.Context) (*ocrDto.HealthCheckResponseDTO, error)
 
-	ApproveResult(ctx context.Context, ocrID uint64, profileID uint64) error
+	ApproveResult(ctx context.Context, userID, ocrID uint64, profileID uint64) error
 }

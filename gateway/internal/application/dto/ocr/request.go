@@ -5,5 +5,6 @@ type OCRRequest struct {
 }
 
 type ApproveOCRRequest struct {
-	ID uint64 `json:"id" binding:"required"`
+	ID        uint64 `json:"id" binding:"required"`
+	ProfileID uint64 `json:"profile_id" binding:"required"`
 }
