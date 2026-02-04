@@ -154,6 +154,7 @@ func (h *SessionHandler) Upload(c *gin.Context) {
 		}
 		result = ocrResult
 
+		// Determine next step based on current session state
 		s.Lock()
 		currentState := s.State
 		s.Unlock()
@@ -173,6 +174,7 @@ func (h *SessionHandler) Upload(c *gin.Context) {
 		s.Unlock()
 
 	case entity.StateOCRPendingAcceptance:
+		// OCR result is pending acceptance, no file upload allowed
 		panic(exception.NewBadRequestError("ERR_OCR_PENDING_ACCEPTANCE", "OCR result is pending acceptance. Please accept the OCR result first.", nil))
 
 	case entity.StateOCRSuccess, entity.StatePendingLiveness:
