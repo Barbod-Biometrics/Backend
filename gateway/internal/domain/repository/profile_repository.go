@@ -40,6 +40,7 @@ type ProfileRepository interface {
 	GetByID(ctx context.Context, profileID uint64) (*entity.Profile, error)
 	GetByUserID(ctx context.Context, userID uint64) ([]*entity.Profile, error)
 	GetPersonalProfileByUserID(ctx context.Context, userID uint64) (*entity.Profile, error)
+	UpdateHasAPIKey(ctx context.Context, profileID uint64, hasKey bool) error
 
 	// Admin methods
 	ListWithFilters(ctx context.Context, filter ProfileFilter, sort ProfileSort, pagination Pagination) (*PaginatedResult, error)

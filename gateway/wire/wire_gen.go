@@ -52,7 +52,7 @@ func InitializeApplication() (*Application, error) {
 	profileHandler := ProvideProfileHandler(profileUsecase)
 	apiKeyRepository := postgres.NewApiKeyRepository(db)
 	logger := ProvideGenericLogger(appLogger)
-	apiKeyService := service.NewAPIKeyService(apiKeyRepository, logger)
+	apiKeyService := service.NewAPIKeyService(apiKeyRepository, profileRepository, logger)
 	apiKeyHandler := ProvideAPIKeyController(apiKeyService, logger)
 	adminProfileUsecase := service.NewAdminProfileService(profileRepository)
 	adminProfileHandler := ProvideAdminProfileHandler(adminProfileUsecase)
@@ -62,6 +62,9 @@ func InitializeApplication() (*Application, error) {
 	walletHandler := ProvideWalletHandler(walletUsecase, logger)
 	transactionService := service.NewTransactionService(transactionRepository, logger)
 	transactionHandler := ProvideTransactionHandler(transactionService, profileRepository, logger)
+	ticketRepository := postgres.NewTicketRepository(db)
+	ticketService := service.NewTicketService(ticketRepository, userRepository, minioClient)
+	ticketHandler := ProvideTicketHandler(ticketService, logger)
 	faceVerificationClient := ProvideFaceVerificationClient(config, logger)
 	faceVerificationRepository := postgres.NewFaceVerificationRepository(db)
 	serviceRepository := postgres.NewServiceRepository(db)
@@ -79,7 +82,7 @@ func InitializeApplication() (*Application, error) {
 	sessionUsecase := ProvideSessionWorkflow(sessionManager, ocrService, faceVerificationService, workflowConfigRepository, minioClient, logger)
 	sessionHandler := ProvideSessionHandler(sessionUsecase, sessionManager, workflowConfigRepository, logger)
 	workflowConfigHandler := ProvideWorkflowConfigHandler(workflowConfigRepository, logger)
-	route := ProvideRouter(generalUserController, profileHandler, apiKeyHandler, adminProfileHandler, walletHandler, transactionHandler, apiKeyService, logger, jwtKeyManager, faceVerificationHandler, ocrHandler, sessionHandler, workflowConfigHandler, config)
+	route := ProvideRouter(generalUserController, profileHandler, apiKeyHandler, adminProfileHandler, walletHandler, transactionHandler, ticketHandler, apiKeyService, logger, jwtKeyManager, faceVerificationHandler, ocrHandler, sessionHandler, workflowConfigHandler, config)
 	telemetry, err := ProvideTelemetry(config)
 	if err != nil {
 		return nil, err
@@ -118,10 +121,10 @@ var InfrastructureSet = wire.NewSet(
 )
 
 // Repository Set
-var RepositorySet = wire.NewSet(postgres.NewUserRepository, postgres.NewGormUnitOfWork, postgres.NewProfileRepository, wire.Bind(new(repository.ProfileRepository), new(*postgres.ProfileRepository)), postgres.NewTransactionRepository, wire.Bind(new(repository.TransactionRepository), new(*postgres.TransactionRepository)), postgres.NewApiKeyRepository, wire.Bind(new(repository.APIKeyRepository), new(*postgres.ApiKeyRepository)), postgres.NewFaceVerificationRepository, wire.Bind(new(repository.FaceVerificationRepository), new(*postgres.FaceVerificationRepository)), postgres.NewOCRRepository, wire.Bind(new(repository.OCRRepository), new(*postgres.OCRRepository)), postgres.NewSessionRepository, postgres.NewServiceRepository, postgres.NewWorkflowConfigRepository, redis.NewCacheRepository, wire.Bind(new(repository.CacheRepository), new(*redis.CacheRepository)))
+var RepositorySet = wire.NewSet(postgres.NewUserRepository, postgres.NewGormUnitOfWork, postgres.NewProfileRepository, wire.Bind(new(repository.ProfileRepository), new(*postgres.ProfileRepository)), postgres.NewTransactionRepository, wire.Bind(new(repository.TransactionRepository), new(*postgres.TransactionRepository)), postgres.NewApiKeyRepository, wire.Bind(new(repository.APIKeyRepository), new(*postgres.ApiKeyRepository)), postgres.NewFaceVerificationRepository, wire.Bind(new(repository.FaceVerificationRepository), new(*postgres.FaceVerificationRepository)), postgres.NewOCRRepository, wire.Bind(new(repository.OCRRepository), new(*postgres.OCRRepository)), postgres.NewSessionRepository, postgres.NewServiceRepository, postgres.NewTicketRepository, wire.Bind(new(repository.TicketRepository), new(*postgres.TicketRepository)), postgres.NewWorkflowConfigRepository, redis.NewCacheRepository, wire.Bind(new(repository.CacheRepository), new(*redis.CacheRepository)))
 
 // Service Set
-var ServiceSet = wire.NewSet(service.NewProfileService, service.NewWalletService, service.NewAdminProfileService, service.NewUserService, service.NewJWTService, service.NewOTPService, service.NewAuthService, service.NewAPIKeyService, service.NewTransactionService, service.NewTrialService, service.NewFaceVerificationService, service.NewOCRService, wire.Bind(new(usecase.UserUsecase), new(*service.UserService)), wire.Bind(new(usecase.TokenUsecase), new(*service.JWTService)), wire.Bind(new(usecase.OTPUsecase), new(*service.OTPService)), wire.Bind(new(usecase.AuthUsecase), new(*service.AuthService)), wire.Bind(new(usecase.APIKeyUsecase), new(*service.APIKeyService)), wire.Bind(new(usecase.TransactionUsecase), new(*service.TransactionService)), wire.Bind(new(usecase.FaceVerificationUsecase), new(*service.FaceVerificationService)), wire.Bind(new(usecase.OCRUsecase), new(*service.OCRService)))
+var ServiceSet = wire.NewSet(service.NewProfileService, service.NewWalletService, service.NewAdminProfileService, service.NewUserService, service.NewJWTService, service.NewOTPService, service.NewAuthService, service.NewAPIKeyService, service.NewTransactionService, service.NewTrialService, service.NewFaceVerificationService, service.NewOCRService, service.NewTicketService, wire.Bind(new(usecase.UserUsecase), new(*service.UserService)), wire.Bind(new(usecase.TokenUsecase), new(*service.JWTService)), wire.Bind(new(usecase.OTPUsecase), new(*service.OTPService)), wire.Bind(new(usecase.AuthUsecase), new(*service.AuthService)), wire.Bind(new(usecase.APIKeyUsecase), new(*service.APIKeyService)), wire.Bind(new(usecase.TransactionUsecase), new(*service.TransactionService)), wire.Bind(new(usecase.FaceVerificationUsecase), new(*service.FaceVerificationService)), wire.Bind(new(usecase.OCRUsecase), new(*service.OCRService)), wire.Bind(new(usecase.TicketUsecase), new(*service.TicketService)))
 
 // Controller Set
 var ControllerSet = wire.NewSet(
@@ -133,6 +136,7 @@ var ControllerSet = wire.NewSet(
 	ProvideTransactionHandler,
 	ProvideFaceVerificationHandler,
 	ProvideOCRHandler,
+	ProvideTicketHandler,
 	ProvideWorkflowConfigHandler,
 )
 

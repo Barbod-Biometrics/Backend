@@ -1,5 +1,11 @@
 package entity
 
+import (
+	"time"
+
+	"gorm.io/datatypes"
+)
+
 type FaceVerificationStats struct {
 	Duration float64 `json:"duration,omitempty"`
 	FPS      int     `json:"fps,omitempty"`
@@ -37,4 +43,20 @@ type FaceVerificationRecord struct {
 	Stats                 *FaceVerificationStats `json:"stats,omitempty" gorm:"type:jsonb"`
 	HighestSimilarity     float64                `json:"highest_similarity,omitempty"`
 	ProcessingTimeSeconds float64                `json:"processing_time_seconds,omitempty"`
+}
+
+type FaceVerificationModel struct {
+	ID                    uint64         `gorm:"primaryKey;autoIncrement" json:"id"`
+	ProfileID             uint64         `gorm:"not null;index" json:"profile_id"`
+	Success               bool           `gorm:"not null;index" json:"success"`
+	Reason                string         `gorm:"type:text" json:"reason"`
+	Message               string         `gorm:"type:text" json:"message"`
+	HighestSimilarity     float64        `gorm:"type:double precision;index" json:"highest_similarity"`
+	ProcessingTimeSeconds float64        `gorm:"type:double precision" json:"processing_time_seconds"`
+	Stats                 datatypes.JSON `gorm:"type:jsonb" json:"stats"`
+	CreatedAt             time.Time      `gorm:"not null;default:now()" json:"created_at"`
+}
+
+func (FaceVerificationModel) TableName() string {
+	return "face_verifications"
 }

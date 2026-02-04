@@ -27,6 +27,7 @@ func (r *ProfileRepository) GetPersonalProfileByUserID(ctx context.Context, user
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
+		return nil, err
 	}
 
 	return &profile, nil
@@ -173,4 +174,14 @@ func (r *ProfileRepository) ListWithFilters(ctx context.Context, filter reposito
 		PageSize:   pagination.PageSize,
 		TotalPages: totalPages,
 	}, nil
+}
+
+func (r *ProfileRepository) UpdateHasAPIKey(ctx context.Context, profileID uint64, hasKey bool) error {
+	db := r.getDB(ctx)
+
+	err := db.Model(&entity.Profile{}).
+		Where("id = ?", profileID).
+		Update("has_apikey", hasKey).Error
+
+	return err
 }

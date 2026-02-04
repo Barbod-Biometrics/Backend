@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"time"
 
 	faceVerificationDto "github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/face_verification"
@@ -351,4 +352,71 @@ func (s *FaceVerificationService) HealthCheck(ctx context.Context) (*faceVerific
 		logger.Field{Key: "status", Value: result.Status},
 	)
 	return result, nil
+}
+
+func (s *FaceVerificationService) GetReports(ctx context.Context, req faceVerificationDto.GetFaceReportRequest) (*faceVerificationDto.FaceReportResponse, error) {
+
+	// security check for the profile id availability before anything
+	_, err := s.profileRepo.GetByID(ctx, req.ProfileID)
+	if err != nil {
+		return nil, fmt.Errorf("profile check failed: %w", err)
+	}
+
+	filter := repository.FaceReportFilter{
+		ProfileID: req.ProfileID,
+		Page:      req.Page,
+		Limit:     req.Limit,
+		SortBy:    req.SortBy,
+		SortOrder: req.SortOrder,
+	}
+
+	if req.Status != "" {
+		filter.Status = &req.Status
+	}
+
+	if !req.FromDate.IsZero() {
+		t := req.FromDate.ToTime()
+		filter.FromDate = &t
+	}
+
+	if !req.ToDate.IsZero() {
+		t := req.ToDate.ToTime()
+
+		t = t.Add(24 * time.Hour).Add(-1 * time.Second)
+
+		filter.ToDate = &t
+	}
+
+	jobs, total, err := s.repo.GetReports(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]faceVerificationDto.FaceReportItem, 0)
+	for _, job := range jobs {
+		statusStr := "Failed"
+		if job.Success {
+			statusStr = "Success"
+		}
+
+		items = append(items, faceVerificationDto.FaceReportItem{
+			ID:       job.ID,
+			Date:     job.CreatedAt.Format("2006-01-02 15:04:05"),
+			Status:   statusStr,
+			Duration: job.ProcessingTimeSeconds,
+			Message:  job.Message,
+			Reason:   job.Reason,
+			Rate:     job.HighestSimilarity,
+		})
+	}
+
+	totalPages := int(math.Ceil(float64(total) / float64(req.Limit)))
+
+	return &faceVerificationDto.FaceReportResponse{
+		Items:      items,
+		TotalCount: total,
+		Page:       req.Page,
+		TotalPages: totalPages,
+	}, nil
+
 }

@@ -71,6 +71,11 @@ var Persian = map[string]interface{}{
 		"faceImageEmpty":          "تصویر نمی‌تواند خالی باشد",
 		"faceVerificationSuccess": "تأیید چهره با موفقیت انجام شد",
 		"faceVerificationFailure": "تأیید چهره ناموفق بود",
+		"apiKeyActiveExists":      "یک کلید API فعال برای این پروفایل وجود دارد.",
+		"apiKeyProfileNotFound":   "پروفایل با این شناسه یافت نشد.",
+		"apiKeyRevoked":           "این کلید API باطل شده است.",
+		"apiKeyInvalidFormat":     "فرمت کلید API نامعتبر است.",
+		"apiKeyAuthFailed":        "احراز هویت ناموفق بود.",
 	},
 	"successMessage": map[string]interface{}{
 		"userRegister":      "ثبت نام موفق بود! لطفاً پیامک های خود را بررسی کنید تا حساب خود را تأیید کرده و فرآیند ثبت نام را تکمیل نمایید.",
