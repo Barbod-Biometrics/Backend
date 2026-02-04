@@ -201,6 +201,7 @@ func (r *Route) RegisterRoutes() http.Handler {
 			workflow.POST("/:id/upload", r.sessionController.Upload)
 			workflow.GET("/:id", r.sessionController.Get)
 			workflow.POST("/:id/cancel", r.sessionController.Cancel)
+			workflow.POST("/:id/accept-ocr", r.sessionController.AcceptOCR)
 		}
 
 		workflowConfig := v1.Group("/workflow/config")

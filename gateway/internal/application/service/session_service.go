@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"time"
 
 	faceVerificationDto "github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/face_verification"
@@ -74,7 +75,22 @@ func (s *SessionInteractor) ProcessOCR(ctx context.Context, sess *entity.Session
 	}
 
 	sess.OCRResult = ocrRes
-	sess.State = entity.StateOCRSuccess
+
+	// Check if OCR acceptance is required for this workflow
+	var ocrAcceptanceRequired bool
+	if sess.WorkflowConfigID > 0 && s.ConfigRepo != nil {
+		cfg, err := s.ConfigRepo.GetByID(ctx, sess.WorkflowConfigID)
+		if err == nil {
+			ocrAcceptanceRequired = cfg.OCRAcceptanceRequired
+		}
+	}
+
+	if ocrAcceptanceRequired {
+		sess.State = entity.StateOCRPendingAcceptance
+	} else {
+		sess.State = entity.StateOCRSuccess
+	}
+
 	s.SessionMgr.UpdateSession(sess)
 
 	go func() {
@@ -190,4 +206,20 @@ func (s *SessionInteractor) ProcessFaceVerification(ctx context.Context, sess *e
 	)
 
 	return fvRes, nil
+}
+
+// AcceptOCR moves session from OCR pending acceptance to OCR success state
+func (s *SessionInteractor) AcceptOCR(ctx context.Context, sess *entity.Session) error {
+	sess.Lock()
+	defer sess.Unlock()
+
+	if sess.State != entity.StateOCRPendingAcceptance {
+		return errors.New("session is not in OCR pending acceptance state")
+	}
+
+	sess.State = entity.StateOCRSuccess
+	s.SessionMgr.UpdateSession(sess)
+
+	s.Logger.Info("OCR result accepted", logger.Field{Key: "session_id", Value: sess.ID})
+	return nil
 }

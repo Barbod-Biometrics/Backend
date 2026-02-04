@@ -21,13 +21,15 @@ const (
 
 type OCRClient struct {
 	baseURL    string
+	apiKey     string
 	httpClient *http.Client
 	logger     logger.Logger
 }
 
-func NewOCRClient(baseURL string, logger logger.Logger) *OCRClient {
+func NewOCRClient(baseURL string, apiKey string, logger logger.Logger) *OCRClient {
 	return &OCRClient{
 		baseURL: baseURL,
+		apiKey:  apiKey,
 		httpClient: &http.Client{
 			Timeout: defaultTimeout,
 		},
@@ -53,7 +55,7 @@ func (c *OCRClient) ExtractText(ctx context.Context, image []byte) (*ocrDTO.OCRR
 	userPrompt := "Extract the following information from this Iranian National ID card image. Return the result as a strictly valid JSON object using exactly these Persian keys: شماره_ملی, نام, نام_خانوادگی, نام_پدر, تاریخ_تولد, پایان_اعتبار. Do not include any explanation or markdown formatting. Double check that field names and what you extract is correct."
 
 	reqBody := map[string]interface{}{
-		"model": "mini",
+		"model": "gpt-5-mini-2025-08-07",
 		"messages": []interface{}{
 			map[string]interface{}{"role": "system", "content": systemInstruction},
 			map[string]interface{}{
@@ -84,6 +86,7 @@ func (c *OCRClient) ExtractText(ctx context.Context, image []byte) (*ocrDTO.OCRR
 		return nil, exception.NewInternalError("ERR_OCR_CREATE_REQ", "failed to create http request", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -173,6 +176,8 @@ func (c *OCRClient) HealthCheck(ctx context.Context) (*ocrDTO.HealthCheckRespons
 		)
 		return nil, fmt.Errorf("failed to create health check request: %w", err)
 	}
+
+	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

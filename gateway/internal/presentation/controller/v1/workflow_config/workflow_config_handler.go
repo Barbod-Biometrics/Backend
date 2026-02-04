@@ -49,13 +49,14 @@ func (h *WorkflowConfigHandler) SaveConfig(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, dto.ConfigResponse{
-		ID:               cfg.ID,
-		ProfileID:        cfg.ProfileID,
-		Name:             cfg.Name,
-		Instruction:      cfg.Instruction,
-		LivenessSentence: cfg.LivenessSentence,
-		CreatedAt:        cfg.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		UpdatedAt:        cfg.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		ID:                    cfg.ID,
+		ProfileID:             cfg.ProfileID,
+		Name:                  cfg.Name,
+		Instruction:           cfg.Instruction,
+		LivenessSentence:      cfg.LivenessSentence,
+		OCRAcceptanceRequired: cfg.OCRAcceptanceRequired,
+		CreatedAt:             cfg.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		UpdatedAt:             cfg.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	})
 }
 
@@ -79,13 +80,14 @@ func (h *WorkflowConfigHandler) ListConfigs(c *gin.Context) {
 	var responses []dto.ConfigResponse
 	for _, cfg := range cfgs {
 		responses = append(responses, dto.ConfigResponse{
-			ID:               cfg.ID,
-			ProfileID:        cfg.ProfileID,
-			Name:             cfg.Name,
-			Instruction:      cfg.Instruction,
-			LivenessSentence: cfg.LivenessSentence,
-			CreatedAt:        cfg.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-			UpdatedAt:        cfg.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			ID:                    cfg.ID,
+			ProfileID:             cfg.ProfileID,
+			Name:                  cfg.Name,
+			Instruction:           cfg.Instruction,
+			LivenessSentence:      cfg.LivenessSentence,
+			OCRAcceptanceRequired: cfg.OCRAcceptanceRequired,
+			CreatedAt:             cfg.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			UpdatedAt:             cfg.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		})
 	}
 
@@ -122,13 +124,14 @@ func (h *WorkflowConfigHandler) GetConfig(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, dto.ConfigResponse{
-		ID:               cfg.ID,
-		ProfileID:        cfg.ProfileID,
-		Name:             cfg.Name,
-		Instruction:      cfg.Instruction,
-		LivenessSentence: cfg.LivenessSentence,
-		CreatedAt:        cfg.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		UpdatedAt:        cfg.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		ID:                    cfg.ID,
+		ProfileID:             cfg.ProfileID,
+		Name:                  cfg.Name,
+		Instruction:           cfg.Instruction,
+		LivenessSentence:      cfg.LivenessSentence,
+		OCRAcceptanceRequired: cfg.OCRAcceptanceRequired,
+		CreatedAt:             cfg.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		UpdatedAt:             cfg.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	})
 }
 
@@ -173,13 +176,14 @@ func (h *WorkflowConfigHandler) UpdateConfig(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, dto.ConfigResponse{
-		ID:               cfg.ID,
-		ProfileID:        cfg.ProfileID,
-		Name:             cfg.Name,
-		Instruction:      cfg.Instruction,
-		LivenessSentence: cfg.LivenessSentence,
-		CreatedAt:        cfg.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		UpdatedAt:        cfg.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		ID:                    cfg.ID,
+		ProfileID:             cfg.ProfileID,
+		Name:                  cfg.Name,
+		Instruction:           cfg.Instruction,
+		LivenessSentence:      cfg.LivenessSentence,
+		OCRAcceptanceRequired: cfg.OCRAcceptanceRequired,
+		CreatedAt:             cfg.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		UpdatedAt:             cfg.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	})
 }
 

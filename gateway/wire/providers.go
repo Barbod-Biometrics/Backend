@@ -205,7 +205,7 @@ func ProvideFaceVerificationHandler(ms usecase.FaceVerificationUsecase, l logger
 }
 
 func ProvideOCRClient(cfg *bootstrap.Config, l logger.Logger) *ocr.OCRClient {
-	return ocr.NewOCRClient(cfg.Env.OCR.OCRURL, l)
+	return ocr.NewOCRClient(cfg.Env.OCR.OCRURL, cfg.Env.OCR.APIKey, l)
 }
 
 func ProvideOCRRepository(db *gorm.DB) repository.OCRRepository {

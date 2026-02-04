@@ -12,4 +12,6 @@ type SessionUsecase interface {
 	ProcessOCR(ctx context.Context, sess *entity.Session, imageBytes []byte) (interface{}, error)
 
 	ProcessFaceVerification(ctx context.Context, sess *entity.Session, baseImageBytes []byte, videoBytes []byte) (interface{}, error)
+
+	AcceptOCR(ctx context.Context, sess *entity.Session) error
 }

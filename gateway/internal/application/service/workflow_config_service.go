@@ -31,10 +31,11 @@ func NewWorkflowConfigService(repo repository.WorkflowConfigRepository, l logger
 
 func (s *workflowConfigService) Save(ctx context.Context, profileID uint64, req workflow_config.SaveConfigRequest) (*entity.WorkflowConfig, error) {
 	cfg := &entity.WorkflowConfig{
-		ProfileID:        profileID,
-		Name:             req.Name,
-		Instruction:      req.Instruction,
-		LivenessSentence: req.LivenessSentence,
+		ProfileID:             profileID,
+		Name:                  req.Name,
+		Instruction:           req.Instruction,
+		LivenessSentence:      req.LivenessSentence,
+		OCRAcceptanceRequired: req.OCRAcceptanceRequired,
 	}
 	if err := s.repo.Save(ctx, cfg); err != nil {
 		s.l.Error("Failed to save workflow config", logger.Field{Key: "error", Value: err})
@@ -74,6 +75,7 @@ func (s *workflowConfigService) Update(ctx context.Context, profileID, id uint64
 	}
 	cfg.Instruction = req.Instruction
 	cfg.LivenessSentence = req.LivenessSentence
+	cfg.OCRAcceptanceRequired = req.OCRAcceptanceRequired
 	if err := s.repo.Update(ctx, cfg); err != nil {
 		s.l.Error("Failed to update workflow config", logger.Field{Key: "error", Value: err})
 		return nil, err

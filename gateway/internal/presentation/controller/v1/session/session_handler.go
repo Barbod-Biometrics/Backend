@@ -153,7 +153,16 @@ func (h *SessionHandler) Upload(c *gin.Context) {
 			panic(exception.NewInternalError("ERR_PROCESS_OCR", "failed to process ocr", err))
 		}
 		result = ocrResult
-		nextStep = "UPLOAD_FACE_VERIFICATION"
+
+		s.Lock()
+		currentState := s.State
+		s.Unlock()
+
+		if currentState == entity.StateOCRPendingAcceptance {
+			nextStep = "ACCEPT_OCR_RESULT"
+		} else {
+			nextStep = "UPLOAD_FACE_VERIFICATION"
+		}
 
 		s.Lock()
 		if autoCropped, ok := s.Metadata["auto_cropped_image_bytes"]; ok {
@@ -162,6 +171,9 @@ func (h *SessionHandler) Upload(c *gin.Context) {
 			}
 		}
 		s.Unlock()
+
+	case entity.StateOCRPendingAcceptance:
+		panic(exception.NewBadRequestError("ERR_OCR_PENDING_ACCEPTANCE", "OCR result is pending acceptance. Please accept the OCR result first.", nil))
 
 	case entity.StateOCRSuccess, entity.StatePendingLiveness:
 		baseImageFile, _ := c.FormFile("base_image")
@@ -305,6 +317,8 @@ func (h *SessionHandler) getNextStep(state entity.SessionState) string {
 	switch state {
 	case entity.StateCreated, entity.StatePendingOCR:
 		return "UPLOAD_IMAGE_OCR"
+	case entity.StateOCRPendingAcceptance:
+		return "ACCEPT_OCR_RESULT"
 	case entity.StateOCRSuccess:
 		return "UPLOAD_FACE_VERIFICATION"
 	case entity.StateOCRFailed:
@@ -342,4 +356,36 @@ func (h *SessionHandler) Cancel(c *gin.Context) {
 		panic(exception.NewInternalError("ERR_FAILED_TO_CANCEL", "failed to cancel session", err))
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "cancelled"})
+}
+
+// AcceptOCR accepts the OCR result and moves the workflow forward
+// @Summary Accept OCR result
+// @Tags Workflow
+// @Security ApiKeyAuth
+// @Produce json
+// @Param id path string true "Session ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Router /workflow/{id}/accept-ocr [post]
+func (h *SessionHandler) AcceptOCR(c *gin.Context) {
+	id := c.Param("id")
+
+	s, err := h.mgr.GetSession(id)
+	if err != nil {
+		panic(exception.NewNotFoundError("session"))
+	}
+
+	if err := h.svc.AcceptOCR(c.Request.Context(), s); err != nil {
+		panic(exception.NewBadRequestError("ERR_ACCEPT_OCR", "failed to accept OCR result", err))
+	}
+
+	// Get updated session to return current state
+	s, _ = h.mgr.GetSession(id)
+	nextStep := h.getNextStep(s.State)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":   "OCR result accepted",
+		"state":     s.State,
+		"next_step": nextStep,
+	})
 }
