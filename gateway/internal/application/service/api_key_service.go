@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/communication"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
@@ -29,18 +30,28 @@ var (
 )
 
 type APIKeyService struct {
-	apiKeyRepo  repository.APIKeyRepository
-	profileRepo repository.ProfileRepository
-	logger      logger.Logger
+	apiKeyRepo   repository.APIKeyRepository
+	profileRepo  repository.ProfileRepository
+	userRepo     repository.UserRepository
+	emailService communication.EmailService
+	logger       logger.Logger
 }
 
 var _ usecase.APIKeyUsecase = (*APIKeyService)(nil)
 
-func NewAPIKeyService(apiKeyRepo repository.APIKeyRepository, profileRepo repository.ProfileRepository, logger logger.Logger) *APIKeyService {
+func NewAPIKeyService(
+	apiKeyRepo repository.APIKeyRepository,
+	profileRepo repository.ProfileRepository,
+	userRepo repository.UserRepository,
+	emailService communication.EmailService,
+	logger logger.Logger,
+) *APIKeyService {
 	return &APIKeyService{
-		apiKeyRepo:  apiKeyRepo,
-		profileRepo: profileRepo,
-		logger:      logger,
+		apiKeyRepo:   apiKeyRepo,
+		profileRepo:  profileRepo,
+		userRepo:     userRepo,
+		emailService: emailService,
+		logger:       logger,
 	}
 }
 
@@ -49,7 +60,7 @@ func (s *APIKeyService) GenerateKey(ctx context.Context, profileID uint64) (stri
 	s.logger.Info("starting api key generation", logger.Field{Key: "profile_id", Value: profileID})
 
 	// safety check: ensure profile exists
-	_, err := s.profileRepo.GetByID(ctx, profileID)
+	p, err := s.profileRepo.GetByID(ctx, profileID)
 	if err != nil {
 		s.logger.Warn("api key generation failed: profile not found", logger.Field{Key: "profile_id", Value: profileID})
 		return "", ErrProfileNotFound
@@ -105,12 +116,33 @@ func (s *APIKeyService) GenerateKey(ctx context.Context, profileID uint64) (stri
 	if err != nil {
 		// NOTE: in a normal world we have to rollback the API key creation here.
 
-		s.logger.Error("failed to update profile has_apikey flag",
+		s.logger.Error("failed to update profile has_api_key flag",
 			logger.Field{Key: "profile_id", Value: profileID},
 			logger.Field{Key: "error", Value: err})
 	}
 
 	s.logger.Info("api key generated successfully", logger.Field{Key: "profile_id", Value: profileID})
+
+	go func() {
+		user, err := s.userRepo.GetByID(context.Background(), p.UserID)
+		if err != nil || user == nil || user.Email == nil || *user.Email == "" {
+			return
+		}
+
+		name := ""
+		if p.ProfileType == entity.ProfileTypePersonal && p.PersonDetails != nil {
+			name = p.PersonDetails.FirstName + " " + p.PersonDetails.LastName
+		} else if p.ProfileType == entity.ProfileTypeBusiness && p.BusinessDetails != nil {
+			name = p.BusinessDetails.RepFirstName + " " + p.BusinessDetails.RepLastName
+		}
+
+		data := map[string]interface{}{
+			"Name":        name,
+			"ProfileName": p.ProfileName,
+		}
+
+		_ = s.emailService.SendWithTemplate(context.Background(), *user.Email, "کلید API جدید صادر شد", "api_key_generated.html", data)
+	}()
 
 	return fullRawKey, nil
 }

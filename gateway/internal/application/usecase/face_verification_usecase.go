@@ -14,5 +14,5 @@ type FaceVerificationUsecase interface {
 	CropImage(ctx context.Context, profileID uint64, image []byte) (*faceVerificationDto.CropImageResponse, error)
 
 	HealthCheck(ctx context.Context) (*faceVerificationDto.HealthCheckResponseDTO, error)
-	GetReports(ctx context.Context, req faceVerificationDto.GetFaceReportRequest) (*faceVerificationDto.FaceReportResponse, error)
+	GetReports(ctx context.Context, req faceVerificationDto.GetFaceReportRequest, userID uint64) (*faceVerificationDto.FaceReportResponse, error)
 }

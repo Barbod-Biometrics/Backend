@@ -22,6 +22,12 @@ type Env struct {
 	Gmail            Gmail
 	FaceVerification FaceVerification
 	OCR              OCR
+	Recaptcha        Recaptcha
+	Wallet           Wallet
+}
+
+type Wallet struct {
+	LowBalanceThreshold uint64
 }
 
 type Admin struct {
@@ -106,6 +112,12 @@ type OCR struct {
 	APIKey string
 }
 
+type Recaptcha struct {
+	Enabled   bool
+	Secret    string
+	VerifyURL string
+}
+
 func NewEnvironment() *Env {
 	godotenv.Load(".env")
 	return &Env{
@@ -169,7 +181,7 @@ func NewEnvironment() *Env {
 			SenderEmail:      os.Getenv("SENDER_GMAIL"),
 			SmtpHost:         getEnvString("GMAIL_SMTP_HOST", "smtp.gmail.com"),
 			SmtpPort:         getEnvInt("GMAIL_SMTP_PORT", 587),
-			TemplateDir:      getEnvString("GMAIL_TEMPLATE_DIR", "templates/emails"),
+			TemplateDir:      getEnvString("GMAIL_TEMPLATE_DIR", "templates/email"),
 		},
 		FaceVerification: FaceVerification{
 			FaceVerificationURL: getEnvString("FACE_VERIFICATION_URL", "http://localhost:5000"),
@@ -177,6 +189,14 @@ func NewEnvironment() *Env {
 		OCR: OCR{
 			OCRURL: getEnvString("OCR_URL", "http://localhost:5001"),
 			APIKey: os.Getenv("OCR_API_KEY"),
+		},
+		Recaptcha: Recaptcha{
+			Enabled:   getEnvBool("RECAPTCHA_ENABLED", false),
+			Secret:    os.Getenv("RECAPTCHA_SECRET"),
+			VerifyURL: getEnvString("RECAPTCHA_VERIFY_URL", "https://www.google.com/recaptcha/api/siteverify"),
+		},
+		Wallet: Wallet{
+			LowBalanceThreshold: uint64(getEnvInt("WALLET_LOW_BALANCE_THRESHOLD", 1000)),
 		},
 	}
 }

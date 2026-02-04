@@ -15,10 +15,11 @@ import (
 func TestApiKeyService_GenerateKey(t *testing.T) {
 	mockRepo := new(mocks.MockAPIKeyRepository)
 	mockProfileRepo := new(mocks.MockProfileRepository)
-
+	mockUserRepo := new(mocks.MockUserRepository)
+	mockEmail := new(mocks.MockEmailService)
 	mockAppLogger := new(mocks.MockAppLogger)
 
-	svc := service.NewAPIKeyService(mockRepo, mockProfileRepo, mockAppLogger)
+	svc := service.NewAPIKeyService(mockRepo, mockProfileRepo, mockUserRepo, mockEmail, mockAppLogger)
 	ctx := context.Background()
 	profileID := uint64(12345)
 
@@ -29,6 +30,10 @@ func TestApiKeyService_GenerateKey(t *testing.T) {
 
 	mockRepo.On("Create", ctx, mock.AnythingOfType("*entity.APIKey")).Return(nil)
 	mockAppLogger.On("Info", mock.Anything, mock.Anything).Return()
+
+	// Mock for email notification
+	mockUserRepo.On("GetByID", mock.Anything, mock.Anything).Return(&entity.User{Email: stringPtr("test@example.com")}, nil).Maybe()
+	mockEmail.On("SendWithTemplate", mock.Anything, "test@example.com", "کلید API جدید صادر شد", "api_key_generated.html", mock.Anything).Return(nil).Maybe()
 
 	rawKey, err := svc.GenerateKey(ctx, profileID)
 
@@ -42,8 +47,10 @@ func TestApiKeyService_GenerateKey(t *testing.T) {
 func TestAPIKeyService_RegenerateKey(t *testing.T) {
 	mockRepo := new(mocks.MockAPIKeyRepository)
 	mockProfileRepo := new(mocks.MockProfileRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	mockEmail := new(mocks.MockEmailService)
 	mockAppLogger := new(mocks.MockAppLogger)
-	svc := service.NewAPIKeyService(mockRepo, mockProfileRepo, mockAppLogger)
+	svc := service.NewAPIKeyService(mockRepo, mockProfileRepo, mockUserRepo, mockEmail, mockAppLogger)
 
 	ctx := context.Background()
 	profileID := uint64(10)
@@ -63,6 +70,10 @@ func TestAPIKeyService_RegenerateKey(t *testing.T) {
 
 	mockProfileRepo.On("UpdateHasAPIKey", ctx, profileID, true).Return(nil)
 
+	// Mock for email notification
+	mockUserRepo.On("GetByID", mock.Anything, mock.Anything).Return(&entity.User{Email: stringPtr("test@example.com")}, nil).Maybe()
+	mockEmail.On("SendWithTemplate", mock.Anything, "test@example.com", "کلید API جدید صادر شد", "api_key_generated.html", mock.Anything).Return(nil).Maybe()
+
 	rawKey, err := svc.RegenerateKey(ctx, profileID)
 
 	assert.NoError(t, err)
@@ -74,8 +85,10 @@ func TestAPIKeyService_RegenerateKey(t *testing.T) {
 func TestAPIKeyService_Authenticate_Success(t *testing.T) {
 	mockRepo := new(mocks.MockAPIKeyRepository)
 	mockProfileRepo := new(mocks.MockProfileRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	mockEmail := new(mocks.MockEmailService)
 	mockAppLogger := new(mocks.MockAppLogger)
-	svc := service.NewAPIKeyService(mockRepo, mockProfileRepo, mockAppLogger)
+	svc := service.NewAPIKeyService(mockRepo, mockProfileRepo, mockUserRepo, mockEmail, mockAppLogger)
 
 	rawKey := "bb_live_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2"
 	dbPrefix := "a1b2c3d4"
@@ -100,8 +113,10 @@ func TestAPIKeyService_Authenticate_Success(t *testing.T) {
 func TestAPIKeyService_Authenticate_InvalidFormat(t *testing.T) {
 	mockRepo := new(mocks.MockAPIKeyRepository)
 	mockProfileRepo := new(mocks.MockProfileRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	mockEmail := new(mocks.MockEmailService)
 	mockAppLogger := new(mocks.MockAppLogger)
-	svc := service.NewAPIKeyService(mockRepo, mockProfileRepo, mockAppLogger)
+	svc := service.NewAPIKeyService(mockRepo, mockProfileRepo, mockUserRepo, mockEmail, mockAppLogger)
 
 	rawKey := "bad_format"
 
@@ -117,8 +132,10 @@ func TestAPIKeyService_Authenticate_InvalidFormat(t *testing.T) {
 func TestAPIKeyService_Authenticate_Revoked(t *testing.T) {
 	mockRepo := new(mocks.MockAPIKeyRepository)
 	mockProfileRepo := new(mocks.MockProfileRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	mockEmail := new(mocks.MockEmailService)
 	mockAppLogger := new(mocks.MockAppLogger)
-	svc := service.NewAPIKeyService(mockRepo, mockProfileRepo, mockAppLogger)
+	svc := service.NewAPIKeyService(mockRepo, mockProfileRepo, mockUserRepo, mockEmail, mockAppLogger)
 
 	rawKey := "bb_live_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2"
 	dbPrefix := "a1b2c3d4"
@@ -132,4 +149,8 @@ func TestAPIKeyService_Authenticate_Revoked(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, service.ErrKeyRevoked)
+}
+
+func stringPtr(s string) *string {
+	return &s
 }

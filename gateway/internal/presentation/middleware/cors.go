@@ -19,7 +19,7 @@ func (cm *CORSMiddleware) CORS() gin.HandlerFunc {
 			"*",
 		},
 		AllowMethods:  []string{"POST", "GET", "OPTIONS", "PUT", "DELETE" , "PATCH"},
-		AllowHeaders:  []string{"Origin", "Content-Type", "Authorization", "ngrok-skip-browser-warning"},
+		AllowHeaders:  []string{"Origin", "Content-Type", "Authorization", "X-API-Key", "ngrok-skip-browser-warning"},
 		ExposeHeaders: []string{"Content-Length"},
 		MaxAge: 12 * time.Hour,
 	}

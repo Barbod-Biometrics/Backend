@@ -179,9 +179,9 @@ func (r *ProfileRepository) ListWithFilters(ctx context.Context, filter reposito
 func (r *ProfileRepository) UpdateHasAPIKey(ctx context.Context, profileID uint64, hasKey bool) error {
 	db := r.getDB(ctx)
 
-	err := db.Model(&entity.Profile{}).
-		Where("id = ?", profileID).
-		Update("has_apikey", hasKey).Error
+	err := db.WithContext(ctx).Model(&entity.Profile{}).
+		Where("profile_id = ?", profileID).
+		Update("has_api_key", hasKey).Error
 
 	return err
 }

@@ -2,28 +2,37 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"math"
 	"time"
 
+	"github.com/Barbod-Biometrics/Backend/gateway/bootstrap"
 	ocrDto "github.com/Barbod-Biometrics/Backend/gateway/internal/application/dto/ocr"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/communication"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/enum"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/exception"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/date"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/ocr"
 )
 
 type OCRService struct {
-	client          *ocr.OCRClient
-	logger          logger.Logger
-	repo            repository.OCRRepository
-	serviceRepo     repository.ServiceRepository
-	profileRepo     repository.ProfileRepository
-	transactionRepo repository.TransactionRepository
-	unitOfWork      repository.UnitOfWork
-	trialService    *TrialService
+	client              *ocr.OCRClient
+	logger              logger.Logger
+	repo                repository.OCRRepository
+	serviceRepo         repository.ServiceRepository
+	profileRepo         repository.ProfileRepository
+	userRepo            repository.UserRepository
+	transactionRepo     repository.TransactionRepository
+	emailService        communication.EmailService
+	unitOfWork          repository.UnitOfWork
+	trialService        *TrialService
+	lowBalanceThreshold uint64
 }
 
 func NewOCRService(
@@ -32,19 +41,25 @@ func NewOCRService(
 	repo repository.OCRRepository,
 	serviceRepo repository.ServiceRepository,
 	profileRepo repository.ProfileRepository,
+	userRepo repository.UserRepository,
 	transactionRepo repository.TransactionRepository,
+	emailService communication.EmailService,
 	unitOfWork repository.UnitOfWork,
 	trialService *TrialService,
+	cfg *bootstrap.Config,
 ) *OCRService {
 	return &OCRService{
-		client:          cli,
-		logger:          logger,
-		repo:            repo,
-		serviceRepo:     serviceRepo,
-		profileRepo:     profileRepo,
-		transactionRepo: transactionRepo,
-		unitOfWork:      unitOfWork,
-		trialService:    trialService,
+		client:              cli,
+		logger:              logger,
+		repo:                repo,
+		serviceRepo:         serviceRepo,
+		profileRepo:         profileRepo,
+		userRepo:            userRepo,
+		transactionRepo:     transactionRepo,
+		emailService:        emailService,
+		unitOfWork:          unitOfWork,
+		trialService:        trialService,
+		lowBalanceThreshold: cfg.Env.Wallet.LowBalanceThreshold,
 	}
 }
 
@@ -151,6 +166,8 @@ func (s *OCRService) ExtractTextWithIP(ctx context.Context, profileID uint64, im
 				logger.Field{Key: "new_balance", Value: profile.Balance},
 			)
 
+			s.checkLowBalance(profileID, profile.Balance)
+
 			return nil
 		})
 
@@ -216,4 +233,172 @@ func (s *OCRService) HealthCheck(ctx context.Context) (*ocrDto.HealthCheckRespon
 		logger.Field{Key: "status", Value: result.Status},
 	)
 	return result, nil
+}
+
+func (s *OCRService) checkLowBalance(profileID uint64, balance uint64) {
+	if balance >= s.lowBalanceThreshold {
+		return
+	}
+
+	go func() {
+		ctx := context.Background()
+		profile, err := s.profileRepo.GetByID(ctx, profileID)
+		if err != nil || profile == nil {
+			return
+		}
+
+		user, err := s.userRepo.GetByID(ctx, profile.UserID)
+		if err != nil || user == nil || user.Email == nil || *user.Email == "" {
+			return
+		}
+
+		name := ""
+		if profile.ProfileType == entity.ProfileTypePersonal && profile.PersonDetails != nil {
+			name = profile.PersonDetails.FirstName + " " + profile.PersonDetails.LastName
+		} else if profile.ProfileType == entity.ProfileTypeBusiness && profile.BusinessDetails != nil {
+			name = profile.BusinessDetails.RepFirstName + " " + profile.BusinessDetails.RepLastName
+		}
+
+		data := map[string]interface{}{
+			"Name":        name,
+			"ProfileName": profile.ProfileName,
+			"Balance":     balance,
+		}
+
+		_ = s.emailService.SendWithTemplate(ctx, *user.Email, "هشدار موجودی کم", "low_balance.html", data)
+	}()
+}
+
+func (s *OCRService) GetReports(ctx context.Context, req ocrDto.GetOCRReportRequest, userID uint64) (*ocrDto.OCRReportResponse, error) {
+
+	s.logger.Info("Starting OCR report retrieval",
+		logger.Field{Key: "profile_id", Value: req.ProfileID},
+		logger.Field{Key: "page", Value: req.Page},
+		logger.Field{Key: "limit", Value: req.Limit},
+		logger.Field{Key: "filter_status", Value: req.Status},
+	)
+
+	profile, err := s.profileRepo.GetByID(ctx, req.ProfileID)
+	if err != nil {
+		s.logger.Warn("OCR report failed: profile lookup failed",
+			logger.Field{Key: "error", Value: err},
+			logger.Field{Key: "profile_id", Value: req.ProfileID},
+		)
+		return nil, fmt.Errorf("profile check failed: %w", err)
+	}
+
+	// If the profile exists, but the UserID inside it doesn't match the Token's UserID...
+	if profile.UserID != userID {
+		s.logger.Warn("Security Alert: User attempted to access another user's OCR reports",
+			logger.Field{Key: "token_user_id", Value: userID},
+			logger.Field{Key: "target_profile_id", Value: req.ProfileID},
+			logger.Field{Key: "target_profile_owner", Value: profile.UserID},
+		)
+		return nil, errors.New("profile access denied")
+	}
+
+	filter := repository.OCRReportFilter{
+		ProfileID: req.ProfileID,
+		Page:      req.Page,
+		Limit:     req.Limit,
+		SortBy:    req.SortBy,
+		SortOrder: req.SortOrder,
+	}
+
+	if req.Status != "" {
+		filter.Status = &req.Status
+	}
+
+	if !req.FromDate.IsZero() {
+		t := req.FromDate.ToTime()
+		filter.FromDate = &t
+	}
+	if !req.ToDate.IsZero() {
+		t := req.ToDate.ToTime()
+		t = t.Add(24 * time.Hour).Add(-1 * time.Second)
+		filter.ToDate = &t
+	}
+
+	results, total, err := s.repo.GetReports(ctx, filter)
+	if err != nil {
+		s.logger.Error("Failed to fetch OCR reports from repository",
+			logger.Field{Key: "error", Value: err},
+			logger.Field{Key: "profile_id", Value: req.ProfileID},
+		)
+		return nil, err
+	}
+
+	items := make([]ocrDto.OCRReportItem, 0)
+	for _, r := range results {
+		statusStr := "Failed"
+		if r.Success {
+			statusStr = "Success"
+		}
+
+		items = append(items, ocrDto.OCRReportItem{
+			ID:      r.ID,
+			Date:    date.ToJalaliString(r.CreatedAt),
+			Status:  statusStr,
+			Message: r.Message,
+			Stats:   json.RawMessage(r.Stats),
+		})
+	}
+
+	if req.Limit == 0 {
+		return nil, errors.New("Adevision by zero occured in ocr get reports")
+	}
+	totalPages := int(math.Ceil(float64(total) / float64(req.Limit)))
+	s.logger.Info("OCR reports retrieved successfully",
+		logger.Field{Key: "profile_id", Value: req.ProfileID},
+		logger.Field{Key: "total_count", Value: total},
+		logger.Field{Key: "items_returned", Value: len(items)},
+	)
+
+	return &ocrDto.OCRReportResponse{
+		Items:      items,
+		TotalCount: total,
+		Page:       req.Page,
+		TotalPages: totalPages,
+	}, nil
+}
+
+func (s *OCRService) ApproveResult(ctx context.Context, userID uint64, ocrID uint64, profileID uint64) error {
+
+	s.logger.Info("Starting OCR result approval process",
+		logger.Field{Key: "profile_id", Value: profileID},
+		logger.Field{Key: "user_id", Value: userID},
+		logger.Field{Key: "ocr_id", Value: ocrID},
+	)
+
+	profile, err := s.profileRepo.GetByID(ctx, profileID)
+	if err != nil {
+		s.logger.Error("Failed to fetch profile for ownership check", logger.Field{Key: "error", Value: err})
+		return err
+	}
+
+	if profile == nil || profile.UserID != userID {
+		s.logger.Warn("Unauthorized attempt to approve OCR for another user",
+			logger.Field{Key: "token_user_id", Value: userID},
+			logger.Field{Key: "target_profile_id", Value: profileID},
+		)
+		return errors.New("profile access denied")
+	}
+
+	err = s.repo.ApproveOCRResult(ctx, ocrID, profileID)
+	if err != nil {
+		s.logger.Error("Failed to approve OCR result",
+			logger.Field{Key: "error", Value: err},
+			logger.Field{Key: "ocr_id", Value: ocrID},
+			logger.Field{Key: "profile_id", Value: profileID},
+		)
+
+		return err
+	}
+
+	s.logger.Info("OCR result approved successfully",
+		logger.Field{Key: "ocr_id", Value: ocrID},
+		logger.Field{Key: "profile_id", Value: profileID},
+	)
+
+	return nil
 }

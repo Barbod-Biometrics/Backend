@@ -3,19 +3,26 @@ package postgres
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/entity"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
 type OCRRepository struct {
-	db *gorm.DB
+	db     *gorm.DB
+	logger logger.Logger
 }
 
-func NewOCRRepository(db *gorm.DB) *OCRRepository {
-	return &OCRRepository{db: db}
+func NewOCRRepository(db *gorm.DB, logger logger.Logger) *OCRRepository {
+	return &OCRRepository{
+		db:     db,
+		logger: logger,
+	}
 }
 
 func (r *OCRRepository) getDB(ctx context.Context) *gorm.DB {
@@ -34,6 +41,10 @@ func (r *OCRRepository) SaveResult(ctx context.Context, profileID uint64, result
 	if result != nil && result.Stats != nil {
 		b, err := json.Marshal(result.Stats)
 		if err != nil {
+			r.logger.Error("Failed to marshal OCR stats to JSON",
+				logger.Field{Key: "error", Value: err},
+				logger.Field{Key: "profile_id", Value: profileID},
+			)
 			return err
 		}
 		statsBytes = datatypes.JSON(b)
@@ -53,7 +64,16 @@ func (r *OCRRepository) SaveResult(ctx context.Context, profileID uint64, result
 		model.Message = result.Message
 	}
 
-	return db.WithContext(ctx).Create(model).Error
+	err := db.WithContext(ctx).Create(model).Error
+	if err != nil {
+		r.logger.Error("Failed to save OCR result to database",
+			logger.Field{Key: "error", Value: err},
+			logger.Field{Key: "profile_id", Value: profileID},
+		)
+		return err
+	}
+
+	return nil
 }
 
 func (r *OCRRepository) GetResultsByProfileID(ctx context.Context, profileID uint64) ([]*entity.OCRRecord, error) {
@@ -64,6 +84,10 @@ func (r *OCRRepository) GetResultsByProfileID(ctx context.Context, profileID uin
 		Where("profile_id = ?", profileID).
 		Order("created_at DESC").
 		Find(&rows).Error; err != nil {
+		r.logger.Error("Failed to fetch OCR results from database",
+			logger.Field{Key: "error", Value: err},
+			logger.Field{Key: "profile_id", Value: profileID},
+		)
 		return nil, err
 	}
 
@@ -108,6 +132,12 @@ func (r *OCRRepository) GetResultsByProfileID(ctx context.Context, profileID uin
 					if s, ok2 := v.(string); ok2 {
 						rec.ExpirationDate = s
 					}
+				} else {
+					// We don't return error here because we still want to show the partial record
+					r.logger.Warn("Failed to unmarshal stored OCR stats JSON",
+						logger.Field{Key: "error", Value: err},
+						logger.Field{Key: "ocr_record_id", Value: rmodel.ID},
+					)
 				}
 			}
 		}
@@ -116,4 +146,101 @@ func (r *OCRRepository) GetResultsByProfileID(ctx context.Context, profileID uin
 	}
 
 	return results, nil
+}
+
+func (r *OCRRepository) GetReports(ctx context.Context, filter repository.OCRReportFilter) ([]*entity.OCRModel, int64, error) {
+	db := r.getDB(ctx)
+
+	var results []*entity.OCRModel
+	var totalCount int64
+
+	// base query
+	query := db.WithContext(ctx).
+		Model(&entity.OCRModel{}).
+		Where("profile_id = ?", filter.ProfileID)
+
+	// status filter
+	if filter.Status != nil {
+		switch *filter.Status {
+		case "success":
+			query = query.Where("success = ?", true)
+		case "failed":
+			query = query.Where("success = ?", false)
+		}
+
+	}
+
+	// date filter
+	if filter.FromDate != nil {
+		query = query.Where("created_at >= ?", *filter.FromDate)
+	}
+	if filter.ToDate != nil {
+		query = query.Where("created_at <= ?", *filter.ToDate)
+	}
+
+	// get total count of matching reports
+	if err := query.Count(&totalCount).Error; err != nil {
+		r.logger.Error("Failed to count OCR reports",
+			logger.Field{Key: "error", Value: err},
+			logger.Field{Key: "profile_id", Value: filter.ProfileID},
+		)
+		return nil, 0, err
+	}
+
+	// sorting
+	sortString := "created_at DESC" // default
+	if filter.SortBy == "date" {
+		if filter.SortOrder == "asc" {
+			sortString = "created_at ASC"
+		} else {
+			sortString = "created_at DESC"
+		}
+	}
+
+	// executing query
+	page := filter.Page
+	if page < 1 {
+		page = 1
+	}
+	offset := (page - 1) * filter.Limit
+
+	err := query.Order(sortString).
+		Limit(filter.Limit).
+		Offset(offset).
+		Find(&results).Error
+
+	if err != nil {
+		r.logger.Error("Failed to fetch OCR report records",
+			logger.Field{Key: "error", Value: err},
+			logger.Field{Key: "profile_id", Value: filter.ProfileID},
+			logger.Field{Key: "offset", Value: offset},
+			logger.Field{Key: "limit", Value: filter.Limit},
+		)
+		return nil, 0, err
+	}
+
+	return results, totalCount, err
+}
+func (r *OCRRepository) ApproveOCRResult(ctx context.Context, ocrID uint64, profileID uint64) error {
+	db := r.getDB(ctx)
+
+	result := db.WithContext(ctx).
+		Model(&entity.OCRModel{}).
+		Where("id = ? AND profile_id = ?", ocrID, profileID).
+		Update("approved", true)
+
+	if result.Error != nil {
+		r.logger.Error("Failed to execute update query for OCR approval",
+			logger.Field{Key: "error", Value: result.Error},
+			logger.Field{Key: "ocr_id", Value: ocrID},
+			logger.Field{Key: "profile_id", Value: profileID},
+		)
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("record not found or access denied")
+	}
+
+	return nil
 }

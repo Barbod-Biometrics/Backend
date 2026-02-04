@@ -8,10 +8,12 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/service"
 	sessionpkg "github.com/Barbod-Biometrics/Backend/gateway/internal/application/session"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/communication"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/enum"
 	domainJWT "github.com/Barbod-Biometrics/Backend/gateway/internal/domain/jwt"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/logger"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/repository"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/communication/email"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/communication/sms"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/database/redis"
 	redisdatabase "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/database/redis"
@@ -20,11 +22,13 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/localization"
 	Logger "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/logger"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/ocr"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/recaptcha"
 	postgresRepo "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/repository/postgres"
 	sessionredis "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/repository/redis"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/telemetry"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/admin"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/apikey"
+	contactController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/contact"
 	faceVerificationController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/face_verification"
 	ocrController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/ocr"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
@@ -95,6 +99,10 @@ func ProvideSMSService(cfg *bootstrap.Config) *sms.SMSService {
 	return sms.NewSMSService(cfg.Env.SMSGateway.APIKey, cfg.Env.OTP.BackdoorCode)
 }
 
+func ProvideEmailService(cfg *bootstrap.Config, appLogger logger.Logger) communication.EmailService {
+	return email.NewGmailService(cfg.Env.Gmail, appLogger)
+}
+
 func ProvideTranslator() *localization.TranslationService {
 	return localization.GetService()
 }
@@ -147,6 +155,7 @@ func ProvideRouter(
 	profileHandler *profile.ProfileHandler,
 	apiKeyController *apikey.ApiKeyHandler,
 	adminProfileHandler *admin.AdminProfileHandler,
+	contactSalesHandler *contactController.ContactSalesHandler,
 	walletHandler *wallet.WalletHandler,
 	transactionHandler *transaction.TransactionHandler,
 	ticketHandler *support.TicketHandler,
@@ -166,6 +175,7 @@ func ProvideRouter(
 		adminProfileHandler,
 		sessionHandler,
 		workflowConfigHandler,
+		contactSalesHandler,
 		faceVerificationHandler,
 		ocrHandler,
 		walletHandler,
@@ -193,11 +203,14 @@ func ProvideFaceVerificationService(
 	repo repository.FaceVerificationRepository,
 	serviceRepo repository.ServiceRepository,
 	profileRepo repository.ProfileRepository,
+	userRepo repository.UserRepository,
 	transactionRepo repository.TransactionRepository,
+	emailService communication.EmailService,
 	unitOfWork repository.UnitOfWork,
 	trialService *service.TrialService,
+	cfg *bootstrap.Config,
 ) usecase.FaceVerificationUsecase {
-	return service.NewFaceVerificationService(client, l, repo, serviceRepo, profileRepo, transactionRepo, unitOfWork, trialService)
+	return service.NewFaceVerificationService(client, l, repo, serviceRepo, profileRepo, userRepo, transactionRepo, emailService, unitOfWork, trialService, cfg)
 }
 
 func ProvideFaceVerificationHandler(ms usecase.FaceVerificationUsecase, l logger.Logger) *faceVerificationController.FaceVerificationHandler {
@@ -208,8 +221,8 @@ func ProvideOCRClient(cfg *bootstrap.Config, l logger.Logger) *ocr.OCRClient {
 	return ocr.NewOCRClient(cfg.Env.OCR.OCRURL, cfg.Env.OCR.APIKey, l)
 }
 
-func ProvideOCRRepository(db *gorm.DB) repository.OCRRepository {
-	return postgresRepo.NewOCRRepository(db)
+func ProvideOCRRepository(db *gorm.DB, l logger.Logger) repository.OCRRepository {
+	return postgresRepo.NewOCRRepository(db, l)
 }
 
 func ProvideOCRService(
@@ -218,11 +231,14 @@ func ProvideOCRService(
 	repo repository.OCRRepository,
 	serviceRepo repository.ServiceRepository,
 	profileRepo repository.ProfileRepository,
+	userRepo repository.UserRepository,
 	transactionRepo repository.TransactionRepository,
+	emailService communication.EmailService,
 	unitOfWork repository.UnitOfWork,
 	trialService *service.TrialService,
+	cfg *bootstrap.Config,
 ) usecase.OCRUsecase {
-	return service.NewOCRService(client, l, repo, serviceRepo, profileRepo, transactionRepo, unitOfWork, trialService)
+	return service.NewOCRService(client, l, repo, serviceRepo, profileRepo, userRepo, transactionRepo, emailService, unitOfWork, trialService, cfg)
 }
 
 func ProvideOCRHandler(ocrUsecase usecase.OCRUsecase, l logger.Logger) *ocrController.OCRHandler {
@@ -250,6 +266,22 @@ func ProvideSessionHandler(svc usecase.SessionUsecase, mgr *sessionpkg.SessionMa
 
 func ProvideWorkflowConfigHandler(configRepo repository.WorkflowConfigRepository, l logger.Logger) *workflow_config.WorkflowConfigHandler {
 	return workflow_config.NewWorkflowConfigHandler(configRepo, l)
+}
+
+func ProvideRecaptchaVerifier(cfg *bootstrap.Config) recaptcha.Verifier {
+	return recaptcha.NewGoogleVerifier(cfg.Env.Recaptcha.Secret, cfg.Env.Recaptcha.VerifyURL, cfg.Env.Recaptcha.Enabled)
+}
+
+func ProvideContactSalesRepository(db *gorm.DB) repository.ContactSalesRepository {
+	return postgresRepo.NewContactSalesRepository(db)
+}
+
+func ProvideContactSalesUsecase(repo repository.ContactSalesRepository, verifier recaptcha.Verifier, l logger.Logger) usecase.ContactSalesUsecase {
+	return service.NewContactSalesService(repo, verifier, l)
+}
+
+func ProvideContactSalesHandler(contactSalesUsecase usecase.ContactSalesUsecase, l logger.Logger) *contactController.ContactSalesHandler {
+	return contactController.NewContactSalesHandler(contactSalesUsecase, l)
 }
 
 type Application struct {

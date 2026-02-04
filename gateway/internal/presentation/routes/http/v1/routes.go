@@ -10,6 +10,7 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/localization"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/admin"
 	apikey "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/apikey"
+	contactController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/contact"
 	faceVerificationController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/face_verification"
 	ocrController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/ocr"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
@@ -32,6 +33,7 @@ type Route struct {
 	adminProfileController     *admin.AdminProfileHandler
 	sessionController          *session.SessionHandler
 	workflowConfigController   *workflow_config.WorkflowConfigHandler
+	contactSalesController     *contactController.ContactSalesHandler
 	faceVerificationController *faceVerificationController.FaceVerificationHandler
 	ocrController              *ocrController.OCRHandler
 	walletController           *wallet.WalletHandler
@@ -51,6 +53,7 @@ func NewRouter(
 	adminProfileHandler *admin.AdminProfileHandler,
 	sessionHandler *session.SessionHandler,
 	workflowConfigHandler *workflow_config.WorkflowConfigHandler,
+	contactSalesHandler *contactController.ContactSalesHandler,
 	faceVerificationHandler *faceVerificationController.FaceVerificationHandler,
 	ocrHandler *ocrController.OCRHandler,
 	walletHandler *wallet.WalletHandler,
@@ -69,6 +72,7 @@ func NewRouter(
 		adminProfileController:     adminProfileHandler,
 		sessionController:          sessionHandler,
 		workflowConfigController:   workflowConfigHandler,
+		contactSalesController:     contactSalesHandler,
 		walletController:           walletHandler,
 		transactionController:      transactionHandler,
 		ticketController:           ticketHandler,
@@ -132,11 +136,23 @@ func (r *Route) RegisterRoutes() http.Handler {
 			api_key.POST("/:profile_id/regenerate", r.apiKeyController.RegenerateKey)
 		}
 
+		contactSales := v1.Group("/contact-sales")
+		{
+			contactSales.POST("", r.contactSalesController.SubmitContactSales)
+		}
+
 		// Admin routes - require JWT + admin role
 		adminGroup := v1.Group("/admin")
 		adminGroup.Use(middleware.JWTMiddleware(r.jwtKeyManager))
 		adminGroup.Use(middleware.AdminMiddleware())
 		{
+			adminContact := adminGroup.Group("/contact-sales")
+			{
+				adminContact.GET("", r.contactSalesController.AdminListContactSales)
+				adminContact.POST("/:id/mark-read", r.contactSalesController.AdminMarkRead)
+				adminContact.DELETE("/:id", r.contactSalesController.AdminDelete)
+			}
+
 			adminProfiles := adminGroup.Group("/profiles")
 			{
 				adminProfiles.GET("", r.adminProfileController.ListProfiles)
@@ -179,12 +195,12 @@ func (r *Route) RegisterRoutes() http.Handler {
 			tickets.POST("/:ticketId/close", r.ticketController.CloseTicket)
 		}
 
-		faceVerification := v1.Group("/face-verification")
-		faceVerification.Use(middleware.APIKeyAuth(r.apiKeyUsecase, r.log))
+		faceVerificationMachine := v1.Group("/face-verification")
+		faceVerificationMachine.Use(middleware.APIKeyAuth(r.apiKeyUsecase, r.log))
 		{
-			faceVerification.POST("/verify", r.faceVerificationController.VerifyFace)
-			faceVerification.POST("/crop", r.faceVerificationController.CropImage)
-			faceVerification.GET("/health", r.faceVerificationController.HealthCheck)
+			faceVerificationMachine.POST("/verify", r.faceVerificationController.VerifyFace)
+			faceVerificationMachine.POST("/crop", r.faceVerificationController.CropImage)
+			faceVerificationMachine.GET("/health", r.faceVerificationController.HealthCheck)
 
 		}
 
@@ -192,6 +208,7 @@ func (r *Route) RegisterRoutes() http.Handler {
 		modelReports.Use((middleware.JWTMiddleware(r.jwtKeyManager)))
 		{
 			modelReports.GET("/face-verification", r.faceVerificationController.GetReport)
+			modelReports.GET("/ocr", r.ocrController.GetReport)
 		}
 
 		workflow := v1.Group("/workflow")
@@ -214,11 +231,17 @@ func (r *Route) RegisterRoutes() http.Handler {
 			workflowConfig.DELETE("/:id", r.workflowConfigController.DeleteConfig)
 		}
 
-		ocr := v1.Group("/ocr")
-		ocr.Use(middleware.APIKeyAuth(r.apiKeyUsecase, r.log))
+		ocrMachine := v1.Group("/ocr")
+		ocrMachine.Use(middleware.APIKeyAuth(r.apiKeyUsecase, r.log))
 		{
-			ocr.POST("/extract", r.ocrController.ExtractText)
-			ocr.GET("/health", r.ocrController.HealthCheck)
+			ocrMachine.POST("/extract", r.ocrController.ExtractText)
+			ocrMachine.GET("/health", r.ocrController.HealthCheck)
+		}
+
+		ocrUser := v1.Group("/ocr")
+		ocrUser.Use(middleware.JWTMiddleware(r.jwtKeyManager))
+		{
+			ocrUser.POST("/approve", r.ocrController.ApproveResult)
 		}
 
 		demo := v1.Group("/demo")
