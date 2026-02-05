@@ -3,5 +3,5 @@ package communication
 import "context"
 
 type SMSService interface {
-	Send(ctx context.Context, phoneNumber string, message string) error
+	Send(ctx context.Context, phoneNumber string, code string) error
 }

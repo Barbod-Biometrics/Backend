@@ -64,7 +64,8 @@ type OTP struct {
 }
 
 type SMSGateway struct {
-	APIKey string
+	APIKey  string
+	BaseURL string
 }
 
 type Minio struct {
@@ -140,7 +141,8 @@ func NewEnvironment() *Env {
 			BackdoorCode: os.Getenv("OTP_BACKDOOR_CODE"),
 		},
 		SMSGateway: SMSGateway{
-			APIKey: os.Getenv("SMS_GATEWAY_API_KEY"),
+			APIKey:  os.Getenv("SMS_GATEWAY_API_KEY"),
+			BaseURL: os.Getenv("SMS_GATEWAY_URL"),
 		},
 		Minio: Minio{
 			Port:           os.Getenv("MINIO_PORT"),
