@@ -16,6 +16,12 @@ var Persian = map[string]interface{}{
 	},
 
 	"ERR_EMPTY_IMAGE":        "تصویر نمی‌تواند خالی باشد",
+	"ERR_INVALID_REQUEST":    "درخواست نامعتبر است.",
+	"ERR_INVALID_ID":         "شناسه نامعتبر است.",
+	"ERR_FAILED_TO_SAVE":     "ذخیره‌سازی با خطا مواجه شدو.",
+	"ERR_FAILED_TO_LIST":     "دریافت لیست با خطا مواجه شدو.",
+	"ERR_FAILED_TO_UPDATE":   "به‌روزرسانی با خطا مواجه شدو.",
+	"ERR_FAILED_TO_DELETE":   "حذف با خطا مواجه شدو.",
 	"ERR_OCR_MARSHAL":        "آماده‌سازی درخواست OCR ناموفق بود.",
 	"ERR_OCR_CREATE_REQ":     "ایجاد درخواست HTTP برای OCR ناموفق بود.",
 	"ERR_OCR_SEND_REQ":       "ارسال درخواست OCR ناموفق بود.",
@@ -56,6 +62,9 @@ var Persian = map[string]interface{}{
 		"notFound":                     "این {0} پیدا نشد.",
 		"notVerified":                  "باید ابتدا حساب خود را فعال کنید.",
 		"forbiddenError":               "اجازه دسترسی به این {0} وجود ندارد.",
+		"bannedUser":                   "حساب شما مسدود شده و نمی‌تواند این عملیات را انجام دهد.",
+		"unapprovedCorporation":        "برای دسترسی به این منبع نیاز به تأیید فروشنده است.",
+		"noPropertyAccess":             "شما اجازه دسترسی به {0} را ندارید.",
 		"forbiddenStatus":              "اجازه انجام این کار را در این وضعیت ندارید.",
 		"facePhotoEmpty":               "تصویر نمی‌تواند خالی باشد",
 		"faceVideoEmpty":               "ویدیو نمی‌تواند خالی باشد",
@@ -85,9 +94,20 @@ var Persian = map[string]interface{}{
 		"refreshToken":           "نشست شما با موفقیت تمدید شد.",
 		"completeRegister":       "اطلاعات تکمیلی ثبت نام با موفقیت انجام شد.",
 		"updateProfile":          "پروفایل شما با موفقیت به روزرسانی شد.",
+		"workflowInitialized":    "فرآیند با موفقیت آغاز شد",
 		"contactSalesSubmitted":  "درخواست تماس با فروش با موفقیت ثبت شد.",
 		"contactSalesMarkedRead": "درخواست تماس با فروش به عنوان خوانده شده علامت‌گذاری شد.",
 		"contactSalesDeleted":    "درخواست تماس با فروش با موفقیت حذف شد.",
+	},
+	"workflow": map[string]interface{}{
+		"status": map[string]interface{}{
+			"initialized":            "فرآیند آغاز شد",
+			"ocr_pending_acceptance": "نتیجه OCR در انتظار تأیید",
+		},
+		"next_step": map[string]interface{}{
+			"upload_image_ocr":  "ارسال تصویر برای OCR",
+			"accept_ocr_result": "تأیید نتیجه OCR",
+		},
 	},
 	"ERR_TRIAL_EXCEEDED": "تعداد آزمایش‌های دمو تمام شده است. برای ادامه لطفاً ثبت‌نام کنید.",
 }

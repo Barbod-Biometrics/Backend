@@ -62,6 +62,7 @@ func main() {
 		&entity.Service{},
 		&entity.FaceVerificationModel{},
 		&entity.OCRModel{},
+		&entity.WorkflowConfig{},
 		&entity.ContactSalesRequest{},
 	)
 	if err != nil {

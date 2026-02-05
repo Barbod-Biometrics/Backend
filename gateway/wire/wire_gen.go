@@ -80,7 +80,14 @@ func InitializeApplication() (*Application, error) {
 	ocrRepository := postgres.NewOCRRepository(db, logger)
 	ocrService := service.NewOCRService(ocrClient, logger, ocrRepository, serviceRepository, profileRepository, userRepository, transactionRepository, emailService, unitOfWork, trialService, config)
 	ocrHandler := ProvideOCRHandler(ocrService, logger)
-	route := ProvideRouter(generalUserController, profileHandler, apiKeyHandler, adminProfileHandler, contactSalesHandler, walletHandler, transactionHandler, ticketHandler, apiKeyService, logger, jwtKeyManager, faceVerificationHandler, ocrHandler, config)
+	sessionStore := ProvideSessionStore(redisClient)
+	sessionRepository := postgres.NewSessionRepository(db)
+	sessionManager := ProvideSessionManager(sessionStore, sessionRepository)
+	workflowConfigRepository := postgres.NewWorkflowConfigRepository(db)
+	sessionUsecase := ProvideSessionWorkflow(sessionManager, ocrService, faceVerificationService, workflowConfigRepository, minioClient, logger)
+	sessionHandler := ProvideSessionHandler(sessionUsecase, sessionManager, workflowConfigRepository, logger)
+	workflowConfigHandler := ProvideWorkflowConfigHandler(workflowConfigRepository, logger)
+	route := ProvideRouter(generalUserController, profileHandler, apiKeyHandler, adminProfileHandler, contactSalesHandler, walletHandler, transactionHandler, ticketHandler, apiKeyService, logger, jwtKeyManager, faceVerificationHandler, ocrHandler, sessionHandler, workflowConfigHandler, config)
 	telemetry, err := ProvideTelemetry(config)
 	if err != nil {
 		return nil, err
@@ -121,7 +128,7 @@ var InfrastructureSet = wire.NewSet(
 )
 
 // Repository Set
-var RepositorySet = wire.NewSet(postgres.NewUserRepository, postgres.NewGormUnitOfWork, postgres.NewProfileRepository, wire.Bind(new(repository.ProfileRepository), new(*postgres.ProfileRepository)), postgres.NewTransactionRepository, wire.Bind(new(repository.TransactionRepository), new(*postgres.TransactionRepository)), postgres.NewApiKeyRepository, wire.Bind(new(repository.APIKeyRepository), new(*postgres.ApiKeyRepository)), postgres.NewFaceVerificationRepository, wire.Bind(new(repository.FaceVerificationRepository), new(*postgres.FaceVerificationRepository)), postgres.NewOCRRepository, wire.Bind(new(repository.OCRRepository), new(*postgres.OCRRepository)), ProvideContactSalesRepository, postgres.NewServiceRepository, postgres.NewTicketRepository, wire.Bind(new(repository.TicketRepository), new(*postgres.TicketRepository)), redis.NewCacheRepository, wire.Bind(new(repository.CacheRepository), new(*redis.CacheRepository)))
+var RepositorySet = wire.NewSet(postgres.NewUserRepository, postgres.NewGormUnitOfWork, postgres.NewProfileRepository, wire.Bind(new(repository.ProfileRepository), new(*postgres.ProfileRepository)), postgres.NewTransactionRepository, wire.Bind(new(repository.TransactionRepository), new(*postgres.TransactionRepository)), postgres.NewApiKeyRepository, wire.Bind(new(repository.APIKeyRepository), new(*postgres.ApiKeyRepository)), postgres.NewFaceVerificationRepository, wire.Bind(new(repository.FaceVerificationRepository), new(*postgres.FaceVerificationRepository)), postgres.NewOCRRepository, wire.Bind(new(repository.OCRRepository), new(*postgres.OCRRepository)), ProvideContactSalesRepository, postgres.NewSessionRepository, postgres.NewServiceRepository, postgres.NewTicketRepository, wire.Bind(new(repository.TicketRepository), new(*postgres.TicketRepository)), postgres.NewWorkflowConfigRepository, redis.NewCacheRepository, wire.Bind(new(repository.CacheRepository), new(*redis.CacheRepository)))
 
 // Service Set
 var ServiceSet = wire.NewSet(service.NewProfileService, service.NewWalletService, service.NewAdminProfileService, service.NewUserService, service.NewJWTService, service.NewOTPService, service.NewAuthService, service.NewAPIKeyService, service.NewTransactionService, service.NewTrialService, service.NewFaceVerificationService, service.NewOCRService, ProvideContactSalesUsecase, service.NewTicketService, wire.Bind(new(usecase.UserUsecase), new(*service.UserService)), wire.Bind(new(usecase.TokenUsecase), new(*service.JWTService)), wire.Bind(new(usecase.OTPUsecase), new(*service.OTPService)), wire.Bind(new(usecase.AuthUsecase), new(*service.AuthService)), wire.Bind(new(usecase.APIKeyUsecase), new(*service.APIKeyService)), wire.Bind(new(usecase.TransactionUsecase), new(*service.TransactionService)), wire.Bind(new(usecase.FaceVerificationUsecase), new(*service.FaceVerificationService)), wire.Bind(new(usecase.OCRUsecase), new(*service.OCRService)), wire.Bind(new(usecase.TicketUsecase), new(*service.TicketService)))
@@ -138,6 +145,15 @@ var ControllerSet = wire.NewSet(
 	ProvideOCRHandler,
 	ProvideContactSalesHandler,
 	ProvideTicketHandler,
+	ProvideWorkflowConfigHandler,
+)
+
+// Session Set
+var SessionSet = wire.NewSet(
+	ProvideSessionStore,
+	ProvideSessionManager,
+	ProvideSessionWorkflow,
+	ProvideSessionHandler,
 )
 
 // Router Set

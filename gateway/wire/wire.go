@@ -70,10 +70,14 @@ var RepositorySet = wire.NewSet(
 
 	ProvideContactSalesRepository,
 
+	postgres.NewSessionRepository,
+
 	postgres.NewServiceRepository,
 
 	postgres.NewTicketRepository,
 	wire.Bind(new(repository.TicketRepository), new(*postgres.TicketRepository)),
+
+	postgres.NewWorkflowConfigRepository,
 
 	redis.NewCacheRepository,
 	wire.Bind(new(repository.CacheRepository), new(*redis.CacheRepository)),
@@ -120,6 +124,15 @@ var ControllerSet = wire.NewSet(
 	ProvideOCRHandler,
 	ProvideContactSalesHandler,
 	ProvideTicketHandler,
+	ProvideWorkflowConfigHandler,
+)
+
+// Session Set
+var SessionSet = wire.NewSet(
+	ProvideSessionStore,
+	ProvideSessionManager,
+	ProvideSessionWorkflow,
+	ProvideSessionHandler,
 )
 
 // Router Set
@@ -136,6 +149,7 @@ func InitializeApplication() (*Application, error) {
 		RepositorySet,
 		ServiceSet,
 		ControllerSet,
+		SessionSet,
 		RouterSet,
 		NewApplication,
 	)

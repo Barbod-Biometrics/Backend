@@ -55,3 +55,14 @@ var (
 	ErrServiceNotFound   = NewBadRequestError("ERR_SERVICE_NOT_FOUND", "service not found", nil)
 	ErrTrialExceeded     = NewAppError("ERR_TRIAL_EXCEEDED", "trial limit exceeded", 429, nil)
 )
+
+// Common errors for handlers and services
+var (
+	ErrInvalidRequest = NewBadRequestError("ERR_INVALID_REQUEST", "invalid request", nil)
+	ErrInvalidID      = NewBadRequestError("ERR_INVALID_ID", "invalid id", nil)
+
+	ErrFailedToSave   = NewInternalError("ERR_FAILED_TO_SAVE", "failed to save resource", nil)
+	ErrFailedToList   = NewInternalError("ERR_FAILED_TO_LIST", "failed to list resources", nil)
+	ErrFailedToUpdate = NewInternalError("ERR_FAILED_TO_UPDATE", "failed to update resource", nil)
+	ErrFailedToDelete = NewInternalError("ERR_FAILED_TO_DELETE", "failed to delete resource", nil)
+)

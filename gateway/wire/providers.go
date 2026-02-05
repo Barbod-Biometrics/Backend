@@ -2,9 +2,11 @@ package wire
 
 import (
 	"context"
+	"time"
 
 	"github.com/Barbod-Biometrics/Backend/gateway/bootstrap"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/service"
+	sessionpkg "github.com/Barbod-Biometrics/Backend/gateway/internal/application/session"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/application/usecase"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/communication"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/domain/enum"
@@ -14,6 +16,7 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/communication/email"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/communication/sms"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/database/redis"
+	redisdatabase "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/database/redis"
 	face_verification "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/face_verificaiton"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/jwt"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/localization"
@@ -21,6 +24,7 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/ocr"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/recaptcha"
 	postgresRepo "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/repository/postgres"
+	sessionredis "github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/repository/redis"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/telemetry"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/admin"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/apikey"
@@ -28,10 +32,12 @@ import (
 	faceVerificationController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/face_verification"
 	ocrController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/ocr"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
+	sessionController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/session"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/support"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/transaction"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/user"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/wallet"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/workflow_config"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/middleware"
 	v1 "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/routes/http/v1"
 	"github.com/Barbod-Biometrics/Backend/gateway/pkg/database"
@@ -66,8 +72,8 @@ func ProvidePostgresDatabase(cfg *bootstrap.Config) *gorm.DB {
 	return database.NewPostgresDatabase(cfg.Env)
 }
 
-func ProvideRedisClient(cfg *bootstrap.Config) (*redis.RedisClient, error) {
-	return redis.NewRedisClient(
+func ProvideRedisClient(cfg *bootstrap.Config) (*redisdatabase.RedisClient, error) {
+	return redisdatabase.NewRedisClient(
 		cfg.Env.PrimaryRedis.Address,
 		cfg.Env.PrimaryRedis.Port,
 		cfg.Env.PrimaryRedis.Password,
@@ -158,6 +164,8 @@ func ProvideRouter(
 	jwtKeyManager domainJWT.KeyManager,
 	faceVerificationHandler *faceVerificationController.FaceVerificationHandler,
 	ocrHandler *ocrController.OCRHandler,
+	sessionHandler *sessionController.SessionHandler,
+	workflowConfigHandler *workflow_config.WorkflowConfigHandler,
 	cfg *bootstrap.Config,
 ) *v1.Route {
 	return v1.NewRouter(
@@ -165,6 +173,8 @@ func ProvideRouter(
 		profileHandler,
 		apiKeyController,
 		adminProfileHandler,
+		sessionHandler,
+		workflowConfigHandler,
 		contactSalesHandler,
 		faceVerificationHandler,
 		ocrHandler,
@@ -208,7 +218,7 @@ func ProvideFaceVerificationHandler(ms usecase.FaceVerificationUsecase, l logger
 }
 
 func ProvideOCRClient(cfg *bootstrap.Config, l logger.Logger) *ocr.OCRClient {
-	return ocr.NewOCRClient(cfg.Env.OCR.OCRURL, l)
+	return ocr.NewOCRClient(cfg.Env.OCR.OCRURL, cfg.Env.OCR.APIKey, l)
 }
 
 func ProvideOCRRepository(db *gorm.DB, l logger.Logger) repository.OCRRepository {
@@ -233,6 +243,29 @@ func ProvideOCRService(
 
 func ProvideOCRHandler(ocrUsecase usecase.OCRUsecase, l logger.Logger) *ocrController.OCRHandler {
 	return ocrController.NewOCRHandler(ocrUsecase, l)
+}
+
+// ProvideSessionStore returns the SessionStore interface backed by in-memory implementation.
+func ProvideSessionStore(redisClient *redisdatabase.RedisClient) sessionpkg.SessionStore {
+	// use redis-backed session store; key prefix "session:"
+	return sessionredis.NewRedisSessionStore(redisClient, "session:", 10*time.Minute)
+}
+
+func ProvideSessionManager(store sessionpkg.SessionStore, repo repository.SessionRepository) *sessionpkg.SessionManager {
+	// ttl 10 minutes for sessions
+	return sessionpkg.NewSessionManager(store, 10*time.Minute, repo)
+}
+
+func ProvideSessionWorkflow(sessionMgr *sessionpkg.SessionManager, ocrUsecase usecase.OCRUsecase, fvUsecase usecase.FaceVerificationUsecase, configRepo repository.WorkflowConfigRepository, storageClient *storage.MinioClient, l logger.Logger) usecase.SessionUsecase {
+	return service.NewSessionInteractor(sessionMgr, ocrUsecase, fvUsecase, configRepo, storageClient, l)
+}
+
+func ProvideSessionHandler(svc usecase.SessionUsecase, mgr *sessionpkg.SessionManager, configRepo repository.WorkflowConfigRepository, l logger.Logger) *sessionController.SessionHandler {
+	return sessionController.NewSessionHandler(svc, mgr, configRepo, l)
+}
+
+func ProvideWorkflowConfigHandler(configRepo repository.WorkflowConfigRepository, l logger.Logger) *workflow_config.WorkflowConfigHandler {
+	return workflow_config.NewWorkflowConfigHandler(configRepo, l)
 }
 
 func ProvideRecaptchaVerifier(cfg *bootstrap.Config) recaptcha.Verifier {

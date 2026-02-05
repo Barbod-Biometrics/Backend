@@ -10,14 +10,16 @@ import (
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/infrastructure/localization"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/admin"
 	apikey "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/apikey"
-	faceVerificationController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/face_verification"
 	contactController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/contact"
+	faceVerificationController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/face_verification"
 	ocrController "github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/ocr"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/profile"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/session"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/support"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/transaction"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/user"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/wallet"
+	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/controller/v1/workflow_config"
 	"github.com/Barbod-Biometrics/Backend/gateway/internal/presentation/middleware"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -29,7 +31,9 @@ type Route struct {
 	profileController          *profile.ProfileHandler
 	apiKeyController           *apikey.ApiKeyHandler
 	adminProfileController     *admin.AdminProfileHandler
-		contactSalesController     *contactController.ContactSalesHandler
+	sessionController          *session.SessionHandler
+	workflowConfigController   *workflow_config.WorkflowConfigHandler
+	contactSalesController     *contactController.ContactSalesHandler
 	faceVerificationController *faceVerificationController.FaceVerificationHandler
 	ocrController              *ocrController.OCRHandler
 	walletController           *wallet.WalletHandler
@@ -47,6 +51,8 @@ func NewRouter(
 	profileHandler *profile.ProfileHandler,
 	apiKeyHandler *apikey.ApiKeyHandler,
 	adminProfileHandler *admin.AdminProfileHandler,
+	sessionHandler *session.SessionHandler,
+	workflowConfigHandler *workflow_config.WorkflowConfigHandler,
 	contactSalesHandler *contactController.ContactSalesHandler,
 	faceVerificationHandler *faceVerificationController.FaceVerificationHandler,
 	ocrHandler *ocrController.OCRHandler,
@@ -64,6 +70,8 @@ func NewRouter(
 		profileController:          profileHandler,
 		apiKeyController:           apiKeyHandler,
 		adminProfileController:     adminProfileHandler,
+		sessionController:          sessionHandler,
+		workflowConfigController:   workflowConfigHandler,
 		contactSalesController:     contactSalesHandler,
 		walletController:           walletHandler,
 		transactionController:      transactionHandler,
@@ -201,6 +209,26 @@ func (r *Route) RegisterRoutes() http.Handler {
 		{
 			modelReports.GET("/face-verification", r.faceVerificationController.GetReport)
 			modelReports.GET("/ocr", r.ocrController.GetReport)
+		}
+
+		workflow := v1.Group("/workflow")
+		workflow.Use(middleware.APIKeyAuth(r.apiKeyUsecase, r.log))
+		{
+			workflow.POST("/", r.sessionController.Start)
+			workflow.POST("/:id/upload", r.sessionController.Upload)
+			workflow.GET("/:id", r.sessionController.Get)
+			workflow.POST("/:id/cancel", r.sessionController.Cancel)
+			workflow.POST("/:id/accept-ocr", r.sessionController.AcceptOCR)
+		}
+
+		workflowConfig := v1.Group("/workflow/config")
+		workflowConfig.Use(middleware.JWTMiddleware(r.jwtKeyManager))
+		{
+			workflowConfig.POST("/", r.workflowConfigController.SaveConfig)
+			workflowConfig.GET("/", r.workflowConfigController.ListConfigs)
+			workflowConfig.GET("/:id", r.workflowConfigController.GetConfig)
+			workflowConfig.PUT("/:id", r.workflowConfigController.UpdateConfig)
+			workflowConfig.DELETE("/:id", r.workflowConfigController.DeleteConfig)
 		}
 
 		ocrMachine := v1.Group("/ocr")

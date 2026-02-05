@@ -109,6 +109,7 @@ type FaceVerification struct {
 
 type OCR struct {
 	OCRURL string
+	APIKey string
 }
 
 type Recaptcha struct {
@@ -187,6 +188,7 @@ func NewEnvironment() *Env {
 		},
 		OCR: OCR{
 			OCRURL: getEnvString("OCR_URL", "http://localhost:5001"),
+			APIKey: os.Getenv("OCR_API_KEY"),
 		},
 		Recaptcha: Recaptcha{
 			Enabled:   getEnvBool("RECAPTCHA_ENABLED", false),
