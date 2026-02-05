@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	serviceName = "sms"
+	serviceName  = "sam"
+	messagerType = "bale"
 )
 
 type SMSService struct {
@@ -67,7 +68,8 @@ func (s *SMSService) Send(ctx context.Context, phoneNumber string, code string) 
 		Destination: phoneNumber,
 		Action:      serviceName,
 		Payload: map[string]string{
-			"code": code,
+			"messenger_type": messagerType,
+			"code":           code,
 		},
 	}
 
